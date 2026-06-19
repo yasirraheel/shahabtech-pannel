@@ -30,6 +30,9 @@ class ExtensionController extends Controller
         // Get all active accounts for user's plan
         $accounts = AccountListing::where('plan_id', $user->plan_id)
             ->where('status', Status::LISTING_ACTIVE)
+            ->whereHas('socialMedia', function($q) {
+                $q->active();
+            })
             ->with('socialMedia')
             ->get()
             ->groupBy('social_media_id')

@@ -29,7 +29,7 @@ class UserController extends Controller
         // Platforms the user can access via their plan
         $platforms = [];
         if ($user->plan_id) {
-            $platforms = \App\Models\SocialMedia::whereHas('accountListing', function ($q) use ($user) {
+            $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) use ($user) {
                 $q->where('plan_id', $user->plan_id)
                   ->where('status', \App\Constants\Status::LISTING_ACTIVE);
             })->get();
