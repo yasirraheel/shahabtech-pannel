@@ -446,13 +446,17 @@ function dateSorting($arr)
 
 function gs($key = null)
 {
-    $general = Cache::get('GeneralSetting');
-    if (!$general) {
-        $general = GeneralSetting::first();
-        Cache::put('GeneralSetting', $general);
+    try {
+        $general = Cache::get('GeneralSetting');
+        if (!$general) {
+            $general = GeneralSetting::first();
+            Cache::put('GeneralSetting', $general);
+        }
+        if ($key) return @$general->$key;
+        return $general;
+    } catch (\Exception $e) {
+        return null;
     }
-    if ($key) return @$general->$key;
-    return $general;
 }
 function isImage($string)
 {
