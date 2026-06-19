@@ -5,90 +5,52 @@ namespace App\Http\Controllers\Admin;
 use App\Constants\Status;
 use Illuminate\Http\Request;
 use App\Models\AccountListing;
-use App\Models\BiddingListing;
-use App\Http\Controllers\Controller;
 use App\Models\Category;
-use App\Models\ListingReport;
 use App\Models\SocialMedia;
+use App\Models\Plan;
+use App\Models\User;
 
 class AccountListingController extends Controller
 {
     public function index(Request $request)
     {
-        $pageTitle       = 'All Account Listings';
-        $accountListings = $this->listingData($scope = null, $request);
+        $pageTitle       = 'All Accounts';
+        $accountListings = AccountListing::searchable(['title'])->with('socialMedia', 'category', 'plan')->latest()->paginate(getPaginate());
         $categories      = Category::get();
         $socialMedias    = SocialMedia::get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'categories', 'socialMedias'));
+        $plans           = Plan::get();
+        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'categories', 'socialMedias', 'plans'));
     }
 
-    public function pending(Request $request)
+    public function store(Request $request, $id = null)
     {
-        $pageTitle  = 'Pending Listings';
-        $accountListings = $this->listingData($scope = 'pending', $request);
-        $categories = Category::get();
-        $socialMedias = SocialMedia::get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings','categories','socialMedias'));
-    }
+        $request->validate([
+            'title'           => 'required',
+            'social_media_id' => 'required',
+            'category_id'     => 'required',
+            'plan_id'         => 'required',
+            'url'             => 'required|url',
+        ]);
 
-    public function active(Request $request)
-    {
-        $pageTitle  = 'Active Listings';
-        $accountListings = $this->listingData($scope = 'active', $request);
-        $categories = Category::get();
-        $socialMedias = SocialMedia::get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings','categories','socialMedias'));
-    }
-
-    public function inactive(Request $request)
-    {
-        $pageTitle  = 'Inactive Listings';
-        $accountListings = $this->listingData($scope = 'inactive', $request);
-        $categories = Category::get();
-        $socialMedias = SocialMedia::get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings','categories','socialMedias'));
-    }
-    public function rejected(Request $request)
-    {
-        $pageTitle  = 'Rejected Listings';
-        $accountListings = $this->listingData($scope = 'rejected', $request);
-        $categories = Category::get();
-        $socialMedias = SocialMedia::get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings','categories','socialMedias'));
-    }
-
-    public function draft(Request $request)
-    {
-        $pageTitle  = 'Draft Listings';
-        $accountListings = $this->listingData($scope = 'draft', $request);
-        $categories = Category::get();
-        $socialMedias = SocialMedia::get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings','categories','socialMedias'));
-    }
-    public function sold(Request $request)
-    {
-        $pageTitle  = 'Sold Listings';
-        $accountListings = $this->listingData($scope = 'sold', $request);
-        $categories = Category::get();
-        $socialMedias = SocialMedia::get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings','categories','socialMedias'));
-    }
-
-    public function listingData($scope = null, $request)
-    {
-        if ($scope) {
-            $query = AccountListing::$scope()->searchable(['title', 'user:username'])->with('socialMedia', 'category','user')->withCount(['accountBidding','report']);
+        if ($id) {
+            $account = AccountListing::findOrFail($id);
+            $notifyMessage = 'Account updated successfully';
         } else {
-            $query = AccountListing::searchable(['title', 'user:username'])->with('socialMedia', 'category','user')->withCount(['accountBidding','report']);
+            $account = new AccountListing();
+            $notifyMessage = 'Account added successfully';
         }
 
-        if ($request->category) {
-            $query = $query->where('category_id', $request->category);
-        }
-        if ($request->social_media) {
-            $query = $query->where('social_media_id', $request->social_media);
-        }
-        return $query->latest()->paginate(getPaginate());
+        $account->title           = $request->title;
+        $account->social_media_id = $request->social_media_id;
+        $account->category_id     = $request->category_id;
+        $account->plan_id         = $request->plan_id;
+        $account->url             = $request->url;
+        $account->account_info    = json_decode($request->account_info) ? json_decode($request->account_info) : $request->account_info;
+        $account->status          = Status::LISTING_ACTIVE;
+        $account->save();
+
+        $notify[] = ['success', $notifyMessage];
+        return back()->withNotify($notify);
     }
 
     public function details($id)
@@ -98,61 +60,8 @@ class AccountListingController extends Controller
         return view('admin.account_listing.details', compact('pageTitle', 'accountListing'));
     }
 
-    public function approveStatus($id)
+    public function status($id)
     {
-        $accountListing = AccountListing::findOrFail($id);
-        $accountListing->status = Status::LISTING_ACTIVE;
-        $accountListing->save();
-
-        if (userNotifyPermission($accountListing->user,'approved')) {
-            notify($accountListing->user, 'ACCOUNT_APPROVE', [
-                'title' => $accountListing->title,
-                'sell_price' => showAmount($accountListing->sell_price,currencyFormat:false),
-                'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
-            ]);
-        }
-
-        $notify[] = ['success', 'Status change successfully'];
-        return back()->withNotify($notify);
-    }
-
-    public function rejectStatus(Request $request, $id)
-    {
-        $request->validate([
-            'reason' => 'required'
-        ]);
-
-        $accountListing = AccountListing::findOrFail($id);
-        $accountListing->reason = $request->reason;
-        $accountListing->status = Status::LISTING_REJECTED;
-        $accountListing->save();
-
-        if (userNotifyPermission($accountListing->user,'rejected')) {
-            notify($accountListing->user, 'ACCOUNT_REJECTED', [
-                'title' => $accountListing->title,
-                'sell_price' => showAmount($accountListing->sell_price,currencyFormat:false),
-                'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
-                'reject_reason' => $request->reason,
-            ]);
-        }
-
-        $notify[] = ['success', 'Status change successfully'];
-        return back()->withNotify($notify);
-    }
-
-    public function bidding($id)
-    {
-        $accountListing = AccountListing::findOrFail($id);
-        $pageTitle = 'Bids for: '. @$accountListing->title;
-        $biddingListings = BiddingListing::with('user')->where('account_listing_id',$id)->paginate(getPaginate());
-        return view('admin.account_listing.bidding', compact('pageTitle', 'biddingListings'));
-    }
-
-    public function report($id)
-    {
-        $accountListing = AccountListing::findOrFail($id);
-        $pageTitle = 'Report for: '. @$accountListing->title;
-        $reports = ListingReport::searchable(['user:email','user:username'])->with('user')->where('account_listing_id',$id)->paginate(getPaginate());
-        return view('admin.account_listing.report', compact('pageTitle', 'reports'));
+        return AccountListing::changeStatus($id);
     }
 }
