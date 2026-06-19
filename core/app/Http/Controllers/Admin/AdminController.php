@@ -55,9 +55,10 @@ class AdminController extends Controller
         $withdrawals['total_withdraw_rejected'] = Withdrawal::rejected()->count();
         $withdrawals['total_withdraw_charge']   = Withdrawal::approved()->sum('charge');
 
-        $listings['pending']   = AccountListing::pending()->count();
         $listings['active']    = AccountListing::active()->count();
-        $listings['sold']      = AccountListing::sold()->count();
+        $listings['inactive']  = AccountListing::inactive()->count();
+        $listings['sold']      = 0;
+        $listings['rejected']  = 0;
         $listings['sellerFee'] = Transaction::where('remark', 'seller_fee')->sum('charge');
 
         return view('admin.dashboard', compact('pageTitle', 'widget', 'chart','deposit','withdrawals','listings'));

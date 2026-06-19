@@ -31,18 +31,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (!cache()->get('SystemInstalled')) {
-            $envFilePath = base_path('.env');
-            if (!file_exists($envFilePath)) {
-                header('Location: install');
-                exit;
-            }
-            $envContents = file_get_contents($envFilePath);
-            if (empty($envContents)) {
-                header('Location: install');
-                exit;
-            } else {
-                cache()->put('SystemInstalled', true);
+        if (!app()->runningInConsole()) {
+            if (!cache()->get('SystemInstalled')) {
+                $envFilePath = base_path('.env');
+                if (!file_exists($envFilePath)) {
+                    header('Location: install');
+                    exit;
+                }
+                $envContents = file_get_contents($envFilePath);
+                if (empty($envContents)) {
+                    header('Location: install');
+                    exit;
+                } else {
+                    cache()->put('SystemInstalled', true);
+                }
             }
         }
 
@@ -65,7 +67,6 @@ class AppServiceProvider extends ServiceProvider
                 'pendingDepositsCount'    => Deposit::pending()->count(),
                 'pendingWithdrawCount'    => Withdrawal::pending()->count(),
                 'updateAvailable'    => version_compare(gs('available_version'),systemDetails()['version'],'>') ? 'v'.gs('available_version') : false,
-                'pendingAccountListingCount' => AccountListing::pending()->count(),
             ]);
         });
 
