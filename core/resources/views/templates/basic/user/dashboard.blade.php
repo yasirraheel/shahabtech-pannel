@@ -102,50 +102,50 @@
                             <h4 class="mb-0">@lang('My Accessible Platforms')</h4>
                         </div>
                         
-                        <div class="row gy-4">
-                            @forelse ($platforms as $platform)
-                                <div class="col-xl-4 col-lg-6 col-md-6">
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                @forelse ($platforms as $platform)
                                     <div class="product-item">
                                         <div class="product-item__wrapper">
-                                            <div class="product-item__thumb d-flex justify-content-center pt-4 pb-2">
-                                                <div class="icon-wrap" style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <div class="product-item__thumb">
+                                                <div style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
                                                     <i class="las la-globe" style="font-size: 3.5rem; color: var(--base-color, #6c63ff);"></i>
                                                 </div>
                                             </div>
-                                            <div class="product-item__content text-center">
-                                                <h4 class="product-item__title mb-1">
+                                            <div class="product-item__content">
+                                                <h4 class="product-item__title d-flex align-items-center mb-0">
                                                     <span class="text--base">{{ __($platform->name) }}</span>
                                                 </h4>
-                                                <p class="product-item__text mb-2" style="font-family: monospace; color: #dc3545;">
+                                                <p class="product-item__text mt-2" style="font-family: monospace; color: #dc3545;">
                                                     {{ $platform->domain }}
                                                 </p>
-                                                <div class="mt-2 mb-2">
-                                                    <span class="badge badge--success px-3 py-2" style="font-size: 12px; background: transparent; border: 1px solid #28a745; color: #28a745;">
+                                                <div class="mt-2">
+                                                    <span class="badge badge--success" style="background: transparent; border: 1px solid #28a745; color: #28a745; font-size: 13px; padding: 6px 12px;">
                                                         {{ $platform->account_listing_count }} @lang('Accounts Available')
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="d-flex align-items-center flex-wrap justify-content-center">
-                                            <div class="product-item__button w-100 mt-3">
-                                                <a href="{{ $platform->url }}" target="_blank" class="btn btn--base w-100">
+                                        <div class="d-flex align-items-center flex-wrap">
+                                            <div class="product-item__button">
+                                                <a href="{{ $platform->url }}" target="_blank" class="btn btn--base">
                                                     <i class="las la-external-link-square-alt me-1"></i> @lang('Visit Platform')
                                                 </a>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @empty
-                                <div class="col-12 text-center py-5">
-                                    <div class="card custom--card">
-                                        <div class="card-body py-5">
-                                            <i class="las la-folder-open mb-3" style="font-size: 3rem; color: #888;"></i>
-                                            <h5 class="text-muted">@lang('You currently do not have access to any platforms.')</h5>
-                                            <p class="text-muted">@lang('Please purchase a plan to unlock premium platforms.')</p>
+                                @empty
+                                    <div class="text-center py-5">
+                                        <div class="card custom--card">
+                                            <div class="card-body py-5">
+                                                <i class="las la-folder-open mb-3" style="font-size: 3rem; color: #888;"></i>
+                                                <h5 class="text-muted">@lang('You currently do not have access to any platforms.')</h5>
+                                                <p class="text-muted">@lang('Please purchase a plan to unlock premium platforms.')</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            @endforelse
+                                @endforelse
+                            </div>
                         </div>
                     </div>
                 </div>
