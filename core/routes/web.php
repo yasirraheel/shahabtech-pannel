@@ -2,44 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::post('/activate_system_submit', function (\Illuminate\Http\Request $request) {
-    $envFilePath = base_path('.env');
-    $envContents = file_exists($envFilePath) ? file_get_contents($envFilePath) : '';
-    
-    // Safely update PURCHASECODE in .env without wiping other variables
-    $purchaseCode = $request->purchase_code ?? 'bypassed';
-    if (preg_match('/^PURCHASECODE=/m', $envContents)) {
-        $envContents = preg_replace('/^PURCHASECODE=.*$/m', 'PURCHASECODE=' . $purchaseCode, $envContents);
-    } else {
-        $envContents .= "\nPURCHASECODE=" . $purchaseCode . "\n";
-    }
-    file_put_contents($envFilePath, $envContents);
-
-    // Write laramin.json to satisfy checks
-    $laraminPath = base_path('vendor/laramin/laramin.json');
-    if (file_exists(dirname($laraminPath))) {
-        $txt = json_encode([
-            'purchase_code' => $purchaseCode,
-            'installcode' => 'bypassed',
-            'license_type' => 'Extended License'
-        ]);
-        file_put_contents($laraminPath, $txt);
-    }
-
-    // Disable maintenance mode
-    try {
-        $general = \App\Models\GeneralSetting::first();
-        if ($general) {
-            $general->maintenance_mode = 0;
-            $general->save();
-        }
-    } catch (\Exception $e) {
-        // Ignore DB errors if DB is not configured properly yet
-    }
-
-    return response()->json(['type'=>'success']);
-});
-
 Route::get('/clear', function(){
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
 });
