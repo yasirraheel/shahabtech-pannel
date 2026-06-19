@@ -23,22 +23,22 @@ class UserController extends Controller
 {
     public function home()
     {
-        $pageTitle             = 'Dashboard';
-        $userId                = auth()->user()->id;
-        $totalListingCount     = AccountListing::where('user_id', $userId)->count();
-        $purchaseAccountsCount = AccountListing::where('buyer_id', $userId)->count();
-        $bidCount              = BiddingListing::where('user_id', $userId)->count();
-        $totalDeposit          = Deposit::where('user_id', $userId)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
-        $totalWithdrawals      = Withdrawal::where('user_id', $userId)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
+        $pageTitle = 'Dashboard';
+        $user      = auth()->user()->load('plan');
 
-        $activeBids = BiddingListing::where('user_id', $userId)->whereHas('accountListing', function ($q) {
-            $q->active();
-        })->with('accountListing', function ($q) {
-            $q->withMax('accountBidding', 'amount');
-        })->paginate(getPaginate());
+        // Platforms the user can access via their plan
+        $platforms = [];
+        if ($user->plan_id) {
+            $platforms = \App\Models\SocialMedia::whereHas('accountListing', function ($q) use ($user) {
+                $q->where('plan_id', $user->plan_id)
+                  ->where('status', \App\Constants\Status::LISTING_ACTIVE);
+            })->get();
+        }
 
-        $user = auth()->user();
-        return view('Template::user.dashboard', compact('pageTitle', 'totalListingCount', 'purchaseAccountsCount', 'activeBids', 'bidCount', 'totalDeposit', 'totalWithdrawals', 'user'));
+        $totalDeposit     = Deposit::where('user_id', $user->id)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
+        $totalWithdrawals = Withdrawal::where('user_id', $user->id)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
+
+        return view('Template::user.dashboard', compact('pageTitle', 'user', 'platforms', 'totalDeposit', 'totalWithdrawals'));
     }
 
     public function depositHistory(Request $request)
