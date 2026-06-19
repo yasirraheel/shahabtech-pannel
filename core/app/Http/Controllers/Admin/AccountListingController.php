@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Constants\Status;
 use Illuminate\Http\Request;
 use App\Models\AccountListing;
+use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\SocialMedia;
 use App\Models\Plan;
