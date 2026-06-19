@@ -53,6 +53,13 @@ class SiteController extends Controller
         return view('Template::contact',compact('pageTitle','user','sections','seoContents','seoImage'));
     }
 
+    public function plans()
+    {
+        $pageTitle = "Subscription Plans";
+        $plans = \App\Models\Plan::active()->get();
+        return view('Template::plans', compact('pageTitle', 'plans'));
+    }
+
 
     public function contactSubmit(Request $request)
     {

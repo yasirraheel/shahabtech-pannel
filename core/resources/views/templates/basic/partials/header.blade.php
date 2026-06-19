@@ -42,8 +42,8 @@
                     <li class="nav-item d-block d-lg-none">
                         <div class="top-button d-flex">
                             <div class="top-button__button">
-                                <a class="btn btn--base" href="{{ route('user.account.listing.social.media.category') }}"> <span class="icon"> <i class="las la-folder-plus"></i>
-                                    </span> @lang('Sell Account') </a>
+                                <a class="btn btn--base" href="{{ route('plans') }}"> <span class="icon"> <i class="las la-crown"></i>
+                                    </span> @lang('Pricing Plans') </a>
                             </div>
                            
                         </div>
@@ -51,9 +51,9 @@
                 </ul>
                 <div class="d-none d-lg-block">
                     <div class="top-button d-flex justify-content-between align-items-center flex-wrap">
-                        <div class="top-button__button">
-                            <a class="btn btn--base" href="{{ route('user.account.listing.social.media.category') }}"> 
-                                <span class="icon"> <i class="las la-folder-plus"></i></span> @lang('Sell Account') 
+                        <div class="top-button__button" style="margin-right: 15px;">
+                            <a class="btn btn--base" href="{{ route('plans') }}"> 
+                                <span class="icon"> <i class="las la-crown"></i></span> @lang('Pricing Plans') 
                             </a>
                         </div>
                         <div class="top-header__login">
@@ -73,23 +73,10 @@
                                                 <span class="text"> @lang('Dashboard') </span>
                                             </a>
                                         </li>
-                                      
                                         <li class="user-info-dropdown__item">
-                                            <a class="{{menuActive('user.account.listing.index')}} user-info-dropdown__link" href="{{ route('user.account.listing.index') }}">
-                                                <span class="icon"><i class="fas fa-list-ul"></i></span>
-                                                <span class="text"> @lang('Account Listing') </span>
-                                            </a>
-                                        </li>
-                                        <li class="user-info-dropdown__item">
-                                            <a class="{{menuActive('user.account.listing.my.bid')}} user-info-dropdown__link" href="{{ route('user.account.listing.my.bid') }}">
-                                                <span class="icon"><i class="fas fa-gavel"></i></span>
-                                                <span class="text"> @lang('My Bids') </span>
-                                            </a>
-                                        </li>
-                                        <li class="user-info-dropdown__item">
-                                            <a class="{{menuActive('user.account.listing.purchase')}} user-info-dropdown__link" href="{{ route('user.account.listing.purchase') }}">
-                                                <span class="icon"><i class="fas fa-shopping-basket"></i></span>
-                                                <span class="text"> @lang('Purchase Account') </span>
+                                            <a class="{{menuActive('plans')}} user-info-dropdown__link" href="{{ route('plans') }}">
+                                                <span class="icon"><i class="fas fa-crown"></i></span>
+                                                <span class="text"> @lang('Subscription Plans') </span>
                                             </a>
                                         </li>
                                         <li class="user-info-dropdown__item">
@@ -175,23 +162,10 @@
                     <span class="text"> @lang('Dashboard') </span>
                 </a>
             </li>
-      
             <li class="user-info-dropdown__item">
-                <a class="{{menuActive('user.account.listing.index')}} user-info-dropdown__link" href="{{ route('user.account.listing.index') }}">
-                    <span class="icon"><i class="fas fa-list-ul"></i></span>
-                    <span class="text"> @lang('Account Listing') </span>
-                </a>
-            </li>
-            <li class="user-info-dropdown__item">
-                <a class="{{menuActive('user.account.listing.my.bid')}} user-info-dropdown__link" href="{{ route('user.account.listing.my.bid') }}">
-                    <span class="icon"><i class="fas fa-gavel"></i></span>
-                    <span class="text"> @lang('My Bids') </span>
-                </a>
-            </li>
-            <li class="user-info-dropdown__item">
-                <a class="{{menuActive('user.account.listing.purchase')}} user-info-dropdown__link" href="{{ route('user.account.listing.purchase') }}">
-                    <span class="icon"><i class="fas fa-shopping-basket"></i></span>
-                    <span class="text"> @lang('Purchase Account') </span>
+                <a class="{{menuActive('plans')}} user-info-dropdown__link" href="{{ route('plans') }}">
+                    <span class="icon"><i class="fas fa-crown"></i></span>
+                    <span class="text"> @lang('Subscription Plans') </span>
                 </a>
             </li>
             <li class="user-info-dropdown__item">

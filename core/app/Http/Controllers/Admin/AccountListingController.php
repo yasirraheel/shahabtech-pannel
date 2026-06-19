@@ -20,7 +20,9 @@ class AccountListingController extends Controller
             ->latest()
             ->paginate(getPaginate());
         $plans = Plan::active()->get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'plans'));
+        $socialMedias = SocialMedia::active()->get();
+        $categories = \App\Models\Category::active()->get();
+        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'plans', 'socialMedias', 'categories'));
     }
 
     // Accounts for a specific platform
@@ -34,7 +36,8 @@ class AccountListingController extends Controller
             ->latest()
             ->paginate(getPaginate());
         $plans = Plan::active()->get();
-        return view('admin.account_listing.by_platform', compact('pageTitle', 'accountListings', 'platform', 'plans'));
+        $categories = \App\Models\Category::active()->get();
+        return view('admin.account_listing.by_platform', compact('pageTitle', 'accountListings', 'platform', 'plans', 'categories'));
     }
 
     public function store(Request $request, $id = null)

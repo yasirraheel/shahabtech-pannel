@@ -57,6 +57,7 @@ Route::middleware('auth')->name('user.')->group(function () {
 
             Route::controller('UserController')->group(function(){
                 Route::get('dashboard', 'home')->name('home');
+                Route::post('plan/subscribe/{id}', 'subscribePlan')->name('plan.subscribe');
                 Route::get('download-attachments/{file_hash}', 'downloadAttachment')->name('download.attachment');
 
                 //2FA

@@ -41,6 +41,43 @@ class UserController extends Controller
         return view('Template::user.dashboard', compact('pageTitle', 'user', 'platforms', 'totalDeposit', 'totalWithdrawals'));
     }
 
+    public function subscribePlan(Request $request, $id)
+    {
+        $plan = \App\Models\Plan::active()->findOrFail($id);
+        $user = auth()->user();
+
+        if ($user->plan_id == $plan->id) {
+            $notify[] = ['error', 'You are already subscribed to this plan.'];
+            return back()->withNotify($notify);
+        }
+
+        if ($user->balance < $plan->price) {
+            $notify[] = ['error', 'Insufficient balance. Please deposit funds first.'];
+            return redirect()->route('user.deposit.index')->withNotify($notify);
+        }
+
+        // Deduct balance
+        $user->balance -= $plan->price;
+        $user->plan_id = $plan->id;
+        $user->save();
+
+        if ($plan->price > 0) {
+            $transaction = new Transaction();
+            $transaction->user_id = $user->id;
+            $transaction->amount = $plan->price;
+            $transaction->post_balance = $user->balance;
+            $transaction->charge = 0;
+            $transaction->trx_type = '-';
+            $transaction->details = 'Purchased Subscription Plan: ' . $plan->name;
+            $transaction->trx = getTrx();
+            $transaction->remark = 'plan_subscribe';
+            $transaction->save();
+        }
+
+        $notify[] = ['success', 'Successfully subscribed to ' . $plan->name];
+        return redirect()->route('user.home')->withNotify($notify);
+    }
+
     public function depositHistory(Request $request)
     {
         $pageTitle = 'Deposit History';

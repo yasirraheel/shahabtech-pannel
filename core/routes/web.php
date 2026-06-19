@@ -46,6 +46,7 @@ Route::controller('SiteController')->group(function () {
     Route::get('blog/{slug}', 'blogDetails')->name('blog.details');
     Route::get('blogs', 'blogs')->name('blogs');
     Route::get('buy-accounts', 'buyAccounts')->name('buy.account');
+    Route::get('plans', 'plans')->name('plans');
 
 
 

@@ -43,7 +43,7 @@
                                                 <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                             </button>
                                         @else
-                                            <a href="{{ route('user.home') }}" class="btn btn--base">
+                                            <a href="{{ route('plans') }}" class="btn btn--base">
                                                 <i class="las la-lock me-1"></i> @lang('Subscribe to Access')
                                             </a>
                                         @endif
