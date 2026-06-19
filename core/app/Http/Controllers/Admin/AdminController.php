@@ -16,6 +16,8 @@ use App\Rules\FileTypeValidate;
 use App\Models\AdminNotification;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Plan;
+use App\Models\SocialMedia;
 
 class AdminController extends Controller
 {
@@ -57,9 +59,8 @@ class AdminController extends Controller
 
         $listings['active']    = AccountListing::active()->count();
         $listings['inactive']  = AccountListing::inactive()->count();
-        $listings['sold']      = 0;
-        $listings['rejected']  = 0;
-        $listings['sellerFee'] = Transaction::where('remark', 'seller_fee')->sum('charge');
+        $listings['plans']     = Plan::count();
+        $listings['platforms'] = SocialMedia::count();
 
         return view('admin.dashboard', compact('pageTitle', 'widget', 'chart','deposit','withdrawals','listings'));
     }

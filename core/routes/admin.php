@@ -183,17 +183,18 @@ Route::middleware('admin')->group(function () {
     //Account listing
     Route::controller('AccountListingController')->prefix('account-listing')->name('account.listing.')->group(function () {
         Route::get('index', 'index')->name('index');
-        Route::get('pending', 'pending')->name('pending');
-        Route::get('active', 'active')->name('active');
-        Route::get('inactive', 'inactive')->name('inactive');
-        Route::get('rejected', 'rejected')->name('rejected');
-        Route::get('draft', 'draft')->name('draft');
-        Route::get('sold', 'sold')->name('sold');
-        Route::post('approve/status/{id}', 'approveStatus')->name('approve.status');
-        Route::post('reject/status/{id}', 'rejectStatus')->name('reject.status');
+        Route::post('store', 'store')->name('store');
+        Route::post('store/{id}', 'store')->name('update');
         Route::get('details/{id}', 'details')->name('detail');
-        Route::get('bidding/{id}', 'bidding')->name('bidding');
-        Route::get('report/{id}', 'report')->name('report');
+        Route::post('status/{id}', 'status')->name('status');
+    });
+
+    // Plans
+    Route::controller('PlanController')->prefix('plan')->name('plan.')->group(function () {
+        Route::get('index', 'index')->name('index');
+        Route::post('store', 'store')->name('store');
+        Route::post('store/{id}', 'store')->name('update');
+        Route::post('status/{id}', 'status')->name('status');
     });
 
 

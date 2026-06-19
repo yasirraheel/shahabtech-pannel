@@ -202,9 +202,9 @@
         <div class="col-xxl-3 col-sm-6">
             <x-widget
                 style="7"
-                link="{{route('admin.account.listing.active')}}"
+                link="{{route('admin.account.listing.index')}}"
                 icon="las la-list-alt"
-                title="Active Listings"
+                title="Active Accounts"
                 value="{{$listings['active']}}"
                 bg="primary"
             />
@@ -212,30 +212,30 @@
         <div class="col-xxl-3 col-sm-6">
             <x-widget
                 style="7"
-                link="{{route('admin.account.listing.pending')}}"
+                link="{{route('admin.account.listing.index')}}"
                 icon="las la-list"
-                title="Pending Listings"
-                value="{{$listings['pending']}}"
+                title="Inactive Accounts"
+                value="{{$listings['inactive']}}"
                 bg="warning"
             />
         </div><!-- dashboard-w1 end -->
         <div class="col-xxl-3 col-sm-6">
             <x-widget
                 style="7"
-                link="{{route('admin.account.listing.sold')}}"
+                link="{{route('admin.plan.index')}}"
                 icon="las la-tasks"
-                title="Sold Listings"
-                value="{{$listings['sold']}}"
+                title="Total Plans"
+                value="{{$listings['plans']}}"
                 bg="info"
             />
         </div><!-- dashboard-w1 end -->
         <div class="col-xxl-3 col-sm-6">
             <x-widget
                 style="7"
-                link="javascript:void(0)"
-                icon="las la-money-bill-wave"
-                title="Total Seller Fee"
-                value="{{showAmount($listings['sellerFee'])}}"
+                link="{{route('admin.social.media.index')}}"
+                icon="las la-globe"
+                title="Total Platforms"
+                value="{{$listings['platforms']}}"
                 bg="success"
             />
         </div><!-- dashboard-w1 end -->
