@@ -163,51 +163,21 @@ class SiteController extends Controller
 
     public function buyAccounts(Request $request)
     {
-        $pageTitle = 'Buy Account';
+        $pageTitle = 'Available Platforms';
 
-        $socialsMedia = SocialMedia::active()->with([
-            'accountListing.category', 'accountListing' => function ($q) {
-                $q->active()->withCount('accountBidding')->withMax('accountBidding', 'amount');
-            },
-        ])->hasAccountListing()->get();
+        // Simply fetch all platforms and count their active accounts
+        $platforms = SocialMedia::active()
+            ->withCount(['accountListing' => function($q) {
+                $q->where('status', Status::LISTING_ACTIVE);
+            }])
+            ->having('account_listing_count', '>', 0)
+            ->paginate(getPaginate(12));
 
-
-        $allSocialsMedia = AccountListing::searchable(['title'])
-            ->filter(['category_id', 'social_media_id', 'pricing_model'])
-            ->active()
-            ->activeSocialMedia()
-            ->activeCategory()
-            ->withCount('accountBidding')
-            ->withMax('accountBidding', 'amount')
-            ->myBidCount()
-            ->MyBid()
-            ->checkPreviousDate();
-
-        $maxPrice = (clone $allSocialsMedia)->max('sell_price');
-        $minPrice = (clone $allSocialsMedia)->min('min_price');
-
-        if ($request->amount) {
-
-            $amount = str_replace(gs('cur_sym'), '', $request->amount);
-            $amount = explode("-", $amount);
-            $min    = trim($amount[0]);
-            $max    = trim($amount[1]);
-
-            $allSocialsMedia->where('min_price', '>=', $min)->where('sell_price', '<=', $max);
-        } else {
-            $min = $minPrice;
-            $max = $maxPrice;
-        }
-
-        $allSocialsMedia = $allSocialsMedia->paginate(getPaginate(10));
-        $categories = Category::orderBy('name')->active()->get();
-
-        $sections     = Page::where('tempname', activeTemplate())->where('slug', 'buy-accounts ')->first();
-        $seoContents = $sections->seo_content;
+        $sections = Page::where('tempname', activeTemplate())->where('slug', 'buy-accounts ')->first();
+        $seoContents = $sections ? $sections->seo_content : null;
         $seoImage = @$seoContents->image ? getImage(getFilePath('seo') . '/' . @$seoContents->image, getFileSize('seo')) : null;
 
-
-        return view('Template::buy_account', compact('pageTitle', 'sections', 'socialsMedia', 'allSocialsMedia', 'categories', 'maxPrice', 'minPrice', 'min', 'max','seoContents','seoImage'));
+        return view('Template::buy_account', compact('pageTitle', 'sections', 'platforms', 'seoContents', 'seoImage'));
     }
 
 
