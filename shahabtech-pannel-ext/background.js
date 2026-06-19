@@ -118,11 +118,23 @@ async function handleCookieInjection(platform, cookiesToInject) {
             else if (cookie.expires) cookieDetails.expirationDate = new Date(cookie.expires).getTime() / 1000;
             else cookieDetails.expirationDate = (Date.now() / 1000) + (365 * 24 * 60 * 60); 
 
+            // Handle strict cookie prefixes
+            if (cookie.name.startsWith('__Host-')) {
+                delete cookieDetails.domain;
+                cookieDetails.path = '/';
+                cookieDetails.secure = true;
+            } else if (cookie.name.startsWith('__Secure-')) {
+                cookieDetails.secure = true;
+            }
+
             delete cookieDetails.hostOnly;
             delete cookieDetails.session;
 
             await new Promise((resolve) => {
                 chrome.cookies.set(cookieDetails, (setCookie) => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('Failed to set cookie', cookieDetails.name, chrome.runtime.lastError.message);
+                    }
                     resolve();
                 });
             });
