@@ -183,6 +183,7 @@ Route::middleware('admin')->group(function () {
     //Account listing
     Route::controller('AccountListingController')->prefix('account-listing')->name('account.listing.')->group(function () {
         Route::get('index', 'index')->name('index');
+        Route::get('platform/{platformId}', 'byPlatform')->name('by.platform');
         Route::post('store', 'store')->name('store');
         Route::post('store/{id}', 'store')->name('update');
         Route::get('details/{id}', 'details')->name('detail');

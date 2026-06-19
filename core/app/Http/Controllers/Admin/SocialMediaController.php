@@ -11,8 +11,8 @@ class SocialMediaController extends Controller
 {
     public function index()
     {
-        $pageTitle    = 'All Social Media';
-        $socialsMedia = SocialMedia::searchable(['name'])->orderBy('name')->paginate(getPaginate());
+        $pageTitle    = 'Manage Platforms';
+        $socialsMedia = SocialMedia::searchable(['name'])->withCount('accountListing')->orderBy('name')->paginate(getPaginate());
         return view('admin.social_media.index', compact('pageTitle', 'socialsMedia'));
     }
 
