@@ -146,8 +146,12 @@ function clearCookiesForDomain(url, domainStr) {
             }
             let pending = cookies.length;
             cookies.forEach(cookie => {
-                const cookieUrl = "http" + (cookie.secure ? "s" : "") + "://" + cookie.domain + cookie.path;
+                const cleanDomain = cookie.domain.replace(/^\./, '');
+                const cookieUrl = "http" + (cookie.secure ? "s" : "") + "://" + cleanDomain + cookie.path;
                 chrome.cookies.remove({ url: cookieUrl, name: cookie.name }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('Failed to remove cookie', cookie.name, chrome.runtime.lastError);
+                    }
                     pending--;
                     if (pending === 0) resolve();
                 });
