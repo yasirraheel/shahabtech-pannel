@@ -13,47 +13,6 @@ use App\Http\Controllers\Controller;
 class ExtensionController extends Controller
 {
     /**
-     * Login: returns user token + plan info
-     */
-    public function login(Request $request)
-    {
-        $request->validate([
-            'username' => 'required',
-            'password' => 'required',
-        ]);
-
-        $user = User::where(function ($q) use ($request) {
-            $q->where('username', $request->username)
-              ->orWhere('email', $request->username);
-        })->first();
-
-        if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
-            return response()->json(['success' => false, 'message' => 'Invalid credentials'], 401);
-        }
-
-        if ($user->status != Status::USER_ACTIVE) {
-            return response()->json(['success' => false, 'message' => 'Account is banned or inactive'], 403);
-        }
-
-        $token = $user->createToken('extension')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'token'   => $token,
-            'user'    => [
-                'id'       => $user->id,
-                'name'     => $user->fullname,
-                'username' => $user->username,
-                'email'    => $user->email,
-                'plan'     => $user->plan ? [
-                    'id'   => $user->plan->id,
-                    'name' => $user->plan->name,
-                ] : null,
-            ],
-        ]);
-    }
-
-    /**
      * Get all platforms the user has access to via their plan
      */
     public function platforms(Request $request)
@@ -148,14 +107,5 @@ class ExtensionController extends Controller
                 ] : null,
             ],
         ]);
-    }
-
-    /**
-     * Logout / revoke token
-     */
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['success' => true, 'message' => 'Logged out']);
     }
 }

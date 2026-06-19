@@ -37,9 +37,21 @@
                             </div>
                             <div class="d-flex align-items-center flex-wrap">
                                 <div class="product-item__button">
-                                    <a href="{{ $platform->url }}" target="_blank" class="btn btn--base">
-                                        <i class="las la-external-link-square-alt me-1"></i> @lang('Visit Platform')
-                                    </a>
+                                    @auth
+                                        @if(auth()->user()->plan_id)
+                                            <button type="button" class="btn btn--base btn-inject-access" data-platform-id="{{ $platform->id }}">
+                                                <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
+                                            </button>
+                                        @else
+                                            <a href="{{ route('user.home') }}" class="btn btn--base">
+                                                <i class="las la-lock me-1"></i> @lang('Subscribe to Access')
+                                            </a>
+                                        @endif
+                                    @else
+                                        <a href="{{ route('user.login') }}" class="btn btn--base">
+                                            <i class="las la-sign-in-alt me-1"></i> @lang('Login to Access')
+                                        </a>
+                                    @endauth
                                 </div>
                             </div>
                         </div>
@@ -64,5 +76,66 @@
             @include($activeTemplate . 'sections.' . $sec)
         @endforeach
     @endif
+
+    @push('script')
+    <script>
+        (function($){
+            "use strict";
+            $('.btn-inject-access').on('click', function(e) {
+                e.preventDefault();
+                let btn = $(this);
+                let btnText = btn.find('.btn-text');
+                let originalText = btnText.text();
+                let platformId = btn.data('platform-id');
+                
+                // Check if extension is installed
+                if ($('meta[name="shahabtech-extension-installed"]').length === 0) {
+                    notify('error', 'ShahabTech Access Extension is not installed or enabled.');
+                    return;
+                }
+
+                btn.prop('disabled', true);
+                btnText.text('Loading...');
+
+                $.ajax({
+                    url: '{{ url("api/extension/cookies") }}/' + platformId,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            btnText.text('Injecting...');
+                            
+                            let event = new CustomEvent('ShahabTechInject', {
+                                detail: {
+                                    platform: response.platform,
+                                    cookies: response.cookies
+                                }
+                            });
+                            window.dispatchEvent(event);
+                            
+                            setTimeout(function() {
+                                btn.prop('disabled', false);
+                                btnText.text('Opened');
+                                setTimeout(() => btnText.text(originalText), 3000);
+                            }, 1500);
+                        } else {
+                            notify('error', response.message || 'Failed to fetch access credentials.');
+                            btn.prop('disabled', false);
+                            btnText.text(originalText);
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = 'Failed to process request.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                        notify('error', msg);
+                        btn.prop('disabled', false);
+                        btnText.text(originalText);
+                    }
+                });
+            });
+        })(jQuery);
+    </script>
+    @endpush
 
 @endsection

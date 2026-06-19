@@ -3,177 +3,146 @@ document.addEventListener('DOMContentLoaded', async () => {
         loading: document.getElementById('loading-screen'),
         login: document.getElementById('login-screen'),
         dashboard: document.getElementById('dashboard-screen'),
-        loginForm: document.getElementById('login-form'),
-        loginBtn: document.getElementById('login-btn'),
-        loginError: document.getElementById('login-error'),
         actionError: document.getElementById('action-error'),
-        apiUrl: document.getElementById('api-url'),
-        username: document.getElementById('username'),
-        password: document.getElementById('password'),
         displayName: document.getElementById('display-name'),
         displayPlan: document.getElementById('display-plan'),
         platformsContainer: document.getElementById('platforms-container'),
-        logoutBtn: document.getElementById('logout-btn')
     };
+
+    const API_URL = 'https://panel.shahabtech.com/api/extension';
 
     function showScreen(screen) {
         ui.loading.style.display = 'none';
         ui.login.style.display = 'none';
         ui.dashboard.style.display = 'none';
-        if (screen === 'loading') ui.loading.style.display = 'flex';
-        if (screen === 'login') ui.login.style.display = 'block';
-        if (screen === 'dashboard') ui.dashboard.style.display = 'block';
+        if (ui[screen]) ui[screen].style.display = 'block';
     }
 
-    function showError(element, message) {
-        element.textContent = message;
-        element.style.display = 'block';
-        setTimeout(() => { element.style.display = 'none'; }, 5000);
+    function showError(msg) {
+        ui.actionError.textContent = msg;
+        ui.actionError.style.display = 'block';
+        setTimeout(() => ui.actionError.style.display = 'none', 4000);
     }
 
-    // Check auth status
-    const data = await chrome.storage.local.get(['token', 'user', 'apiUrl']);
-    if (data.apiUrl) {
-        ui.apiUrl.value = data.apiUrl;
-    }
-
-    if (data.token && data.user) {
-        await loadDashboard(data.token, data.apiUrl || ui.apiUrl.value, data.user);
-    } else {
-        showScreen('login');
-    }
-
-    // Login Form Submit
-    ui.loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        ui.loginBtn.disabled = true;
-        ui.loginBtn.innerHTML = '<div class="spinner"></div> Logging in...';
-        ui.loginError.style.display = 'none';
-
-        const apiUrl = ui.apiUrl.value.replace(/\/$/, '');
-        const username = ui.username.value;
-        const password = ui.password.value;
-
+    // Auto-check authentication via browser session cookie
+    async function checkAuth() {
         try {
-            const res = await fetch(`${apiUrl}/api/extension/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
+            const res = await fetch(`${API_URL}/me`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
             });
-
-            const result = await res.json();
-            if (result.success && result.token) {
-                await chrome.storage.local.set({
-                    token: result.token,
-                    user: result.user,
-                    apiUrl: apiUrl
-                });
-                await loadDashboard(result.token, apiUrl, result.user);
-            } else {
-                showError(ui.loginError, result.message || 'Login failed.');
-            }
-        } catch (error) {
-            showError(ui.loginError, 'Network error. Please check Server URL.');
-        } finally {
-            ui.loginBtn.disabled = false;
-            ui.loginBtn.textContent = 'Log In';
-        }
-    });
-
-    // Logout
-    ui.logoutBtn.addEventListener('click', async () => {
-        const { token, apiUrl } = await chrome.storage.local.get(['token', 'apiUrl']);
-        if (token && apiUrl) {
-            fetch(`${apiUrl}/api/extension/logout`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            }).catch(() => {});
-        }
-        await chrome.storage.local.remove(['token', 'user']);
-        showScreen('login');
-    });
-
-    // Load Dashboard
-    async function loadDashboard(token, apiUrl, user) {
-        showScreen('loading');
-        ui.displayName.textContent = user.name;
-        ui.displayPlan.textContent = `Plan: ${user.plan ? user.plan.name : 'None'}`;
-
-        try {
-            const res = await fetch(`${apiUrl}/api/extension/platforms`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (res.status === 401) {
-                // Token expired
-                await chrome.storage.local.remove(['token', 'user']);
+            
+            if (res.status === 401 || res.status === 403) {
+                // Not authenticated
                 showScreen('login');
                 return;
             }
 
-            const result = await res.json();
-            if (result.success) {
-                renderPlatforms(result.platforms, token, apiUrl);
+            const data = await res.json();
+            if (data.success && data.user) {
+                ui.displayName.textContent = data.user.name;
+                ui.displayPlan.textContent = data.user.plan ? `Plan: ${data.user.plan.name}` : 'Plan: None';
+                loadPlatforms();
                 showScreen('dashboard');
             } else {
-                showError(ui.actionError, result.message);
-                showScreen('dashboard');
+                showScreen('login');
             }
-        } catch (error) {
-            await chrome.storage.local.remove(['token', 'user']);
+        } catch (err) {
+            console.error(err);
             showScreen('login');
         }
     }
 
-    // Render Platforms
-    function renderPlatforms(platforms, token, apiUrl) {
+    async function loadPlatforms() {
+        try {
+            const res = await fetch(`${API_URL}/platforms`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) throw new Error('Failed to load platforms');
+            
+            const data = await res.json();
+            if (data.success && data.platforms) {
+                renderPlatforms(data.platforms);
+            }
+        } catch (err) {
+            showError('Could not load platforms.');
+        }
+    }
+
+    function renderPlatforms(platforms) {
         ui.platformsContainer.innerHTML = '';
-        if (!platforms || platforms.length === 0) {
-            ui.platformsContainer.innerHTML = '<div style="color:#8a8a99; font-size:12px; text-align:center; padding: 20px 0;">No platforms available on your plan.</div>';
+        if (platforms.length === 0) {
+            ui.platformsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color:#8a8a99; font-size: 12px;">No platforms available on your plan.</div>';
             return;
         }
 
-        platforms.forEach(platform => {
+        platforms.forEach(p => {
             const card = document.createElement('div');
             card.className = 'platform-card';
             card.innerHTML = `
                 <div class="platform-info">
-                    <span class="platform-name">${platform.name}</span>
-                    <span class="platform-domain">${platform.domain}</span>
+                    <span class="platform-name">${p.name}</span>
+                    <span class="platform-domain">${p.domain}</span>
                 </div>
-                <div class="platform-action" style="font-size: 16px; color: #a78bfa;">➔</div>
+                <button class="btn btn-primary" style="width:auto; padding: 6px 12px; font-size:11px;">Access</button>
             `;
-
-            card.addEventListener('click', async () => {
-                card.style.opacity = '0.5';
-                try {
-                    // Send message to background to fetch and inject cookies
-                    chrome.runtime.sendMessage({
-                        type: 'INJECT_COOKIES',
-                        platformId: platform.id,
-                        apiUrl: apiUrl,
-                        token: token
-                    }, (response) => {
-                        card.style.opacity = '1';
-                        if (response && response.success) {
-                            window.close(); // Close popup
-                        } else {
-                            showError(ui.actionError, (response && response.message) || 'Failed to inject cookies.');
-                        }
-                    });
-                } catch (e) {
-                    card.style.opacity = '1';
-                    showError(ui.actionError, 'Extension communication error.');
-                }
-            });
-
+            
+            const btn = card.querySelector('button');
+            btn.addEventListener('click', () => injectCookies(p.id, btn));
+            
             ui.platformsContainer.appendChild(card);
         });
     }
+
+    async function injectCookies(platformId, btnElement) {
+        const originalText = btnElement.textContent;
+        btnElement.innerHTML = '<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div>';
+        btnElement.disabled = true;
+
+        try {
+            const res = await fetch(`${API_URL}/cookies/${platformId}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to fetch access data');
+            }
+
+            // Send to background script
+            chrome.runtime.sendMessage({
+                type: 'INJECT_COOKIES',
+                platform: data.platform,
+                cookies: data.cookies
+            }, (response) => {
+                if (response && response.success) {
+                    btnElement.textContent = 'Opened!';
+                    btnElement.style.background = '#10b981'; // Green
+                    btnElement.style.borderColor = '#10b981';
+                } else {
+                    throw new Error(response ? response.error : 'Injection failed');
+                }
+                
+                setTimeout(() => {
+                    btnElement.textContent = originalText;
+                    btnElement.disabled = false;
+                    btnElement.style.background = '';
+                    btnElement.style.borderColor = '';
+                }, 3000);
+            });
+        } catch (err) {
+            btnElement.textContent = originalText;
+            btnElement.disabled = false;
+            showError(err.message);
+        }
+    }
+
+    // Start
+    checkAuth();
 });

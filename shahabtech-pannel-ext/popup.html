@@ -30,15 +30,6 @@
     .brand-sub { font-size: 10px; color: #8a8a99; margin-top: 1px; }
     .content { padding: 14px 16px; }
     
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 11px; color: #8a8a99; margin-bottom: 5px; }
-    .form-group input {
-      width: 100%; padding: 10px 12px; background: #14141c;
-      border: 1px solid #1f1f2c; border-radius: 8px;
-      color: #f0f0f0; font-size: 13px; outline: none;
-    }
-    .form-group input:focus { border-color: #7c3aed; }
-    
     .btn {
       width: 100%; padding: 11px; border-radius: 8px; border: none;
       font-size: 13px; font-weight: 600; cursor: pointer;
@@ -47,7 +38,7 @@
     }
     .btn-primary {
       background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
-      color: #fff; border: 1px solid rgba(167, 139, 250, 0.3);
+      color: #fff; border: 1px solid rgba(167, 139, 250, 0.3); text-decoration: none;
     }
     .btn-primary:hover { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); }
     .btn-danger {
@@ -88,13 +79,19 @@
       border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff;
       border-radius: 50%; animation: spin 0.6s linear infinite;
     }
+    
+    .not-connected-header { text-align: center; padding: 20px 0 10px; }
+    .lock-emoji { font-size: 36px; margin-bottom: 10px; }
+    .not-connected-header h3 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .not-connected-header p { font-size: 12px; color: #8a8a99; line-height: 1.5; padding: 0 10px; margin-bottom: 15px;}
+    
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="brand-wrap">
-      <div class="brand-logo"><img src="logo.png" alt="Logo" /></div>
+      <div class="brand-logo"><img src="icon48.png" alt="Logo" onerror="this.style.display='none'"/></div>
       <div class="brand-text-wrap">
         <span class="brand-name">ShahabTech</span>
         <span class="brand-sub">Premium Access</span>
@@ -107,24 +104,14 @@
     <div class="spinner"></div>
   </div>
 
-  <!-- Login Form -->
+  <!-- Not Logged In Screen -->
   <div id="login-screen" class="content" style="display:none;">
-    <div id="login-error" class="error" style="display:none"></div>
-    <form id="login-form">
-      <div class="form-group">
-        <label>Server URL</label>
-        <input type="url" id="api-url" value="https://panel.shahabtech.com" required />
-      </div>
-      <div class="form-group">
-        <label>Username or Email</label>
-        <input type="text" id="username" placeholder="user@example.com" required />
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="••••••••" required />
-      </div>
-      <button type="submit" class="btn btn-primary" id="login-btn">Log In</button>
-    </form>
+    <div class="not-connected-header">
+      <div class="lock-emoji">🔒</div>
+      <h3>Not Connected</h3>
+      <p>Please log into your ShahabTech Panel to access your platforms.</p>
+      <a href="https://panel.shahabtech.com/user/dashboard" target="_blank" class="btn btn-primary">Open Dashboard</a>
+    </div>
   </div>
 
   <!-- Dashboard / Platforms List -->
@@ -136,7 +123,6 @@
         <span class="user-name" id="display-name">Loading...</span>
         <span class="user-plan" id="display-plan">Plan: Loading...</span>
       </div>
-      <button class="btn btn-danger" id="logout-btn">Log out</button>
     </div>
     
     <div style="font-size: 11px; color: #8a8a99; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Available Platforms</div>

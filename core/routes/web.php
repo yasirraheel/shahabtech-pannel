@@ -9,16 +9,11 @@ Route::get('/clear', function(){
 
 Route::get('cron', 'CronController@cron')->name('cron');
 
-// Extension API Routes (token-based via Sanctum)
-Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->group(function () {
-    Route::post('login', 'ExtensionController@login')->name('login');
-
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::get('me', 'ExtensionController@me')->name('me');
-        Route::get('platforms', 'ExtensionController@platforms')->name('platforms');
-        Route::get('cookies/{platformId}', 'ExtensionController@getCookies')->name('cookies');
-        Route::post('logout', 'ExtensionController@logout')->name('logout');
-    });
+// Extension API Routes (Session-based via normal auth)
+Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->middleware('auth')->group(function () {
+    Route::get('me', 'ExtensionController@me')->name('me');
+    Route::get('platforms', 'ExtensionController@platforms')->name('platforms');
+    Route::get('cookies/{platformId}', 'ExtensionController@getCookies')->name('cookies');
 });
 
 

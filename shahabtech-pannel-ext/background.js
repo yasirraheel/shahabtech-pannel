@@ -1,34 +1,17 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'INJECT_COOKIES') {
-        handleCookieInjection(request.platformId, request.apiUrl, request.token)
+        handleCookieInjection(request.platform, request.cookies)
             .then(() => sendResponse({ success: true }))
-            .catch((err) => sendResponse({ success: false, message: err.message }));
+            .catch((err) => sendResponse({ success: false, error: err.message }));
         return true; // Keep message channel open for async
     }
 });
 
-async function handleCookieInjection(platformId, apiUrl, token) {
+async function handleCookieInjection(platform, cookiesToInject) {
     try {
-        // Fetch cookies from the backend
-        const res = await fetch(`${apiUrl}/api/extension/cookies/${platformId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
-            }
-        });
-
-        if (res.status === 401) {
-            throw new Error('Session expired. Please log in again.');
+        if (!platform || !cookiesToInject) {
+            throw new Error('Invalid platform or cookies data.');
         }
-
-        const result = await res.json();
-        
-        if (!result.success || !result.cookies || !result.platform) {
-            throw new Error(result.message || 'Failed to fetch account credentials.');
-        }
-
-        const platform = result.platform;
-        let cookiesToInject = result.cookies;
 
         if (typeof cookiesToInject === 'string') {
             try { cookiesToInject = JSON.parse(cookiesToInject); } catch(e) {}
