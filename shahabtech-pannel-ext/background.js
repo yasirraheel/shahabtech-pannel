@@ -1,4 +1,10 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === 'WIPE_COOKIES') {
+        wipeAllInjectedCookies();
+        sendResponse({ success: true });
+        return false;
+    }
+
     if (request.type === 'INJECT_COOKIES') {
         handleCookieInjection(request.platform, request.cookies)
             .then(() => sendResponse({ success: true }))
@@ -36,18 +42,24 @@ async function verifyAuthAndWipeIfInvalid() {
         if (res.status === 401 || res.status === 403) {
             shouldWipe = true;
         } else if (res.ok) {
-            const data = await res.json();
-            // Wipe if success is false, user is missing, or user has no active plan
-            if (!data.success || !data.user || !data.user.plan) {
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const data = await res.json();
+                if (!data.success || !data.user || !data.user.plan) {
+                    shouldWipe = true;
+                }
+            } else {
+                // If it returned HTML instead of JSON, it's likely a login redirect
                 shouldWipe = true;
             }
+        } else {
+            shouldWipe = true;
         }
 
         if (shouldWipe) {
             wipeAllInjectedCookies();
         }
     } catch (err) {
-        // Network errors or offline shouldn't immediately wipe cookies
         console.warn('Network error checking auth status', err);
     }
 }

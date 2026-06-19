@@ -33,8 +33,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Accept': 'application/json' }
             });
             
-            if (res.status === 401 || res.status === 403) {
-                // Not authenticated
+            if (res.status === 401 || res.status === 403 || !res.ok) {
+                chrome.runtime.sendMessage({ type: 'WIPE_COOKIES' });
+                showScreen('login');
+                return;
+            }
+
+            const contentType = res.headers.get("content-type");
+            if (!contentType || contentType.indexOf("application/json") === -1) {
+                chrome.runtime.sendMessage({ type: 'WIPE_COOKIES' });
                 showScreen('login');
                 return;
             }
@@ -46,10 +53,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadPlatforms();
                 showScreen('dashboard');
             } else {
+                chrome.runtime.sendMessage({ type: 'WIPE_COOKIES' });
                 showScreen('login');
             }
         } catch (err) {
             console.error(err);
+            chrome.runtime.sendMessage({ type: 'WIPE_COOKIES' });
             showScreen('login');
         }
     }
