@@ -61,76 +61,87 @@
                 </div>
             @endif
 
-            <div class="row gy-4">
+            <div class="row gy-4 mb-5">
+                <div class="col-lg-4 col-sm-6">
+                    <div class="dashboard-item">
+                        <div class="dashboard-item__content">
+                            <span class="dashboard-item__title"> @lang('Current Plan') </span>
+                            <h3 class="dashboard-item__currency" style="color: var(--base-color);">
+                                {{ $user->plan ? __($user->plan->name) : 'No Active Plan' }}
+                            </h3>
+                        </div>
+                        <span class="dashboard-item__icon"> <i class="fas fa-crown"></i> </span>
+                    </div>
+                </div>
+                
                 <div class="col-lg-4 col-sm-6">
                     <div class="dashboard-item">
                         <div class="dashboard-item__content">
                             <a class="dashboard-item__title" href="{{ route('user.transactions') }}"> @lang('Current Balance') </a>
                             <h3 class="dashboard-item__currency"> {{ showAmount($user->balance) }} </h3>
                         </div>
-                        <span class="dashboard-item__icon"> <i class="fas fa-dollar-sign"></i> </span>
+                        <span class="dashboard-item__icon"> <i class="fas fa-wallet"></i> </span>
                     </div>
                 </div>
+                
                 <div class="col-lg-4 col-sm-6">
                     <div class="dashboard-item">
                         <div class="dashboard-item__content">
-                            <a class="dashboard-item__title" href="{{ route('user.account.listing.index') }}">
-                                @lang('Total Listings') </a>
-                            <h3 class="dashboard-item__currency"> {{ $totalListingCount }} </h3>
-                        </div>
-                        <span class="dashboard-item__icon"> <i class="fas fa-file-alt"></i> </span>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-sm-6">
-                    <div class="dashboard-item">
-                        <div class="dashboard-item__content">
-                            <a class="dashboard-item__title" href="{{ route('user.account.listing.purchase') }}">
-                                @lang('Total Purchase Account') </a>
-                            <h3 class="dashboard-item__currency"> {{ $purchaseAccountsCount }} </h3>
-                        </div>
-                        <span class="dashboard-item__icon"> <i class="fas fa-list"></i></span>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-sm-6">
-                    <div class="dashboard-item">
-                        <div class="dashboard-item__content">
-                            <a class="dashboard-item__title" href="{{ route('user.account.listing.my.bid') }}">
-                                @lang('Total Bid')
-                            </a>
-                            <h3 class="dashboard-item__currency"> {{ $bidCount }} </h3>
-                        </div>
-                        <span class="dashboard-item__icon"> <i class="fab fa-buromobelexperte"></i> </span>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-sm-6">
-                    <div class="dashboard-item">
-                        <div class="dashboard-item__content">
-                            <a class="dashboard-item__title" href="{{ route('user.deposit.history') }}"> @lang('Total Deposit')
-                            </a>
+                            <a class="dashboard-item__title" href="{{ route('user.deposit.history') }}"> @lang('Total Deposit') </a>
                             <h3 class="dashboard-item__currency"> {{ showAmount($totalDeposit) }} </h3>
                         </div>
                         <span class="dashboard-item__icon"> <i class="menu-icon las la-file-invoice-dollar"></i> </span>
                     </div>
                 </div>
-                <div class="col-lg-4 col-sm-6">
-                    <div class="dashboard-item">
-                        <div class="dashboard-item__content">
-                            <a class="dashboard-item__title" href="{{ route('user.withdraw') }}"> @lang('Total Withdrow') </a>
-                            <h3 class="dashboard-item__currency"> {{ showAmount($totalWithdrawals) }}
-                            </h3>
-                        </div>
-                        <span class="dashboard-item__icon"> <i class="menu-icon la la-bank"></i></span>
-                    </div>
-                </div>
             </div>
+            
             <div class="dashboard-body">
                 <div class="row gy-4">
                     <div class="col-xl-12">
-                        <h5 class="mb-2">@lang('Active Bids')</h5>
-                        <div class="card custom--card">
-                            <div class="card-body p-0">
-                                @include($activeTemplate . 'user.account_listings.listing_table', ['biddings' => $activeBids])
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="mb-0">@lang('My Accessible Platforms')</h4>
+                        </div>
+                        
+                        <div class="row gy-4">
+                            @forelse ($platforms as $platform)
+                                <div class="col-xl-4 col-lg-6 col-md-6">
+                                    <div class="product-item">
+                                        <div class="product-item__wrapper d-flex flex-column align-items-center justify-content-center py-5">
+                                            <div class="product-item__thumb mb-4" style="width: auto; height: auto;">
+                                                <div class="icon-wrap" style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                    <i class="las la-globe" style="font-size: 3.5rem; color: var(--base-color, #6c63ff);"></i>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="product-item__content text-center w-100">
+                                                <h4 class="product-item__title mb-2">
+                                                    <span class="text--base">{{ __($platform->name) }}</span>
+                                                </h4>
+                                                
+                                                <p class="product-item__text mb-4" style="font-family: monospace; color: #dc3545;">
+                                                    {{ $platform->domain }}
+                                                </p>
+                                                
+                                                <div class="mt-4">
+                                                    <a href="{{ $platform->url }}" target="_blank" class="btn btn--base w-100" style="padding: 12px 0;">
+                                                        <i class="las la-external-link-square-alt me-1"></i> @lang('Visit Platform')
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="col-12 text-center py-5">
+                                    <div class="card custom--card">
+                                        <div class="card-body py-5">
+                                            <i class="las la-folder-open mb-3" style="font-size: 3rem; color: #888;"></i>
+                                            <h5 class="text-muted">@lang('You currently do not have access to any platforms.')</h5>
+                                            <p class="text-muted">@lang('Please purchase a plan to unlock premium platforms.')</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
