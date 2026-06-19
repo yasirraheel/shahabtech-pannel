@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Constants\Status;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Traits\GlobalStatus;
 
 class AccountListing extends Model
 {
+    use GlobalStatus;
 
     protected $casts = [
         'account_info' => 'object',
