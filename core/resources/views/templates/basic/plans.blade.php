@@ -56,12 +56,9 @@
                                             <i class="las la-check"></i> @lang('Current Plan')
                                         </button>
                                     @else
-                                        <form action="{{ route('user.plan.subscribe', $plan->id) }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="btn btn--base w-100 py-3 confirmationBtn" data-question="@lang('Are you sure you want to purchase this plan for ' . showAmount($plan->price) . ' ' . gs('cur_text') . '?')">
-                                                <i class="las la-shopping-cart"></i> @lang('Subscribe Now')
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn--base w-100 py-3 confirmationBtn" data-action="{{ route('user.plan.subscribe', $plan->id) }}" data-question="@lang('Are you sure you want to purchase this plan for ' . showAmount($plan->price) . ' ' . gs('cur_text') . '?')">
+                                            <i class="las la-shopping-cart"></i> @lang('Subscribe Now')
+                                        </button>
                                     @endif
                                 @else
                                     <a href="{{ route('user.login') }}" class="btn w-100 py-3" style="background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1);">
