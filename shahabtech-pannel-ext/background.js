@@ -26,8 +26,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-// Optionally, check immediately when background starts
-verifyAuthAndWipeIfInvalid();
+// Do NOT check immediately on startup to avoid racing with INJECT_COOKIES
+// verifyAuthAndWipeIfInvalid();
 
 async function verifyAuthAndWipeIfInvalid() {
     try {
@@ -45,15 +45,12 @@ async function verifyAuthAndWipeIfInvalid() {
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 const data = await res.json();
+                // We only wipe if the API explicitly says success:false
                 if (!data.success || !data.user || !data.user.plan) {
                     shouldWipe = true;
                 }
-            } else {
-                // If it returned HTML instead of JSON, it's likely a login redirect
-                shouldWipe = true;
             }
-        } else {
-            shouldWipe = true;
+            // If it returned HTML, do NOT wipe (could be Cloudflare challenge or transient server issue)
         }
 
         if (shouldWipe) {
