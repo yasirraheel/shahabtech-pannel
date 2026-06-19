@@ -14,7 +14,7 @@
                             <span class="text--white">
                                 <i class="las la-wallet text--base"></i> @lang('Current Balance'): <strong>{{ showAmount(auth()->user()->balance) }}</strong>
                             </span>
-                            <a href="{{ route('user.deposit.index') }}" class="btn btn--sm btn--base outline">
+                            <a href="{{ route('user.deposit.index') }}" class="btn btn-sm btn--base">
                                 <i class="las la-plus"></i> @lang('Deposit')
                             </a>
                         </div>
