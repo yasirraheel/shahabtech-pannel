@@ -18,9 +18,9 @@ class AccountListing extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function buyer()
+    public function plan()
     {
-        return $this->belongsTo(User::class, 'buyer_id');
+        return $this->belongsTo(Plan::class);
     }
 
     public function images()
@@ -41,16 +41,6 @@ class AccountListing extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
-    }
-
-    public function accountBidding()
-    {
-        return $this->hasMany(BiddingListing::class);
-    }
-
-    public function report()
-    {
-        return $this->hasMany(ListingReport::class);
     }
 
     public function scopePending($query)
@@ -123,26 +113,10 @@ class AccountListing extends Model
             $html = '';
             if ($this->status == Status::LISTING_ACTIVE) {
                 $html = '<span class="badge badge--success">' . trans("Active") . '</span>';
-            } elseif ($this->status == Status::LISTING_SOLD) {
-                $html = '<span class="badge badge--success">' . trans("Sold") . '</span>';
-            } elseif ($this->status == Status::LISTING_PENDING) {
-                $html = '<span class="badge badge--warning">' . trans("Pending") . '</span>';
             } elseif ($this->status == Status::LISTING_INACTIVE) {
                 $html = '<span class="badge badge--primary">' . trans("Inactive") . '</span>';
-            } elseif ($this->status == Status::LISTING_REJECTED) {
-                $html = '<div class="d-flex flex-wrap gap-1"><span class="badge badge--danger">' . trans("Rejected") . '</span>
-                        <button data-bs-toggle="modal" data-bs-target="#rejectReasonModal" data-reason="' . $this->reason . '" class="badge badge--danger reasonBtn"> <i class="las la-info-circle"></i> </button></div>';
-            } elseif ($this->status == Status::LISTING_DRAFT) {
-                $html = '<span class="badge badge--danger">' . trans("Draft") . '</span>';
             }
             return $html;
-        });
-    }
-
-    public function auctionDeadlineFormate(): Attribute
-    {
-        return new Attribute(function () {
-            return showDateTime($this->auction_deadline,'Y-m-d ')."23:59:59";
         });
     }
 }

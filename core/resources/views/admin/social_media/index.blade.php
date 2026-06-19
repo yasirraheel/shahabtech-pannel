@@ -9,6 +9,8 @@
                             <thead>
                                 <tr>
                                     <th> @lang('Name') </th>
+                                    <th> @lang('Domain') </th>
+                                    <th> @lang('URL') </th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
                                 </tr>
@@ -17,6 +19,8 @@
                                 @forelse($socialsMedia as $socialMedia)
                                     <tr>
                                         <td>{{ __($socialMedia->name) }} </td>
+                                        <td>{{ $socialMedia->domain }} </td>
+                                        <td><a href="{{ $socialMedia->url }}" target="_blank">{{ $socialMedia->url }}</a> </td>
                                         <td> @php echo $socialMedia->statusBadge; @endphp </td>
                                         <td>
                                             <div class="d-flex justify-content-end flex-wrap gap-1">
@@ -80,6 +84,14 @@
                                 <div class="form-group">
                                     <label>@lang('Name')</label>
                                     <input class="form-control" name="name" type="text" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>@lang('Domain (e.g., .chatgpt.com)')</label>
+                                    <input class="form-control" name="domain" type="text" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>@lang('URL (e.g., https://chatgpt.com)')</label>
+                                    <input class="form-control" name="url" type="url" required>
                                 </div>
                             </div>
                         </div>

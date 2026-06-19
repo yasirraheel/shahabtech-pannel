@@ -19,7 +19,9 @@ class SocialMediaController extends Controller
     public function store(Request $request, $id = null)
     {
         $request->validate([
-            'name'  => 'required|unique:social_media,name'
+            'name'  => 'required',
+            'domain'=> 'required',
+            'url'   => 'required|url',
         ]);
 
         if ($id) {
@@ -31,6 +33,8 @@ class SocialMediaController extends Controller
         }
 
         $socialMedia->name    = $request->name;
+        $socialMedia->domain  = $request->domain;
+        $socialMedia->url     = $request->url;
         $socialMedia->save();
 
         $notify[] = ['success', $notifyMessage];

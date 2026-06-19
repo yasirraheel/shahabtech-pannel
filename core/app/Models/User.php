@@ -63,6 +63,11 @@ class User extends Authenticatable
         return $this->hasMany(AccountListing::class);
     }
 
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
     public function tickets()
     {
         return $this->hasMany(SupportTicket::class);
