@@ -7,28 +7,93 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-async function handleCookieInjection(platform, cookiesToInject) {
+const API_URL = 'https://panel.shahabtech.com/api/extension';
+
+// Set up periodic alarm to check subscription status
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.alarms.create('checkAuthAlarm', { periodInMinutes: 5 });
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'checkAuthAlarm') {
+        verifyAuthAndWipeIfInvalid();
+    }
+});
+
+// Optionally, check immediately when background starts
+verifyAuthAndWipeIfInvalid();
+
+async function verifyAuthAndWipeIfInvalid() {
     try {
-        if (!platform || !cookiesToInject) {
-            throw new Error('Invalid platform or cookies data.');
+        const res = await fetch(`${API_URL}/me`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        let shouldWipe = false;
+
+        if (res.status === 401 || res.status === 403) {
+            shouldWipe = true;
+        } else if (res.ok) {
+            const data = await res.json();
+            // Wipe if success is false, user is missing, or user has no active plan
+            if (!data.success || !data.user || !data.user.plan) {
+                shouldWipe = true;
+            }
         }
 
+        if (shouldWipe) {
+            wipeAllInjectedCookies();
+        }
+    } catch (err) {
+        // Network errors or offline shouldn't immediately wipe cookies
+        console.warn('Network error checking auth status', err);
+    }
+}
+
+function wipeAllInjectedCookies() {
+    chrome.storage.local.get(['injectedDomains'], async (result) => {
+        let domains = result.injectedDomains || [];
+        if (domains.length === 0) return;
+
+        for (let domain of domains) {
+            await clearCookiesForDomain("https://" + domain, domain);
+            await clearCookiesForDomain("http://" + domain, domain);
+        }
+        // Clear saved domains
+        chrome.storage.local.set({ injectedDomains: [] });
+        console.log("ShahabTech Access: Wiped cookies for expired/unauthorized session.");
+    });
+}
+
+async function handleCookieInjection(platform, cookiesToInject) {
+    try {
+        if (!platform || !cookiesToInject) throw new Error('Invalid platform or cookies data.');
+        
         if (typeof cookiesToInject === 'string') {
             try { cookiesToInject = JSON.parse(cookiesToInject); } catch(e) {}
         }
-
         if (!Array.isArray(cookiesToInject) || cookiesToInject.length === 0) {
             throw new Error('No valid cookies found for this account.');
         }
 
-        // Get the base URL to inject cookies
         const targetUrl = new URL(platform.url).origin;
 
-        // Optionally, clear existing cookies for the domain first to ensure a clean session
-        // (This prevents mixing user's personal session with the shared session)
+        // Save domain for future auto-wipes
+        chrome.storage.local.get(['injectedDomains'], (result) => {
+            let domains = result.injectedDomains || [];
+            let domainToSave = platform.domain.replace(/^\./, ''); // remove leading dot if any
+            if (!domains.includes(domainToSave)) {
+                domains.push(domainToSave);
+                chrome.storage.local.set({ injectedDomains: domains });
+            }
+        });
+
+        // Clear existing cookies for a clean session
         await clearCookiesForDomain(targetUrl, platform.domain);
 
-        // Inject the new cookies
+        // Inject new cookies
         for (const cookie of cookiesToInject) {
             let cookieDetails = {
                 url: targetUrl,
@@ -40,33 +105,21 @@ async function handleCookieInjection(platform, cookiesToInject) {
                 httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false
             };
             
-            // Set expiration if provided, otherwise it's a session cookie
-            if (cookie.expirationDate) {
-                cookieDetails.expirationDate = cookie.expirationDate;
-            } else if (cookie.expires) {
-                cookieDetails.expirationDate = new Date(cookie.expires).getTime() / 1000;
-            } else {
-                // Ensure it stays valid for at least a year if no expiry is set to prevent random logouts
-                cookieDetails.expirationDate = (Date.now() / 1000) + (365 * 24 * 60 * 60); 
-            }
+            if (cookie.expirationDate) cookieDetails.expirationDate = cookie.expirationDate;
+            else if (cookie.expires) cookieDetails.expirationDate = new Date(cookie.expires).getTime() / 1000;
+            else cookieDetails.expirationDate = (Date.now() / 1000) + (365 * 24 * 60 * 60); 
 
-            // Remove hostOnly/session flags which are read-only and cause errors if passed
             delete cookieDetails.hostOnly;
             delete cookieDetails.session;
 
             await new Promise((resolve) => {
                 chrome.cookies.set(cookieDetails, (setCookie) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('Failed to set cookie', cookieDetails.name, chrome.runtime.lastError.message);
-                    }
                     resolve();
                 });
             });
         }
 
-        // Open the platform in a new tab
         chrome.tabs.create({ url: platform.url });
-
     } catch (error) {
         throw error;
     }
