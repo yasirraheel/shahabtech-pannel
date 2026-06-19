@@ -27,52 +27,22 @@
         "menu_active": "admin.dashboard"
     },
     "account_listing": {
-        "title": "Account Listing",
+        "keyword": ["Manage accounts","Shared accounts","Account access"],
+        "title": "Manage Accounts",
         "icon": "las la-dungeon",
-        "counters": ["pendingAccountListingCount"],
-        "menu_active": "admin.account.listing*",
-        "submenu": [{
-                "keyword": ["Pending listing","Waiting listing","Incomplete listing","Pending approval listing"],
-                "title": "Pending Listing",
-                "route_name": "admin.account.listing.pending",
-                "menu_active": "admin.account.listing.pending",
-                "counter": "pendingAccountListingCount"
-            },
-            {
-                "keyword": ["Approved listing","Active listing","Confirm listing","Granted listing"],
-                "title": "Approved Listing",
-                "route_name": "admin.account.listing.active",
-                "menu_active": "admin.account.listing.active"
-            },
-            {
-                "keyword": ["Rejected listing","Declined listing","Refused listing","Discarded listing","Disapproved listing"],
-                "title": "Rejected Listing",
-                "route_name": "admin.account.listing.rejected",
-                "menu_active": "admin.account.listing.rejected"
-            },
-            {
-                "keyword": ["Sold listing","Purchased listing","Transferred listing","Delivered listing","Exchanged listing"],
-                "title": "Sold Listing",
-                "route_name": "admin.account.listing.sold",
-                "menu_active": "admin.account.listing.sold"
-            },
-            {
-                "keyword": ["Draft listing","Reject listing","Decline listing","Refuse listing","Deny listing","Discard listing"],
-                "title": "Draft Listing",
-                "route_name": "admin.account.listing.draft",
-                "menu_active": "admin.account.listing.draft"
-            },
-            {
-                "keyword": ["All listings","Every listing","Total listing","Full listing"],
-                "title": "All Listings",
-                "route_name": "admin.account.listing.index",
-                "menu_active": "admin.account.listing.index"
-            }
-        ]
+        "route_name": "admin.account.listing.index",
+        "menu_active": "admin.account.listing*"
+    },
+    "plans": {
+        "keyword": ["Subscription plans","Plans","Pricing plans","Access plans"],
+        "title": "Subscription Plans",
+        "icon": "las la-layer-group",
+        "route_name": "admin.plan.index",
+        "menu_active": "admin.plan*"
     },
     "social_media": {
         "keyword": ["Manage social media","Social networks","Social platforms","Online communities","Digital media","Social channels","Social web","Social sites"],
-        "title": "Manage Social Media",
+        "title": "Manage Platforms",
         "icon": "las la-network-wired",
         "route_name": "admin.social.media.index",
         "menu_active": "admin.social.media.index"
