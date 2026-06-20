@@ -47,7 +47,10 @@
                             <div class="d-flex align-items-center flex-wrap">
                                 <div class="product-item__button">
                                     @auth
-                                        @if(auth()->user()->plan_id)
+                                        @php
+                                            $userHasAccess = auth()->user()->plan_id || (auth()->user()->account_id && \App\Models\AccountListing::where('id', auth()->user()->account_id)->where('social_media_id', $platform->id)->exists());
+                                        @endphp
+                                        @if($userHasAccess)
                                             <button type="button" class="btn btn--base btn-inject-access" data-platform-id="{{ $platform->id }}">
                                                 <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                             </button>
