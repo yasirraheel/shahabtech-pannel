@@ -53,11 +53,17 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             }
         }
 
-        // --- 2. Hide logout elements via CSS ---
+        // --- 2. Hide logout elements and profile menus via CSS ---
         const style = document.createElement('style');
         style.innerHTML = `
             a[href*="logout" i], a[href*="signout" i], a[href*="sign-out" i],
-            [class*="logout" i], [class*="signout" i], [id*="logout" i] {
+            [class*="logout" i], [class*="signout" i], [id*="logout" i],
+            button:has(img[alt*="profile" i]), 
+            button:has(img[alt*="Profile" i]),
+            button:has(img[src*="googleusercontent" i]),
+            [aria-label*="Google Account" i],
+            [aria-label*="Profile" i],
+            [aria-label*="account" i] {
                 display: none !important;
                 pointer-events: none !important;
                 opacity: 0 !important;
