@@ -78,11 +78,11 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             let node;
             while (node = walkers.nextNode()) {
                 const text = (node.nodeValue || '').toLowerCase();
-                if (text === 'sign out' || text === 'log out' || text === 'logout' || text === 'signout') {
+                if (text.includes('sign out') || text.includes('log out') || text.includes('logout') || text.includes('signout')) {
                     // Hide the closest clickable parent (button, a, or the parent element)
                     const parent = node.parentElement;
                     if (parent) {
-                        const clickable = parent.closest('button, a, [role="button"], [role="menuitem"], li, .btn');
+                        const clickable = parent.closest('button, a, [role="button"], [role="menuitem"], li, .btn, div');
                         if (clickable) {
                             clickable.style.setProperty('display', 'none', 'important');
                         } else {
@@ -113,7 +113,7 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             if (target) {
                 const text = (target.innerText || '').toLowerCase().trim();
                 const href = (target.getAttribute('href') || '').toLowerCase();
-                if (text === 'sign out' || text === 'log out' || text === 'logout' || text === 'signout' ||
+                if (text.includes('sign out') || text.includes('log out') || text.includes('logout') || text.includes('signout') ||
                     href.includes('logout') || href.includes('signout')) {
                     e.preventDefault();
                     e.stopPropagation();
