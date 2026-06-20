@@ -89,4 +89,7 @@
 
 @push('breadcrumb-plugins')
     <x-search-form placeholder="Username / Email" />
+    <a href="{{ route('admin.users.create') }}" class="btn btn-outline--primary">
+        <i class="las la-plus"></i>@lang('Add New')
+    </a>
 @endpush

@@ -53,6 +53,8 @@ Route::middleware('admin')->group(function () {
     // Users Manager
     Route::controller('ManageUsersController')->name('users.')->prefix('users')->group(function(){
         Route::get('/', 'allUsers')->name('all');
+        Route::get('create', 'create')->name('create');
+        Route::post('store', 'store')->name('store');
         Route::get('active', 'activeUsers')->name('active');
         Route::get('banned', 'bannedUsers')->name('banned');
         Route::get('email-verified', 'emailVerifiedUsers')->name('email.verified');

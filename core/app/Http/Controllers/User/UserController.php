@@ -26,11 +26,16 @@ class UserController extends Controller
         $pageTitle = 'Dashboard';
         $user      = auth()->user()->load('plan');
 
-        // Platforms the user can access via their plan
+        // Platforms the user can access via their plan or specific account
         $platforms = [];
         if ($user->plan_id) {
             $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) use ($user) {
                 $q->where('plan_id', $user->plan_id)
+                  ->where('status', \App\Constants\Status::LISTING_ACTIVE);
+            })->get();
+        } elseif ($user->account_id) {
+            $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) use ($user) {
+                $q->where('id', $user->account_id)
                   ->where('status', \App\Constants\Status::LISTING_ACTIVE);
             })->get();
         }

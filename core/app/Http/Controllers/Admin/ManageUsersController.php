@@ -99,6 +99,71 @@ class ManageUsersController extends Controller
         return $users->searchable(['username','email'])->orderBy('id','desc')->paginate(getPaginate());
     }
 
+    public function create()
+    {
+        $pageTitle = 'Add New User';
+        $countries = json_decode(file_get_contents(resource_path('views/partials/country.json')));
+        $plans = \App\Models\Plan::active()->get();
+        $accounts = \App\Models\AccountListing::with('socialMedia')->active()->get();
+        return view('admin.users.create', compact('pageTitle', 'countries', 'plans', 'accounts'));
+    }
+
+    public function store(Request $request)
+    {
+        $countryData = json_decode(file_get_contents(resource_path('views/partials/country.json')));
+        $countryArray   = (array)$countryData;
+        $countries      = implode(',', array_keys($countryArray));
+
+        $request->validate([
+            'firstname' => 'required|string|max:40',
+            'lastname' => 'required|string|max:40',
+            'email' => 'required|email|string|max:40|unique:users,email',
+            'username' => 'required|string|max:40|unique:users,username',
+            'password' => 'required|string|min:6',
+            'mobile' => 'required|string|max:40',
+            'country' => 'required|in:'.$countries,
+            'plan_id' => 'nullable|integer|exists:plans,id',
+            'account_id' => 'nullable|integer|exists:account_listings,id',
+        ]);
+
+        $countryCode    = $request->country;
+        $country        = $countryData->$countryCode->country;
+        $dialCode       = $countryData->$countryCode->dial_code;
+
+        $exists = User::where('mobile',$request->mobile)->where('dial_code',$dialCode)->exists();
+        if ($exists) {
+            $notify[] = ['error', 'The mobile number already exists.'];
+            return back()->withNotify($notify)->withInput();
+        }
+
+        $user = new User();
+        $user->firstname = $request->firstname;
+        $user->lastname = $request->lastname;
+        $user->email = $request->email;
+        $user->username = $request->username;
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        $user->mobile = $request->mobile;
+        $user->address = $request->address;
+        $user->city = $request->city;
+        $user->state = $request->state;
+        $user->zip = $request->zip;
+        $user->country_name = @$country;
+        $user->dial_code = $dialCode;
+        $user->country_code = $countryCode;
+        
+        $user->plan_id = $request->plan_id;
+        $user->account_id = $request->account_id;
+
+        $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
+        $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;
+        $user->ts = $request->ts ? Status::ENABLE : Status::DISABLE;
+        $user->kv = $request->kv ? Status::KYC_VERIFIED : Status::KYC_UNVERIFIED;
+        $user->status = Status::USER_ACTIVE;
+        $user->save();
+
+        $notify[] = ['success', 'User created successfully'];
+        return redirect()->route('admin.users.detail', $user->id)->withNotify($notify);
+    }
 
     public function detail($id)
     {
@@ -109,7 +174,11 @@ class ManageUsersController extends Controller
         $totalWithdrawals = Withdrawal::where('user_id',$user->id)->approved()->sum('amount');
         $totalTransaction = Transaction::where('user_id',$user->id)->count();
         $countries = json_decode(file_get_contents(resource_path('views/partials/country.json')));
-        return view('admin.users.detail', compact('pageTitle', 'user','totalDeposit','totalWithdrawals','totalTransaction','countries'));
+        
+        $plans = \App\Models\Plan::active()->get();
+        $accounts = \App\Models\AccountListing::with('socialMedia')->active()->get();
+
+        return view('admin.users.detail', compact('pageTitle', 'user','totalDeposit','totalWithdrawals','totalTransaction','countries', 'plans', 'accounts'));
     }
 
 
@@ -168,6 +237,8 @@ class ManageUsersController extends Controller
             'email' => 'required|email|string|max:40|unique:users,email,' . $user->id,
             'mobile' => 'required|string|max:40',
             'country' => 'required|in:'.$countries,
+            'plan_id' => 'nullable|integer|exists:plans,id',
+            'account_id' => 'nullable|integer|exists:account_listings,id',
         ]);
 
         $exists = User::where('mobile',$request->mobile)->where('dial_code',$dialCode)->where('id','!=',$user->id)->exists();
@@ -188,6 +259,9 @@ class ManageUsersController extends Controller
         $user->country_name = @$country;
         $user->dial_code = $dialCode;
         $user->country_code = $countryCode;
+
+        $user->plan_id = $request->plan_id;
+        $user->account_id = $request->account_id;
 
         $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
         $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;

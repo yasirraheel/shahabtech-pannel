@@ -183,6 +183,32 @@
                                 </div>
                             </div>
 
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>@lang('Assign Plan')</label>
+                                    <select name="plan_id" class="form-control select2">
+                                        <option value="">@lang('No Plan Assigned')</option>
+                                        @foreach($plans as $plan)
+                                            <option value="{{ $plan->id }}" @selected($user->plan_id == $plan->id)>{{ __($plan->name) }} ({{ showAmount($plan->price) }} {{ gs('cur_text') }})</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">@lang('Selecting a plan will give the user access to all accounts under this plan.')</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>@lang('Assign Specific Account')</label>
+                                    <select name="account_id" class="form-control select2">
+                                        <option value="">@lang('No Specific Account Assigned')</option>
+                                        @foreach($accounts as $account)
+                                            <option value="{{ $account->id }}" @selected($user->account_id == $account->id)>{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">@lang('Assign a specific account if you do not want to give them a full plan.')</small>
+                                </div>
+                            </div>
+
 
                             <div class="col-xl-3 col-md-6 col-12">
                                 <div class="form-group">

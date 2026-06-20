@@ -19,22 +19,28 @@ class ExtensionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->plan_id) {
+        if (!$user->plan_id && !$user->account_id) {
             return response()->json([
                 'success'   => true,
                 'platforms' => [],
-                'message'   => 'No plan assigned. Contact admin.',
+                'message'   => 'No plan or account assigned. Contact admin.',
             ]);
         }
 
-        // Get all active accounts for user's plan
-        $accounts = AccountListing::where('plan_id', $user->plan_id)
-            ->where('status', Status::LISTING_ACTIVE)
+        // Get all active accounts for user's plan OR specific account
+        $query = AccountListing::where('status', Status::LISTING_ACTIVE)
             ->whereHas('socialMedia', function($q) {
                 $q->active();
             })
-            ->with('socialMedia')
-            ->get()
+            ->with('socialMedia');
+
+        if ($user->plan_id) {
+            $query->where('plan_id', $user->plan_id);
+        } else {
+            $query->where('id', $user->account_id);
+        }
+
+        $accounts = $query->get()
             ->groupBy('social_media_id')
             ->map(function ($group) {
                 $sm = $group->first()->socialMedia;
@@ -61,18 +67,24 @@ class ExtensionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->plan_id) {
-            return response()->json(['success' => false, 'message' => 'No active plan'], 403);
+        if (!$user->plan_id && !$user->account_id) {
+            return response()->json(['success' => false, 'message' => 'No active plan or account'], 403);
         }
 
-        $account = AccountListing::where('social_media_id', $platformId)
-            ->where('plan_id', $user->plan_id)
+        $query = AccountListing::where('social_media_id', $platformId)
             ->where('status', Status::LISTING_ACTIVE)
-            ->with('socialMedia')
-            ->first();
+            ->with('socialMedia');
+
+        if ($user->plan_id) {
+            $query->where('plan_id', $user->plan_id);
+        } else {
+            $query->where('id', $user->account_id);
+        }
+
+        $account = $query->first();
 
         if (!$account) {
-            return response()->json(['success' => false, 'message' => 'No account available for this platform on your plan'], 404);
+            return response()->json(['success' => false, 'message' => 'No account available for this platform on your plan/assignment'], 404);
         }
 
         $cookies = $account->account_info;
