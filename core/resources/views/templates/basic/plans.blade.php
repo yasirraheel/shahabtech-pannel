@@ -42,9 +42,7 @@
                                 <li class="list-group-item d-flex align-items-center bg-transparent">
                                     <i class="las la-check-circle text--success fs-4 me-2"></i> @lang('One-click auto login extension')
                                 </li>
-                                <li class="list-group-item d-flex align-items-center bg-transparent">
-                                    <i class="las la-check-circle text--success fs-4 me-2"></i> @lang('Secure cloud cookies')
-                                </li>
+
                             </ul>
                         </div>
                         
