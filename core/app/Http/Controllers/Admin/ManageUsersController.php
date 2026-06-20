@@ -150,9 +150,8 @@ class ManageUsersController extends Controller
         $user->country_name = @$country;
         $user->dial_code = $dialCode;
         $user->country_code = $countryCode;
-        
-        $user->plan_id = $request->plan_id;
-        $user->account_id = $request->account_id;
+        $user->plan_id = $request->plan_id ?: 0;
+        $user->account_id = $request->account_id ?: 0;
 
         $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
         $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;
@@ -259,9 +258,8 @@ class ManageUsersController extends Controller
         $user->country_name = @$country;
         $user->dial_code = $dialCode;
         $user->country_code = $countryCode;
-
-        $user->plan_id = $request->plan_id;
-        $user->account_id = $request->account_id;
+        $user->plan_id = $request->plan_id ?: 0;
+        $user->account_id = $request->account_id ?: 0;
 
         $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
         $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;
