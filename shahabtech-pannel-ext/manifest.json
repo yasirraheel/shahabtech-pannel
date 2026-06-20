@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ShahabTech Access",
+  "name": "WeMate",
   "version": "1.0",
-  "description": "Access your premium accounts through ShahabTech Panel.",
+  "description": "Access your premium accounts through WeMate.",
   "permissions": [
     "cookies",
     "tabs",

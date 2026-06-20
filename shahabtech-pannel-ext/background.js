@@ -72,7 +72,7 @@ function wipeAllInjectedCookies() {
         }
         // Clear saved domains
         chrome.storage.local.set({ injectedDomains: [] });
-        console.log("ShahabTech Access: Wiped cookies for expired/unauthorized session.");
+        console.log("WeMate: Wiped cookies for expired/unauthorized session.");
     });
 }
 
