@@ -20,6 +20,18 @@ use Illuminate\Support\Facades\Cookie;
 
 class SiteController extends Controller
 {
+    public function downloadExtension()
+    {
+        $filePath = storage_path('app/public/extension/wemate-ext.zip');
+        
+        if (file_exists($filePath)) {
+            return response()->download($filePath, 'wemate-ext.zip');
+        }
+        
+        $notify[] = ['error', 'Extension file not found.'];
+        return back()->withNotify($notify);
+    }
+
     public function index(){
         $reference = @$_GET['reference'];
         if ($reference) {

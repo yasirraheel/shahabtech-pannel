@@ -41,6 +41,8 @@ Route::controller('SiteController')->group(function () {
     Route::get('/change/{lang?}', 'changeLanguage')->name('lang');
     Route::get('cookie-policy', 'cookiePolicy')->name('cookie.policy');
     Route::get('/cookie/accept', 'cookieAccept')->name('cookie.accept');
+    
+    Route::get('extension/download', 'downloadExtension')->name('extension.download');
 
     Route::post('subscribe', 'subscribe')->name('subscribe');
     Route::get('blog/{slug}', 'blogDetails')->name('blog.details');

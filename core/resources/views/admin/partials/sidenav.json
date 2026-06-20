@@ -101,24 +101,31 @@
                 "counter": "kycPendingUsersCount"
             },
             {
-                "keyword": ["with balance users", "Manage Users", "User management", "User activity", "Account management"],
+                "keyword": ["users with balance", "Manage Users", "User activity", "User balances", "User analytics", "User control", "User management"],
                 "title": "With Balance",
                 "route_name": "admin.users.with.balance",
                 "menu_active": "admin.users.with.balance"
             },
             {
-                "keyword": ["all users users", "Manage Users", "User management", "User control", "User activity", "User analytics"],
+                "keyword": ["all users", "Manage Users", "User directory", "User list", "User database", "User management", "User records", "User registry"],
                 "title": "All Users",
                 "route_name": "admin.users.all",
                 "menu_active": "admin.users.all"
             },
             {
-                "keyword": ["send notification users", "Manage Users", "User notifications", "User management", "User activity"],
-                "title": "Send Notification",
+                "keyword": ["notification to all", "Manage Users", "User alerts", "User communication", "User updates", "Broadcast messages", "Mass notifications", "User engagement"],
+                "title": "Notification to All",
                 "route_name": "admin.users.notification.all",
                 "menu_active": "admin.users.notification.all"
             }
         ]
+    },
+    "extension_distribution": {
+        "keyword": ["Extension distribution", "Upload extension", "Distribute extension", "Browser extension"],
+        "title": "Extension Distribution",
+        "icon": "las la-puzzle-piece",
+        "route_name": "admin.extension.upload",
+        "menu_active": "admin.extension.upload*"
     },
     "deposits": {
         "title": "Deposits",

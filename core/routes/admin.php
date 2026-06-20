@@ -83,6 +83,12 @@ Route::middleware('admin')->group(function () {
         Route::get('notification-log/{id}', 'notificationLog')->name('notification.log');
     });
 
+    // Extension Distribution
+    Route::controller('ExtensionUploadController')->prefix('extension')->name('extension.')->group(function(){
+        Route::get('upload', 'index')->name('upload');
+        Route::post('upload', 'upload')->name('upload.store');
+    });
+
     // Subscriber
     Route::controller('SubscriberController')->prefix('subscriber')->name('subscriber.')->group(function(){
         Route::get('/', 'index')->name('index');
