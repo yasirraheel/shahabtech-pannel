@@ -5,7 +5,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "*logout*",
-      "excludedDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedInitiatorDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedRequestDomains": ["panel.shahabtech.com", "shahabtech.com"],
       "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest", "ping", "script"]
     }
   },
@@ -15,7 +16,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "*signout*",
-      "excludedDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedInitiatorDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedRequestDomains": ["panel.shahabtech.com", "shahabtech.com"],
       "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest", "ping", "script"]
     }
   },
@@ -25,7 +27,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "*SignOut*",
-      "excludedDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedInitiatorDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedRequestDomains": ["panel.shahabtech.com", "shahabtech.com"],
       "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest", "ping", "script"]
     }
   },
@@ -35,7 +38,8 @@
     "action": { "type": "block" },
     "condition": {
       "urlFilter": "*LogOut*",
-      "excludedDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedInitiatorDomains": ["panel.shahabtech.com", "shahabtech.com"],
+      "excludedRequestDomains": ["panel.shahabtech.com", "shahabtech.com"],
       "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest", "ping", "script"]
     }
   }
