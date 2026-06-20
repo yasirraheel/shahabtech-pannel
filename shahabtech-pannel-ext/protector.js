@@ -66,13 +66,48 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
         `;
         document.documentElement.appendChild(style);
 
-        // --- 3. Prevent clicks on things that say "logout" ---
+        // --- 3. Hide logout elements via JS based on text content ---
+        const hideLogoutByText = () => {
+            const walkers = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walkers.nextNode()) {
+                const text = (node.nodeValue || '').toLowerCase();
+                if (text === 'sign out' || text === 'log out' || text === 'logout' || text === 'signout') {
+                    // Hide the closest clickable parent (button, a, or the parent element)
+                    const parent = node.parentElement;
+                    if (parent) {
+                        const clickable = parent.closest('button, a, [role="button"], [role="menuitem"], li, .btn');
+                        if (clickable) {
+                            clickable.style.setProperty('display', 'none', 'important');
+                        } else {
+                            parent.style.setProperty('display', 'none', 'important');
+                        }
+                    }
+                }
+            }
+        };
+
+        // Run initially, on mutations, and periodically just in case (for SPAs)
+        if (document.body) hideLogoutByText();
+        else document.addEventListener('DOMContentLoaded', hideLogoutByText);
+        
+        const observer = new MutationObserver(hideLogoutByText);
+        if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+            });
+        }
+        setInterval(hideLogoutByText, 1000);
+
+        // --- 4. Prevent clicks on things that say "logout" ---
         document.addEventListener('click', (e) => {
-            const target = e.target.closest('a, button, li, div, span');
+            const target = e.target.closest('a, button, li, div, span, [role="button"], [role="menuitem"]');
             if (target) {
-                const text = (target.innerText || '').toLowerCase();
+                const text = (target.innerText || '').toLowerCase().trim();
                 const href = (target.getAttribute('href') || '').toLowerCase();
-                if (text.includes('log out') || text.includes('logout') || text.includes('sign out') || text.includes('signout') ||
+                if (text === 'sign out' || text === 'log out' || text === 'logout' || text === 'signout' ||
                     href.includes('logout') || href.includes('signout')) {
                     e.preventDefault();
                     e.stopPropagation();
