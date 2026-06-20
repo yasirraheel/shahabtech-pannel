@@ -66,9 +66,10 @@ function wipeAllInjectedCookies() {
         let domains = result.injectedDomains || [];
         if (domains.length === 0) return;
 
-        for (let domain of domains) {
-            await clearCookiesForDomain("https://" + domain, domain);
-            await clearCookiesForDomain("http://" + domain, domain);
+        for (let item of domains) {
+            let domainStr = typeof item === 'string' ? item : item.domain;
+            await clearCookiesForDomain("https://" + domainStr, domainStr);
+            await clearCookiesForDomain("http://" + domainStr, domainStr);
         }
         // Clear saved domains
         chrome.storage.local.set({ injectedDomains: [] });
@@ -89,14 +90,22 @@ async function handleCookieInjection(platform, cookiesToInject) {
 
         const targetUrl = new URL(platform.url).origin;
 
-        // Save domain for future auto-wipes
+        // Save domain for future auto-wipes and protection locking
         chrome.storage.local.get(['injectedDomains'], (result) => {
             let domains = result.injectedDomains || [];
             let domainToSave = platform.domain.replace(/^\./, ''); // remove leading dot if any
-            if (!domains.includes(domainToSave)) {
-                domains.push(domainToSave);
-                chrome.storage.local.set({ injectedDomains: domains });
-            }
+            
+            // Remove existing entry for this domain to update it
+            domains = domains.filter(d => {
+                const dStr = typeof d === 'string' ? d : d.domain;
+                return dStr !== domainToSave;
+            });
+            
+            domains.push({
+                domain: domainToSave,
+                url: platform.url
+            });
+            chrome.storage.local.set({ injectedDomains: domains });
         });
 
         // Clear existing cookies for a clean session

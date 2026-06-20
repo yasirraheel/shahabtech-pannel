@@ -21,6 +21,12 @@
       "matches": ["*://panel.shahabtech.com/*", "*://localhost/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["protector.js"],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "action": {
