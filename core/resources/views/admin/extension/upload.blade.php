@@ -60,18 +60,16 @@
     </div>
 @endsection
 
-@push('script-lib')
-<script src="{{ asset('assets/admin/js/vendor/clipboard.min.js') }}"></script>
-@endpush
-
 @push('script')
 <script>
     (function($){
         "use strict";
-        var clipboard = new ClipboardJS('.copy-btn');
-        clipboard.on('success', function(e) {
-            notify('success', 'Copied: ' + e.text);
-            e.clearSelection();
+        $('.copy-btn').on('click', function () {
+            var copyText = document.getElementById("downloadLink");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            notify('success', 'Copied: ' + copyText.value);
         });
     })(jQuery);
 </script>
