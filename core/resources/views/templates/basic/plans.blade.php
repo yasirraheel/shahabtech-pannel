@@ -52,12 +52,11 @@
                                 @endif
 
                                 @if($plan->included_resources && count($plan->included_resources) > 0)
-                                    <li class="list-group-item d-flex align-items-center bg-transparent mt-2 border-top pt-2">
-                                        <strong><i class="las la-layer-group text--success fs-4 me-2"></i> @lang('Included Resources'):</strong>
-                                        <div class="mt-1 ms-4 text-muted" style="font-size: 0.9em;">
-                                            {{ $plan->included_resources->implode(', ') }}
-                                        </div>
-                                    </li>
+                                    @foreach($plan->included_resources as $resource)
+                                        <li class="list-group-item d-flex align-items-center bg-transparent">
+                                            <i class="las la-check-circle text--success fs-4 me-2"></i> {{ $resource }}
+                                        </li>
+                                    @endforeach
                                 @endif
                             </ul>
                         </div>
