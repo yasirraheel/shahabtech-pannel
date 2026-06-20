@@ -83,6 +83,10 @@
                             <label>@lang('Price')</label>
                             <input class="form-control" name="price" type="number" step="0.01" min="0" required>
                         </div>
+                        <div class="form-group">
+                            <label>@lang('Features')</label>
+                            <textarea class="form-control" name="features" rows="5" placeholder="Enter features, one per line"></textarea>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn--primary w-100 h-45" type="submit">@lang('Submit')</button>
@@ -99,4 +103,24 @@
     <button class="btn btn-sm btn-outline--primary cuModalBtn" data-modal_title="@lang('Add Plan')">
         <i class="las la-plus"></i>@lang('Add New')
     </button>
+@endpush
+
+@push('script')
+<script>
+    (function ($) {
+        "use strict";
+        $('.editBtn').on('click', function () {
+            var modal = $('#cuModal');
+            var resource = $(this).data('resource');
+            if(resource && resource.features) {
+                modal.find('[name=features]').val(resource.features.join('\n'));
+            } else {
+                modal.find('[name=features]').val('');
+            }
+        });
+        $('.cuModalBtn').not('.editBtn').on('click', function () {
+            $('#cuModal').find('[name=features]').val('');
+        });
+    })(jQuery);
+</script>
 @endpush

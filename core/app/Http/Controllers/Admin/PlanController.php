@@ -34,6 +34,19 @@ class PlanController extends Controller
 
         $plan->name  = $request->name;
         $plan->price = $request->price;
+        
+        $features = [];
+        if ($request->features) {
+            $featuresArray = explode("\n", $request->features);
+            foreach ($featuresArray as $feature) {
+                $feature = trim($feature);
+                if ($feature) {
+                    $features[] = $feature;
+                }
+            }
+        }
+        $plan->features = $features;
+
         $plan->save();
 
         $notify[] = ['success', $msg];
