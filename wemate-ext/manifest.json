@@ -35,7 +35,7 @@
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["protector.js"],
+      "js": ["protector.js", "watchdog.js"],
       "run_at": "document_start",
       "all_frames": true
     }
