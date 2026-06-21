@@ -113,11 +113,15 @@ async function handleCookieInjection(platform, cookiesToInject) {
 
         // Inject new cookies
         for (const cookie of cookiesToInject) {
+            let activeDomain = cookie.domain || platform.domain;
+            let cleanDomainForUrl = activeDomain.replace(/^\./, '');
+            let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+
             let cookieDetails = {
-                url: targetUrl,
+                url: dynamicUrl,
                 name: cookie.name,
                 value: cookie.value || '',
-                domain: cookie.domain || platform.domain,
+                domain: activeDomain,
                 path: cookie.path || '/',
                 secure: cookie.secure !== undefined ? cookie.secure : true,
                 httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false
