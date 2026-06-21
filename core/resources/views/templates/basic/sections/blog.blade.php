@@ -3,7 +3,7 @@
     $blogElements = getContent('blog.element', limit: 3);
 @endphp
 
-@if (!blank($blogContent))
+@if (!blank($blogContent) && !blank($blogElements))
     <section class="blog py-120">
         <div class="container">
             <div class="row">

@@ -3,6 +3,7 @@
     $sellAccountsElements = getContent('feature.element', limit: 6);
 @endphp
 
+@if (!blank($sellAccountContent))
 <div class="account-sell-section py-120 section-bg-two">
     <div class="container">
         <div class="row">
@@ -29,3 +30,4 @@
         </div>
     </div>
 </div>
+@endif

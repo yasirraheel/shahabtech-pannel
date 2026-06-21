@@ -2,6 +2,7 @@
     $categortyContent  = @getContent('category.content',true)->data_values;
     $categories        = App\Models\Category::withCount('accountListing')->active()->orderBy('account_listing_count','desc')->take(8)->get();
 @endphp
+@if (!blank($categortyContent))
 <section class="category-main py-120">
     <div class="container">
         <div class="row">
@@ -27,3 +28,4 @@
         </div>
     </div>
 </section>
+@endif

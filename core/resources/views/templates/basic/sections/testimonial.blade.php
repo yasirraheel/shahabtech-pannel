@@ -1,6 +1,7 @@
 @php
     $testimonialElements = getContent('testimonial.element');
 @endphp
+@if (!blank($testimonialElements))
 <section class="testimonials py-120">
     <div class="container">
         <div class="row justify-content-center">
@@ -45,6 +46,7 @@
         </div>
     </div>
 </section>
+@endif
 
 @if (!app()->offsetExists('slick_style'))
     @push('style-lib')

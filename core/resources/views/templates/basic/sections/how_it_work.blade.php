@@ -3,7 +3,7 @@
     $howWorkElements = getContent('how_it_work.element', orderById: true);
 @endphp
 
-@if (!blank($howWorkContent))
+@if (!blank($howWorkContent) && !blank($howWorkElements))
     <section class="how-work-section py-120 section-bg-two">
         <div class="container">
             <div class="row gy-4">

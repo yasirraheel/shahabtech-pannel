@@ -29,6 +29,11 @@
                             <a class="nav-link" href="{{ route('pages', [$page->slug]) }}" aria-current="page"> {{ __($page->name) }} </a>
                         </li>
                     @endforeach
+                    @auth
+                    <li class="nav-item {{menuActive('user.home')}}">
+                        <a class="nav-link" href="{{ route('user.home') }}" aria-current="page"> @lang('Dashboard') </a>
+                    </li>
+                    @endauth
                     <li class="nav-item {{menuActive('buy.account')}}">
                         <a class="nav-link" href="{{ route('buy.account') }}" aria-current="page"> @lang('Buy Account') </a>
                     </li>
