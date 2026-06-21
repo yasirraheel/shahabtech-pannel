@@ -103,6 +103,22 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     }
                 }
             }
+
+            // Also forcefully disable Gemini footer
+            const footerRows = document.querySelectorAll('.mavatar-footer-row, .mavatar-footer-left');
+            footerRows.forEach(row => {
+                row.style.setProperty('cursor', 'not-allowed', 'important');
+                row.querySelectorAll('a').forEach(link => {
+                    link.removeAttribute('href');
+                    link.style.setProperty('pointer-events', 'none', 'important');
+                    link.style.setProperty('cursor', 'not-allowed', 'important');
+                });
+                row.querySelectorAll('button, [role="button"]').forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.setProperty('pointer-events', 'none', 'important');
+                    btn.style.setProperty('cursor', 'not-allowed', 'important');
+                });
+            });
         };
 
         // Run initially, on mutations, and periodically just in case (for SPAs)
@@ -121,6 +137,12 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
 
         // --- 4. Prevent clicks on things that say "logout" ---
         document.addEventListener('click', (e) => {
+            if (e.target.closest('.mavatar-footer-row') || e.target.closest('.mavatar-footer-left')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             const target = e.target.closest('a, button, li, div, span, [role="button"], [role="menuitem"]');
             if (target) {
                 const text = (target.innerText || '').toLowerCase().trim();
