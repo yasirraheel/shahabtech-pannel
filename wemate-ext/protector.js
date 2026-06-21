@@ -61,13 +61,25 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             button:has(img[alt*="profile" i]), 
             button:has(img[alt*="Profile" i]),
             button:has(img[src*="googleusercontent" i]),
-            [aria-label*="Google Account" i],
             [aria-label*="Profile" i],
-            [aria-label*="account" i] {
+            [aria-label*="account" i]:not(.mavatar-footer-left) {
                 display: none !important;
                 pointer-events: none !important;
                 opacity: 0 !important;
                 visibility: hidden !important;
+            }
+
+            /* Make Gemini bottom profile area unclickable with warning cursor */
+            .mavatar-footer-row {
+                position: relative !important;
+            }
+            .mavatar-footer-row::after {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                cursor: not-allowed !important;
+                z-index: 999999;
+                background: rgba(255, 255, 255, 0.01); /* almost transparent to ensure it catches clicks */
             }
         `;
         document.documentElement.appendChild(style);
