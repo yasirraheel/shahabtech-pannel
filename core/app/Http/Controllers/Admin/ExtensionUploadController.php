@@ -10,10 +10,13 @@ class ExtensionUploadController extends Controller
     public function index()
     {
         $pageTitle = 'Extension Distribution';
-        $downloadUrl = url('extension/download');
         
-        $extensionExists = file_exists(storage_path('app/public/extension/wemate-ext.zip'));
-        $lastModified = $extensionExists ? date('F d Y, H:i:s', filemtime(storage_path('app/public/extension/wemate-ext.zip'))) : 'Never';
+        $directory = storage_path('app/public/extension');
+        $files = glob($directory . '/*.zip');
+        
+        $downloadUrl = getExtensionDownloadUrl();
+        $extensionExists = !empty($files);
+        $lastModified = $extensionExists ? date('F d Y, H:i:s', filemtime($files[0])) : 'Never';
 
         return view('admin.extension.upload', compact('pageTitle', 'downloadUrl', 'extensionExists', 'lastModified'));
     }
@@ -35,8 +38,15 @@ class ExtensionUploadController extends Controller
                 mkdir($directory, 0755, true);
             }
             
-            // We always save it as wemate-ext.zip to keep the download link constant
-            $file->move($directory, 'wemate-ext.zip');
+            // Delete any existing extension files to keep the directory clean
+            $oldFiles = glob($directory . '/*.zip');
+            foreach ($oldFiles as $oldFile) {
+                @unlink($oldFile);
+            }
+            
+            // Use the original filename provided by the admin (e.g. wemate-ext-v1.4.zip)
+            $filename = $file->getClientOriginalName();
+            $file->move($directory, $filename);
             
             $notify[] = ['success', 'Extension uploaded successfully!'];
             return back()->withNotify($notify);

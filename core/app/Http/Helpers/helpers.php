@@ -532,3 +532,11 @@ function userNotifyPermission($user, $act)
 {
     return $user->notifyPermission ? $user->notifyPermission->$act : null;
 }
+
+function getExtensionDownloadUrl()
+{
+    $directory = storage_path('app/public/extension');
+    $files = glob($directory . '/*.zip');
+    $filename = !empty($files) ? basename($files[0]) : 'wemate-ext.zip';
+    return route('extension.download', ['filename' => $filename]);
+}
