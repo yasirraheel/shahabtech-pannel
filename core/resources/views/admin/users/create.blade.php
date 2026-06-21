@@ -4,8 +4,9 @@
     <div class="row">
         <div class="col-12">
             <div class="card mt-30">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">@lang('Create New User')</h5>
+                    <button type="button" class="btn btn-sm btn--success" id="generateUserBtn"><i class="las la-magic"></i> @lang('Quick Generate User')</button>
                 </div>
                 <div class="card-body">
                     <form action="{{route('admin.users.store')}}" method="POST"
@@ -44,7 +45,12 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Password') </label>
-                                    <input class="form-control" type="password" name="password" required>
+                                    <div class="input-group">
+                                        <input class="form-control" type="password" name="password" id="passwordField" required>
+                                        <button type="button" class="input-group-text" id="togglePassword"><i class="las la-eye"></i></button>
+                                        <button type="button" class="input-group-text" onclick="copyPassword()"><i class="las la-copy"></i></button>
+                                    </div>
+                                    <small><a href="javascript:void(0)" id="generatePasswordBtn">@lang('Generate Random Password')</a></small>
                                 </div>
                             </div>
 
@@ -64,7 +70,7 @@
                                     <label>@lang('Mobile Number') </label>
                                     <div class="input-group ">
                                         <span class="input-group-text mobile-code"></span>
-                                        <input type="number" name="mobile" value="{{ old('mobile') }}" id="mobile" class="form-control checkUser" required>
+                                        <input type="number" name="mobile" value="{{ old('mobile') }}" id="mobile" class="form-control checkUser">
                                     </div>
                                 </div>
                             </div>

@@ -120,7 +120,7 @@ class ManageUsersController extends Controller
             'email' => 'required|email|string|max:40|unique:users,email',
             'username' => 'required|string|max:40|unique:users,username',
             'password' => 'required|string|min:6',
-            'mobile' => 'required|string|max:40',
+            'mobile' => 'nullable|string|max:40',
             'country' => 'required|in:'.$countries,
             'plan_id' => 'nullable|integer|exists:plans,id',
             'account_id' => 'nullable|integer|exists:account_listings,id',
@@ -130,10 +130,12 @@ class ManageUsersController extends Controller
         $country        = $countryData->$countryCode->country;
         $dialCode       = $countryData->$countryCode->dial_code;
 
-        $exists = User::where('mobile',$request->mobile)->where('dial_code',$dialCode)->exists();
-        if ($exists) {
-            $notify[] = ['error', 'The mobile number already exists.'];
-            return back()->withNotify($notify)->withInput();
+        if ($request->mobile) {
+            $exists = User::where('mobile',$request->mobile)->where('dial_code',$dialCode)->exists();
+            if ($exists) {
+                $notify[] = ['error', 'The mobile number already exists.'];
+                return back()->withNotify($notify)->withInput();
+            }
         }
 
         $user = new User();
@@ -153,11 +155,15 @@ class ManageUsersController extends Controller
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_id = $request->account_id ?: 0;
 
-        $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
-        $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;
-        $user->ts = $request->ts ? Status::ENABLE : Status::DISABLE;
-        $user->kv = $request->kv ? Status::KYC_VERIFIED : Status::KYC_UNVERIFIED;
+        // Force all verifications and profile completion so user can log in instantly
+        $user->ev = Status::VERIFIED;
+        $user->sv = Status::VERIFIED;
+        $user->kv = Status::KYC_VERIFIED;
+        $user->tv = Status::DISABLE;
+        $user->ts = Status::DISABLE;
         $user->status = Status::USER_ACTIVE;
+        $user->profile_complete = 1;
+
         $user->save();
 
         $notify[] = ['success', 'User created successfully'];
