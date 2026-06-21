@@ -20,12 +20,29 @@ use Illuminate\Support\Facades\Cookie;
 
 class SiteController extends Controller
 {
-    public function downloadExtension()
+    public function downloadExtension($filename = null)
     {
-        $filePath = storage_path('app/public/extension/wemate-ext.zip');
+        $directory = storage_path('app/public/extension');
+        
+        if ($filename) {
+            $filePath = $directory . '/' . $filename;
+        } else {
+            $filename = 'wemate-ext.zip';
+            $filePath = $directory . '/' . $filename;
+            if (is_dir($directory)) {
+                $files = scandir($directory);
+                foreach ($files as $file) {
+                    if (pathinfo($file, PATHINFO_EXTENSION) === 'zip') {
+                        $filename = $file;
+                        $filePath = $directory . '/' . $file;
+                        break;
+                    }
+                }
+            }
+        }
         
         if (file_exists($filePath)) {
-            return response()->download($filePath, 'wemate-ext.zip', [
+            return response()->download($filePath, $filename, [
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
                 'Expires' => '0'

@@ -12,11 +12,20 @@ class ExtensionUploadController extends Controller
         $pageTitle = 'Extension Distribution';
         
         $directory = storage_path('app/public/extension');
-        $files = glob($directory . '/*.zip');
+        $extensionExists = false;
+        $lastModified = 'Never';
+        if (is_dir($directory)) {
+            $files = scandir($directory);
+            foreach ($files as $file) {
+                if (pathinfo($file, PATHINFO_EXTENSION) === 'zip') {
+                    $extensionExists = true;
+                    $lastModified = date('F d Y, H:i:s', filemtime($directory . '/' . $file));
+                    break;
+                }
+            }
+        }
         
         $downloadUrl = getExtensionDownloadUrl();
-        $extensionExists = !empty($files);
-        $lastModified = $extensionExists ? date('F d Y, H:i:s', filemtime($files[0])) : 'Never';
 
         return view('admin.extension.upload', compact('pageTitle', 'downloadUrl', 'extensionExists', 'lastModified'));
     }
@@ -39,9 +48,13 @@ class ExtensionUploadController extends Controller
             }
             
             // Delete any existing extension files to keep the directory clean
-            $oldFiles = glob($directory . '/*.zip');
-            foreach ($oldFiles as $oldFile) {
-                @unlink($oldFile);
+            if (is_dir($directory)) {
+                $files = scandir($directory);
+                foreach ($files as $file) {
+                    if (pathinfo($file, PATHINFO_EXTENSION) === 'zip') {
+                        @unlink($directory . '/' . $file);
+                    }
+                }
             }
             
             // Use the original filename provided by the admin (e.g. wemate-ext-v1.4.zip)

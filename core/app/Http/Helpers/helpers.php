@@ -536,7 +536,15 @@ function userNotifyPermission($user, $act)
 function getExtensionDownloadUrl()
 {
     $directory = storage_path('app/public/extension');
-    $files = glob($directory . '/*.zip');
-    $filename = !empty($files) ? basename($files[0]) : 'wemate-ext.zip';
+    $filename = 'wemate-ext.zip';
+    if (is_dir($directory)) {
+        $files = scandir($directory);
+        foreach ($files as $file) {
+            if (pathinfo($file, PATHINFO_EXTENSION) === 'zip') {
+                $filename = $file;
+                break;
+            }
+        }
+    }
     return route('extension.download', ['filename' => $filename]);
 }
