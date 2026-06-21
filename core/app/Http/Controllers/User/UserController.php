@@ -33,9 +33,9 @@ class UserController extends Controller
                 $q->where('plan_id', $user->plan_id)
                   ->where('status', \App\Constants\Status::LISTING_ACTIVE);
             })->get();
-        } elseif ($user->account_id) {
+        } elseif (!empty($user->account_ids)) {
             $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) use ($user) {
-                $q->where('id', $user->account_id)
+                $q->whereIn('id', $user->account_ids)
                   ->where('status', \App\Constants\Status::LISTING_ACTIVE);
             })->get();
         }
