@@ -19,11 +19,11 @@ class ExtensionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->plan_id && !$user->account_id) {
+        if (!$user->plan_id && empty($user->account_ids)) {
             return response()->json([
                 'success'   => true,
                 'platforms' => [],
-                'message'   => 'No plan or account assigned. Contact admin.',
+                'message'   => 'No plan or accounts assigned. Contact admin.',
             ]);
         }
 
@@ -37,7 +37,7 @@ class ExtensionController extends Controller
         if ($user->plan_id) {
             $query->where('plan_id', $user->plan_id);
         } else {
-            $query->where('id', $user->account_id);
+            $query->whereIn('id', $user->account_ids ?? []);
         }
 
         $accounts = $query->get()
@@ -67,8 +67,8 @@ class ExtensionController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->plan_id && !$user->account_id) {
-            return response()->json(['success' => false, 'message' => 'No active plan or account'], 403);
+        if (!$user->plan_id && empty($user->account_ids)) {
+            return response()->json(['success' => false, 'message' => 'No active plan or accounts'], 403);
         }
 
         $query = AccountListing::where('social_media_id', $platformId)
@@ -78,7 +78,7 @@ class ExtensionController extends Controller
         if ($user->plan_id) {
             $query->where('plan_id', $user->plan_id);
         } else {
-            $query->where('id', $user->account_id);
+            $query->whereIn('id', $user->account_ids ?? []);
         }
 
         $account = $query->first();

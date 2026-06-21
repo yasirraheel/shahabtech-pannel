@@ -39,7 +39,7 @@
                                 <div class="product-item__button">
                                     @auth
                                         @php
-                                            $userHasAccess = auth()->user()->plan_id || (auth()->user()->account_id && \App\Models\AccountListing::where('id', auth()->user()->account_id)->where('social_media_id', $platform->id)->exists());
+                                            $userHasAccess = auth()->user()->plan_id || (!empty(auth()->user()->account_ids) && \App\Models\AccountListing::whereIn('id', auth()->user()->account_ids)->where('social_media_id', $platform->id)->exists());
                                         @endphp
                                         @if($userHasAccess)
                                             <button type="button" class="btn btn--base btn-inject-access" data-platform-id="{{ $platform->id }}">

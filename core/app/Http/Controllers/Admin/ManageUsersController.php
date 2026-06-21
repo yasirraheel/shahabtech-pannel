@@ -123,7 +123,8 @@ class ManageUsersController extends Controller
             'mobile' => 'nullable|string|max:40',
             'country' => 'required|in:'.$countries,
             'plan_id' => 'nullable|integer|exists:plans,id',
-            'account_id' => 'nullable|integer|exists:account_listings,id',
+            'account_ids' => 'nullable|array',
+            'account_ids.*' => 'integer|exists:account_listings,id',
         ]);
 
         $countryCode    = $request->country;
@@ -153,7 +154,7 @@ class ManageUsersController extends Controller
         $user->dial_code = $dialCode;
         $user->country_code = $countryCode;
         $user->plan_id = $request->plan_id ?: 0;
-        $user->account_id = $request->account_id ?: 0;
+        $user->account_ids = $request->account_ids ?: [];
 
         // Force all verifications and profile completion so user can log in instantly
         $user->ev = Status::VERIFIED;
@@ -240,16 +241,19 @@ class ManageUsersController extends Controller
             'firstname' => 'required|string|max:40',
             'lastname' => 'required|string|max:40',
             'email' => 'required|email|string|max:40|unique:users,email,' . $user->id,
-            'mobile' => 'required|string|max:40',
+            'mobile' => 'nullable|string|max:40',
             'country' => 'required|in:'.$countries,
             'plan_id' => 'nullable|integer|exists:plans,id',
-            'account_id' => 'nullable|integer|exists:account_listings,id',
+            'account_ids' => 'nullable|array',
+            'account_ids.*' => 'integer|exists:account_listings,id',
         ]);
 
-        $exists = User::where('mobile',$request->mobile)->where('dial_code',$dialCode)->where('id','!=',$user->id)->exists();
-        if ($exists) {
-            $notify[] = ['error', 'The mobile number already exists.'];
-            return back()->withNotify($notify);
+        if ($request->mobile) {
+            $exists = User::where('mobile',$request->mobile)->where('dial_code',$dialCode)->where('id','!=',$user->id)->exists();
+            if ($exists) {
+                $notify[] = ['error', 'The mobile number already exists.'];
+                return back()->withNotify($notify);
+            }
         }
 
         $user->mobile = $request->mobile;
@@ -265,7 +269,7 @@ class ManageUsersController extends Controller
         $user->dial_code = $dialCode;
         $user->country_code = $countryCode;
         $user->plan_id = $request->plan_id ?: 0;
-        $user->account_id = $request->account_id ?: 0;
+        $user->account_ids = $request->account_ids ?: [];
 
         $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
         $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;

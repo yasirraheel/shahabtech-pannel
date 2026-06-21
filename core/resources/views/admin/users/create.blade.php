@@ -90,14 +90,13 @@
 
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>@lang('Assign Specific Account')</label>
-                                    <select name="account_id" class="form-control select2">
-                                        <option value="">@lang('No Specific Account Assigned')</option>
+                                    <label>@lang('Assign Specific Accounts')</label>
+                                    <select name="account_ids[]" class="form-control select2" multiple="multiple">
                                         @foreach($accounts as $account)
                                             <option value="{{ $account->id }}">{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
                                         @endforeach
                                     </select>
-                                    <small class="text-muted">@lang('Assign a specific account if you do not want to give them a full plan.')</small>
+                                    <small class="text-muted">@lang('Assign specific accounts if you do not want to give them a full plan. You can select multiple.')</small>
                                 </div>
                             </div>
 
