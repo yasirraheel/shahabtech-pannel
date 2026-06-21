@@ -101,6 +101,12 @@
                     </button>
                     @endif
                 </div>
+
+                <div class="flex-fill">
+                    <button type="button" class="btn btn--danger btn--shadow w-100 btn-lg" data-bs-toggle="modal" data-bs-target="#userLogoutModal">
+                        <i class="las la-sign-out-alt"></i>@lang('Logout User')
+                    </button>
+                </div>
             </div>
 
             <div class="card mt-30">
@@ -319,6 +325,30 @@
                         <button type="button" class="btn btn--dark" data-bs-dismiss="modal">@lang('No')</button>
                         <button type="submit" class="btn btn--primary">@lang('Yes')</button>
                         @endif
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="userLogoutModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@lang('Logout User')</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="las la-times"></i>
+                    </button>
+                </div>
+                <form action="{{route('admin.users.logout', $user->id)}}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p>@lang('Are you sure you want to log out this user remotely?')</p>
+                        <p>@lang('This will terminate their active session instantly.')</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn--dark" data-bs-dismiss="modal">@lang('No')</button>
+                        <button type="submit" class="btn btn--primary">@lang('Yes')</button>
                     </div>
                 </form>
             </div>

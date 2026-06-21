@@ -58,6 +58,7 @@ Route::middleware('admin')->group(function () {
         Route::get('active', 'activeUsers')->name('active');
         Route::get('banned', 'bannedUsers')->name('banned');
         Route::get('email-verified', 'emailVerifiedUsers')->name('email.verified');
+        Route::post('logout/{id}', 'logout')->name('logout');
         Route::get('email-unverified', 'emailUnverifiedUsers')->name('email.unverified');
         Route::get('mobile-unverified', 'mobileUnverifiedUsers')->name('mobile.unverified');
         Route::get('kyc-unverified', 'kycUnverifiedUsers')->name('kyc.unverified');

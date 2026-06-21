@@ -187,6 +187,15 @@ class ManageUsersController extends Controller
         return view('admin.users.detail', compact('pageTitle', 'user','totalDeposit','totalWithdrawals','totalTransaction','countries', 'plans', 'accounts'));
     }
 
+    public function logout($id)
+    {
+        $user = User::findOrFail($id);
+        \Illuminate\Support\Facades\DB::table('sessions')->where('user_id', $user->id)->delete();
+        
+        $notify[] = ['success', 'User has been logged out remotely.'];
+        return back()->withNotify($notify);
+    }
+
 
     public function kycDetails($id)
     {
