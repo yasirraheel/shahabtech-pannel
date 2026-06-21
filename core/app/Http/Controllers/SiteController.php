@@ -25,7 +25,11 @@ class SiteController extends Controller
         $filePath = storage_path('app/public/extension/wemate-ext.zip');
         
         if (file_exists($filePath)) {
-            return response()->download($filePath, 'wemate-ext.zip');
+            return response()->download($filePath, 'wemate-ext.zip', [
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ]);
         }
         
         $notify[] = ['error', 'Extension file not found.'];
