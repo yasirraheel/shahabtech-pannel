@@ -109,6 +109,20 @@ class ExtensionController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('plan');
+        
+        $planData = null;
+        if ($user->plan) {
+            $planData = [
+                'id'   => $user->plan->id,
+                'name' => $user->plan->name,
+            ];
+        } elseif (!empty($user->account_ids)) {
+            $planData = [
+                'id'   => 0,
+                'name' => 'Direct Access',
+            ];
+        }
+
         return response()->json([
             'success' => true,
             'user'    => [
@@ -116,10 +130,7 @@ class ExtensionController extends Controller
                 'name'     => $user->fullname,
                 'username' => $user->username,
                 'email'    => $user->email,
-                'plan'     => $user->plan ? [
-                    'id'   => $user->plan->id,
-                    'name' => $user->plan->name,
-                ] : null,
+                'plan'     => $planData,
             ],
         ]);
     }
