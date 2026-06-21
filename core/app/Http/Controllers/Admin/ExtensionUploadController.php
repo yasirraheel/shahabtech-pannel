@@ -50,9 +50,9 @@ class ExtensionUploadController extends Controller
             // Delete any existing extension files to keep the directory clean
             if (is_dir($directory)) {
                 $files = scandir($directory);
-                foreach ($files as $file) {
-                    if (pathinfo($file, PATHINFO_EXTENSION) === 'zip') {
-                        @unlink($directory . '/' . $file);
+                foreach ($files as $item) {
+                    if (pathinfo($item, PATHINFO_EXTENSION) === 'zip') {
+                        @unlink($directory . '/' . $item);
                     }
                 }
             }
