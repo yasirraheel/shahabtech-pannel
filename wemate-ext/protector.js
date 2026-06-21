@@ -71,15 +71,15 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
 
             /* Make Gemini bottom profile area unclickable with warning cursor */
             .mavatar-footer-row {
-                position: relative !important;
-            }
-            .mavatar-footer-row::after {
-                content: '';
-                position: absolute;
-                top: 0; left: 0; right: 0; bottom: 0;
                 cursor: not-allowed !important;
-                z-index: 999999;
-                background: rgba(255, 255, 255, 0.01); /* almost transparent to ensure it catches clicks */
+            }
+            .mavatar-footer-row * {
+                cursor: not-allowed !important;
+            }
+            .mavatar-footer-row a, 
+            .mavatar-footer-row button, 
+            .mavatar-footer-row [role="button"] {
+                pointer-events: none !important;
             }
         `;
         document.documentElement.appendChild(style);
