@@ -6,7 +6,7 @@
             <div class="card mt-30">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">@lang('Create New User')</h5>
-                    <button type="button" class="btn btn-sm btn--success" id="generateUserBtn"><i class="las la-magic"></i> @lang('Quick Generate User')</button>
+                    <button type="button" class="btn btn-sm btn-outline--primary" id="generateUserBtn"><i class="las la-magic"></i> @lang('Quick Generate User')</button>
                 </div>
                 <div class="card-body">
                     <form action="{{route('admin.users.store')}}" method="POST"
