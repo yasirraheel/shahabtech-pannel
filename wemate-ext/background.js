@@ -108,8 +108,8 @@ async function handleCookieInjection(platform, cookiesToInject) {
             chrome.storage.local.set({ injectedDomains: domains });
         });
 
-        // Clear existing cookies for a clean session
-        await clearCookiesForDomain(targetUrl, platform.domain);
+        // Commented out to prevent wiping other platform sessions that share the same base domain (e.g. google.com)
+        // await clearCookiesForDomain(targetUrl, platform.domain);
 
         // Inject new cookies
         for (const cookie of cookiesToInject) {
