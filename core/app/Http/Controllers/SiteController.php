@@ -192,7 +192,7 @@ class SiteController extends Controller
             ->having('account_listing_count', '>', 0)
             ->paginate(getPaginate(12));
 
-        $sections = Page::where('tempname', activeTemplate())->where('slug', 'buy-accounts ')->first();
+        $sections = Page::where('tempname', activeTemplate())->where('slug', 'buy-accounts')->first();
         $seoContents = $sections ? $sections->seo_content : null;
         $seoImage = @$seoContents->image ? getImage(getFilePath('seo') . '/' . @$seoContents->image, getFileSize('seo')) : null;
 
