@@ -192,6 +192,10 @@ class ManageUsersController extends Controller
         $user = User::findOrFail($id);
         \Illuminate\Support\Facades\DB::table('sessions')->where('user_id', $user->id)->delete();
         
+        // Clear remember token so the "Remember Me" cookie cannot automatically log them back in
+        $user->remember_token = null;
+        $user->save();
+        
         $notify[] = ['success', 'User has been logged out remotely.'];
         return back()->withNotify($notify);
     }
