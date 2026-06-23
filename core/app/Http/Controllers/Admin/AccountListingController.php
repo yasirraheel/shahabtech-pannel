@@ -45,11 +45,11 @@ class AccountListingController extends Controller
         $request->validate([
             'title'           => 'required',
             'social_media_id' => 'required',
-            'plan_id'         => 'required',
+            'category_id'     => 'required',
+            'plan_id'         => 'nullable',
+            'url'             => 'required',
             'account_info'    => 'required',
         ]);
-
-        $platform = SocialMedia::findOrFail($request->social_media_id);
 
         if ($id) {
             $account       = AccountListing::findOrFail($id);
@@ -61,8 +61,9 @@ class AccountListingController extends Controller
 
         $account->title           = $request->title;
         $account->social_media_id = $request->social_media_id;
-        $account->plan_id         = $request->plan_id;
-        $account->url             = $platform->url; // inherited from platform
+        $account->category_id     = $request->category_id;
+        $account->plan_id         = $request->plan_id ?: 0;
+        $account->url             = $request->url;
         $account->account_info    = json_decode($request->account_info) ? json_decode($request->account_info) : $request->account_info;
         $account->status          = Status::LISTING_ACTIVE;
         $account->save();

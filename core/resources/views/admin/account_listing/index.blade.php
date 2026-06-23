@@ -99,7 +99,7 @@
                         </div>
                         <div class="form-group">
                             <label>@lang('Plan')</label>
-                            <select class="form-control" name="plan_id" required>
+                            <select class="form-control" name="plan_id">
                                 <option value="">@lang('Select Plan')</option>
                                 @foreach($plans as $plan)
                                     <option value="{{ $plan->id }}">{{ $plan->name }}</option>

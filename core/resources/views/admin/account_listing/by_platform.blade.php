@@ -110,13 +110,26 @@
                             <input class="form-control" name="title" type="text" placeholder="e.g. ChatGPT Pro - Account 1" required>
                         </div>
                         <div class="form-group">
-                            <label>@lang('Plan') <span class="text-danger">*</span></label>
-                            <select class="form-control" name="plan_id" required>
+                            <label>@lang('Category') <span class="text-danger">*</span></label>
+                            <select class="form-control" name="category_id" required>
+                                <option value="">@lang('Select Category')</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>@lang('Plan')</label>
+                            <select class="form-control" name="plan_id">
                                 <option value="">@lang('Select Plan')</option>
                                 @foreach($plans as $plan)
                                     <option value="{{ $plan->id }}">{{ $plan->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label>@lang('URL') <span class="text-danger">*</span></label>
+                            <input class="form-control" name="url" type="url" required>
                         </div>
                         <div class="form-group">
                             <label>@lang('Cookies (JSON Array)') <span class="text-danger">*</span></label>
