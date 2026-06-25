@@ -263,15 +263,10 @@ class AdminController extends Controller
     public function passwordUpdate(Request $request)
     {
         $request->validate([
-            'old_password' => 'required',
             'password' => 'required|min:5|confirmed',
         ]);
 
         $user = auth('admin')->user();
-        if (!Hash::check($request->old_password, $user->password)) {
-            $notify[] = ['error', 'Password doesn\'t match!!'];
-            return back()->withNotify($notify);
-        }
         $user->password = Hash::make($request->password);
         $user->save();
         $notify[] = ['success', 'Password changed successfully.'];
