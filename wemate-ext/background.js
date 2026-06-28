@@ -18,11 +18,14 @@ const API_URL = 'https://panel.shahabtech.com/api/extension';
 // Set up periodic alarm to check subscription status
 chrome.runtime.onInstalled.addListener(() => {
     chrome.alarms.create('checkAuthAlarm', { periodInMinutes: 5 });
+    chrome.alarms.create('cookieTTLAlarm', { periodInMinutes: 1 });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'checkAuthAlarm') {
         verifyAuthAndWipeIfInvalid();
+    } else if (alarm.name === 'cookieTTLAlarm') {
+        refreshCookieTTL();
     }
 });
 
@@ -176,6 +179,55 @@ function clearCookiesForDomain(url, domainStr) {
                     }
                     pending--;
                     if (pending === 0) resolve();
+                });
+            });
+        });
+    });
+}
+
+function refreshCookieTTL() {
+    chrome.storage.local.get(['injectedDomains'], (result) => {
+        let domains = result.injectedDomains || [];
+        if (domains.length === 0) return;
+
+        // Set expiration to 10 minutes from now
+        let newExpirationDate = (Date.now() / 1000) + (10 * 60);
+
+        domains.forEach(item => {
+            let domainStr = typeof item === 'string' ? item : item.domain;
+            chrome.cookies.getAll({ domain: domainStr }, (cookies) => {
+                if (!cookies) return;
+                cookies.forEach(cookie => {
+                    if (cookie.session) return; // Skip session cookies
+                    
+                    let cleanDomainForUrl = cookie.domain.replace(/^\./, '');
+                    let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+
+                    let cookieDetails = {
+                        url: dynamicUrl,
+                        name: cookie.name,
+                        value: cookie.value || '',
+                        domain: cookie.domain,
+                        path: cookie.path || '/',
+                        secure: cookie.secure !== undefined ? cookie.secure : true,
+                        httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false,
+                        expirationDate: newExpirationDate
+                    };
+
+                    // Handle strict cookie prefixes
+                    if (cookie.name.startsWith('__Host-')) {
+                        delete cookieDetails.domain;
+                        cookieDetails.path = '/';
+                        cookieDetails.secure = true;
+                    } else if (cookie.name.startsWith('__Secure-')) {
+                        cookieDetails.secure = true;
+                    }
+
+                    chrome.cookies.set(cookieDetails, () => {
+                        if (chrome.runtime.lastError) {
+                            // Ignore specific errors silently to avoid console spam
+                        }
+                    });
                 });
             });
         });

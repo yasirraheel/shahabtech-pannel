@@ -121,11 +121,44 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             });
         };
 
+        // --- DOM Destroyer for Cookie Editor Extensions ---
+        const destroyCookieEditors = () => {
+            const selectors = [
+                '[class*="cookie-editor" i]',
+                '[id*="cookie-editor" i]',
+                '[class*="editthiscookie" i]',
+                '[id*="editthiscookie" i]',
+                '[class*="cookie-manager" i]',
+                '[id*="cookie-manager" i]',
+                '[class*="cookiemanager" i]',
+                '[id*="cookiemanager" i]',
+                '[data-cookie-editor]',
+                '[data-editthiscookie]'
+            ];
+            
+            for (let i = 0; i < selectors.length; i++) {
+                try {
+                    const elements = document.querySelectorAll(selectors[i]);
+                    for (let j = 0; j < elements.length; j++) {
+                        // Avoid accidentally deleting legitimate Google elements
+                        if (elements[j].id.indexOf('__flow_') === -1) {
+                            elements[j].remove();
+                        }
+                    }
+                } catch (e) {}
+            }
+        };
+
+        const runProtections = () => {
+            hideLogoutByText();
+            destroyCookieEditors();
+        };
+
         // Run initially, on mutations, and periodically just in case (for SPAs)
-        if (document.body) hideLogoutByText();
-        else document.addEventListener('DOMContentLoaded', hideLogoutByText);
+        if (document.body) runProtections();
+        else document.addEventListener('DOMContentLoaded', runProtections);
         
-        const observer = new MutationObserver(hideLogoutByText);
+        const observer = new MutationObserver(runProtections);
         if (document.body) {
             observer.observe(document.body, { childList: true, subtree: true, characterData: true });
         } else {
@@ -133,7 +166,7 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 observer.observe(document.body, { childList: true, subtree: true, characterData: true });
             });
         }
-        setInterval(hideLogoutByText, 1000);
+        setInterval(runProtections, 1000);
 
         // --- 4. Prevent clicks on things that say "logout" ---
         document.addEventListener('click', (e) => {
