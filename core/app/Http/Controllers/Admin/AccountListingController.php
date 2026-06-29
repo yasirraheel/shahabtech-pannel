@@ -72,6 +72,53 @@ class AccountListingController extends Controller
         return back()->withNotify($notify);
     }
 
+    public function modifyExpiry(Request $request, $id)
+    {
+        $request->validate([
+            'action' => 'required|in:extend,decrease',
+        ]);
+
+        $account = AccountListing::findOrFail($id);
+        $cookies = $account->account_info;
+
+        if (!$cookies || !is_array($cookies)) {
+            $notify[] = ['error', 'No cookies found or invalid format.'];
+            return back()->withNotify($notify);
+        }
+
+        $days = 30;
+        $seconds = $days * 24 * 60 * 60;
+        
+        $modifiedCount = 0;
+
+        foreach ($cookies as &$cookie) {
+            if ($request->action == 'extend') {
+                if (isset($cookie->session) && $cookie->session == true) {
+                    // Convert session cookie to persistent cookie
+                    $cookie->session = false;
+                    $cookie->expirationDate = time() + $seconds;
+                    $modifiedCount++;
+                } else if (isset($cookie->expirationDate)) {
+                    $cookie->expirationDate += $seconds;
+                    $modifiedCount++;
+                }
+            } else if ($request->action == 'decrease') {
+                if (isset($cookie->expirationDate)) {
+                    $cookie->expirationDate -= $seconds;
+                    $modifiedCount++;
+                }
+            }
+        }
+
+        $account->account_info = $cookies;
+        $account->save();
+
+        $actionText = $request->action == 'extend' ? 'Extended' : 'Decreased';
+        $notify[] = ['success', "$actionText expiry for $modifiedCount cookies by $days days."];
+        
+        return back()->withNotify($notify);
+    }
+
     public function status($id)
     {
         return AccountListing::changeStatus($id);

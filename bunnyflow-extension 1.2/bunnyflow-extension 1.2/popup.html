@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BunnyFlow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      color: #f0f0f0;
+      width: 320px;
+      min-height: 200px;
+    }
+    .header {
+      padding: 14px 16px;
+      background: #0a0a0f;
+      border-bottom: 1px solid #15151f;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 10px; }
+    .brand-logo {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; overflow: hidden; flex-shrink: 0;
+    }
+    .brand-logo img {
+      width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+    }
+    .brand-text-wrap { display: flex; flex-direction: column; }
+    .brand-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
+    .brand-sub { font-size: 10px; color: #8a8a99; margin-top: 1px; }
+    .version-chip {
+      font-size: 10px; color: #a78bfa;
+      background: #1a1530; border: 1px solid #2a2050;
+      border-radius: 10px; padding: 2px 8px; font-weight: 600;
+    }
+    .content { padding: 14px 16px; }
+    .auto-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 20px; padding: 4px 10px;
+      font-size: 11px; color: #22c55e; margin-bottom: 12px; font-weight: 500;
+    }
+    .auto-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+    /* ── Heart-lock: not-connected header (from v3.9.8) ── */
+    .not-connected-header { text-align: center; padding: 16px 0 12px; }
+    .lock-emoji { font-size: 32px; margin-bottom: 6px; }
+    .not-connected-header h3 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .not-connected-header p { font-size: 12px; color: #6b7280; line-height: 1.5; }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 11px; color: #666; margin-bottom: 4px; }
+    .form-group input, .api-row input {
+      width: 100%; padding: 9px 11px; background: #14141c;
+      border: 1px solid #1f1f2c; border-radius: 8px;
+      color: #f0f0f0; font-size: 13px; outline: none;
+    }
+    .form-group input:focus, .api-row input:focus { border-color: #7c3aed; }
+    .btn {
+      width: 100%; padding: 11px; border-radius: 10px; border: none;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+      color: #fff;
+      border: 1px solid rgba(167, 139, 250, 0.3);
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); }
+    .btn-secondary {
+      background: #14141c; color: #8a8a99;
+      border: 1px solid #1f1f2c; margin-top: 8px;
+    }
+    .btn-secondary:hover { background: #1a1a24; color: #c0c0cc; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .error {
+      background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px; padding: 9px 11px; font-size: 12px;
+      color: #ef4444; margin-bottom: 10px;
+    }
+    .user-row {
+      display: flex; align-items: center; gap: 11px;
+      padding: 12px; background: #14141c; border-radius: 12px;
+      border: 1px solid #1f1f2c; margin-bottom: 10px;
+    }
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 14px; font-weight: 600; color: #f0f0f0; }
+    .user-plan { font-size: 11px; color: #a78bfa; margin-top: 2px; font-weight: 500; }
+    .user-days {
+      font-size: 10px; color: #8a8a99; margin-top: 3px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .stats-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+    }
+    .stat-card {
+      background: #14141c; border: 1px solid #1f1f2c;
+      border-radius: 10px; padding: 12px;
+    }
+    .stat-val { font-size: 22px; font-weight: 700; line-height: 1; }
+    .stat-val.days { color: #a78bfa; }
+    .stat-val.sessions { color: #a78bfa; }
+    .stat-lbl {
+      font-size: 9px; color: #555f72; margin-top: 6px;
+      text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+    }
+    .flow-badge {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 11px; border-radius: 8px;
+      font-size: 12px; margin-bottom: 10px; font-weight: 500;
+    }
+    .flow-badge.active {
+      background: rgba(34, 197, 94, 0.06);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: #22c55e;
+    }
+    .flow-badge.inactive {
+      background: #14141c; border: 1px solid #1f1f2c; color: #555f72;
+    }
+    .renew-banner {
+      background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.12));
+      border: 1px solid rgba(245,158,11,0.4);
+      border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+    }
+    .renew-banner-title { font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 3px; }
+    .renew-banner-msg { font-size: 11px; color: #d4b884; line-height: 1.4; margin-bottom: 8px; }
+    .renew-btn {
+      display: block; text-align: center; text-decoration: none;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff; font-size: 11px; font-weight: 600;
+      padding: 7px; border-radius: 6px;
+    }
+    .section-label {
+      font-size: 10px; color: #444; text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 12px;
+    }
+    .api-row { display: flex; gap: 6px; }
+    .api-row input { flex: 1; font-size: 11px; padding: 8px 10px; color: #aaa; }
+    .api-row .btn-sm {
+      padding: 8px 12px; background: #1f1f2c; border: 1px solid #2a2a3c;
+      border-radius: 6px; color: #888; font-size: 11px; cursor: pointer;
+      white-space: nowrap; font-family: inherit;
+    }
+    .api-row .btn-sm:hover { background: #2a2a3c; color: #ccc; }
+    .spinner {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.5s linear infinite;
+      margin-right: 6px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-screen {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 160px; gap: 10px;
+      color: #555f72; font-size: 12px;
+    }
+    .footer {
+      padding: 10px 16px; border-top: 1px solid #15151f;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px;
+    }
+    .footer a { color: #8a8a99; text-decoration: none; }
+    .footer a:hover { color: #a78bfa; }
+    #disabled-banner {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px; padding: 8px 11px; margin-bottom: 10px;
+      font-size: 11px; color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand-wrap">
+      <div class="brand-logo"><img src="logo.png" alt="BunnyFlow" /></div>
+      <div class="brand-text-wrap">
+        <span class="brand-name">BunnyFlow</span>
+        <span class="brand-sub">AI Video Platform</span>
+      </div>
+    </div>
+    <span class="version-chip" id="version-chip">v1.2</span>
+  </div>
+
+  <div id="loading-screen">
+    <div class="spinner" style="width:18px;height:18px;border-top-color:#a78bfa;margin:0"></div>
+    <span>Connecting...</span>
+  </div>
+
+  <div id="login-screen" class="content" style="display:none">
+    <!-- Heart-lock header (from v3.9.8): shows ❤️ when not connected,
+         auto-connect JS changes it to ⏳ while syncing -->
+    <div class="not-connected-header">
+      <div class="lock-emoji">❤️</div>
+      <h3>Not Connected</h3>
+      <p>Open <b>flowbybunny.com</b> and log into your dashboard. This extension connects <b>automatically</b> — no manual login needed here.</p>
+    </div>
+    <a href="https://flowbybunny.com/dashboard" target="_blank" rel="noopener" class="btn btn-primary" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">Open BunnyFlow Dashboard</a>
+    <p style="font-size:11px;color:#9ca3af;text-align:center;margin:0 0 6px">After logging in, reopen Google Flow and you'll be connected.</p>
+    <div class="not-connected-header" style="display:none">
+    </div>
+    <div style="display:none" aria-hidden="true">
+      <div id="login-error" class="error" style="display:none"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@email.com" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Password" />
+    </div>
+    <div class="section-label">Server URL</div>
+    <div class="api-row" style="margin-bottom:14px">
+      <input type="text" id="api-base" placeholder="https://flowbybunny.com" />
+      <button class="btn-sm" id="save-api">Save</button>
+    </div>
+    <button class="btn btn-primary" id="login-btn">Sign In</button>
+    </div>
+  </div>
+
+  <div id="status-screen" class="content" style="display:none">
+    <div id="disabled-banner" style="display:none">
+      <span style="font-size:14px;">⚠</span>
+      <span>Session system disabled by admin. Cookies will not be injected.</span>
+    </div>
+
+    <div id="renew-banner" class="renew-banner" style="display:none">
+      <div class="renew-banner-title">⏰ Plan expiring soon</div>
+      <div class="renew-banner-msg" id="renew-msg">Your plan expires in <b id="renew-days">—</b> days. Renew to keep uninterrupted access.</div>
+      <a class="renew-btn" href="https://flowbybunny.com/pricing" target="_blank" rel="noopener">Renew Plan</a>
+    </div>
+
+    <div id="auto-badge" class="auto-badge" style="display:none">
+      <div class="auto-dot"></div>
+      Auto-connected from BunnyFlow
+    </div>
+
+    <div class="user-row">
+      <div class="avatar" id="user-avatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">—</div>
+        <div class="user-plan" id="user-plan">—</div>
+        <div class="user-days" id="user-days-line">⏱ <span id="user-days-text">—</span></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val days" id="ext2-days">—</div>
+        <div class="stat-lbl">Days Left</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val sessions" id="cookies-count">—</div>
+        <div class="stat-lbl">AI Sessions</div>
+      </div>
+    </div>
+
+    <div id="page-indicator" class="flow-badge inactive">
+      <span id="page-text">Not on Google Flow</span>
+    </div>
+
+    <button class="btn btn-primary" id="inject-btn" style="display:none">↻ ReOpen Flow!</button>
+  </div>
+
+  <div class="footer">
+    <a href="https://evilmarkhors.tech/veo-bunny-flow" target="_blank" rel="noopener">Dashboard</a>
+    <a href="https://evilmarkhors.tech/veo-bunny-flow" target="_blank" rel="noopener">Get Extension</a>
+  </div>
+
+  <script src="popup.js"></script>
+  <script src="ext2_info.js"></script>
+</body>
+</html>

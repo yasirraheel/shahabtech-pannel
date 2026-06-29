@@ -42,7 +42,7 @@ Route::controller('SiteController')->group(function () {
     Route::get('cookie-policy', 'cookiePolicy')->name('cookie.policy');
     Route::get('/cookie/accept', 'cookieAccept')->name('cookie.accept');
     
-    Route::get('extension/download', 'downloadExtension')->name('extension.download');
+    Route::get('extension/download/{filename?}', 'downloadExtension')->name('extension.download');
 
     Route::post('subscribe', 'subscribe')->name('subscribe');
     Route::get('blog/{slug}', 'blogDetails')->name('blog.details');

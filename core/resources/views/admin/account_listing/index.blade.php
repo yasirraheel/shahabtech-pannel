@@ -42,6 +42,12 @@
                                                         <i class="las la-eye"></i>@lang('Enable')
                                                     </button>
                                                 @endif
+                                                <button class="btn btn-outline--success btn-sm confirmationBtn" data-question="@lang('Are you sure you want to extend cookie expiry by 30 days?')" data-action="{{ route('admin.account.listing.modify.expiry', ['id' => $accountListing->id, 'action' => 'extend']) }}">
+                                                    <i class="las la-calendar-plus"></i>@lang('+30 Days')
+                                                </button>
+                                                <button class="btn btn-outline--warning btn-sm confirmationBtn" data-question="@lang('Are you sure you want to decrease cookie expiry by 30 days?')" data-action="{{ route('admin.account.listing.modify.expiry', ['id' => $accountListing->id, 'action' => 'decrease']) }}">
+                                                    <i class="las la-calendar-minus"></i>@lang('-30 Days')
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

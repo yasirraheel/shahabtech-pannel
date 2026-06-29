@@ -195,6 +195,7 @@ Route::middleware('admin')->group(function () {
         Route::get('platform/{platformId}', 'byPlatform')->name('by.platform');
         Route::post('store', 'store')->name('store');
         Route::post('store/{id}', 'store')->name('update');
+        Route::post('modify-expiry/{id}', 'modifyExpiry')->name('modify.expiry');
         Route::get('details/{id}', 'details')->name('detail');
         Route::post('status/{id}', 'status')->name('status');
     });
