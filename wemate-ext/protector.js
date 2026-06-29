@@ -150,29 +150,83 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             }
         };
 
-        // --- Hide Flow URL ---
-        const hideFlowUrl = () => {
-            if (window.location.href.includes('labs.google/fx/tools/flow')) {
-                if (!document.getElementById('__wemate_flow_hidden__')) {
-                    const overlay = document.createElement('div');
-                    overlay.id = '__wemate_flow_hidden__';
-                    overlay.style.cssText = 'position:fixed;inset:0;background:#0d1117;z-index:2147483647;display:flex;justify-content:center;align-items:center;font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif;';
-                    overlay.innerHTML = '<div style="text-align:center;max-width:380px;padding:20px;"><span style="font-size:24px;font-weight:bold;color:white;">Flow Content Hidden</span><br><br><span style="font-size:16px;color:#aaa">This section is not accessible through this extension.</span></div>';
-                    
-                    if (document.body) {
-                        document.body.appendChild(overlay);
-                        document.body.style.overflow = 'hidden';
-                    } else {
-                        document.documentElement.appendChild(overlay);
+        // --- Hide Other Users' Projects (Bunnyflow Style) ---
+        let myProjects = [];
+        try {
+            chrome.storage.local.get(['__wemate_my_projects'], (res) => {
+                myProjects = res.__wemate_my_projects || [];
+            });
+        } catch(e) {}
+
+        const hideOtherProjects = () => {
+            if (!window.location.pathname.match(/^\/fx\/tools\/flow\/?$/)) return;
+            
+            // Apply a global CSS rule to hide all project cards by default to prevent flashing
+            if (!document.getElementById('__wemate_hide_projects_css__')) {
+                const style = document.createElement('style');
+                style.id = '__wemate_hide_projects_css__';
+                style.textContent = `
+                    a[href^="/fx/tools/flow/project/"] { visibility: hidden !important; opacity: 0 !important; }
+                    a[href^="/fx/tools/flow/project/"] * { visibility: hidden !important; opacity: 0 !important; }
+                `;
+                (document.head || document.documentElement).appendChild(style);
+            }
+
+            const projectLinks = document.querySelectorAll('a[href^="/fx/tools/flow/project/"]');
+            projectLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href) return;
+                
+                let container = link;
+                for (let i = 0; i < 5; i++) {
+                    if (!container.parentElement) break;
+                    container = container.parentElement;
+                }
+                
+                const cleanHref = href.replace(/\/$/, '');
+                
+                if (myProjects.includes(cleanHref) || myProjects.includes(href)) {
+                    // Show this user's project
+                    link.style.visibility = '';
+                    link.style.opacity = '';
+                    link.querySelectorAll('*').forEach(child => {
+                        child.style.visibility = '';
+                        child.style.opacity = '';
+                    });
+                    container.style.display = '';
+                    container.style.visibility = '';
+                } else {
+                    // Hide other users' projects
+                    link.style.visibility = 'hidden';
+                    link.style.opacity = '0';
+                    container.style.display = 'none';
+                    container.style.visibility = 'hidden';
+                }
+            });
+        };
+
+        let lastPathname = window.location.pathname;
+        const trackNewProjects = () => {
+            const currentPath = window.location.pathname;
+            if (currentPath !== lastPathname) {
+                if (currentPath.startsWith('/fx/tools/flow/project/') && currentPath.length > 20) {
+                    const cleanPath = currentPath.replace(/\/$/, '');
+                    if (!myProjects.includes(cleanPath)) {
+                        myProjects.push(cleanPath);
+                        try {
+                            chrome.storage.local.set({ '__wemate_my_projects': myProjects });
+                        } catch(e) {}
                     }
                 }
+                lastPathname = currentPath;
             }
         };
 
         const runProtections = () => {
             hideLogoutByText();
             destroyCookieEditors();
-            hideFlowUrl();
+            hideOtherProjects();
+            trackNewProjects();
         };
 
         // Run initially, on mutations, and periodically just in case (for SPAs)
