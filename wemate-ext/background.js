@@ -106,7 +106,8 @@ async function handleCookieInjection(platform, cookiesToInject) {
             
             domains.push({
                 domain: domainToSave,
-                url: platform.url
+                url: platform.url,
+                savedCookies: cookiesToInject // Save raw cookies for auto-injection
             });
             chrome.storage.local.set({ injectedDomains: domains });
         });
@@ -229,7 +230,90 @@ function refreshCookieTTL() {
                         }
                     });
                 });
+                });
             });
         });
     });
 }
+
+// Auto-Reinjection mechanism (like Bunnyflow)
+const autoInjectedTabs = new Map();
+
+function shouldAutoInject(url, domains) {
+    try {
+        let p = new URL(url);
+        for (let d of domains) {
+            let domainStr = typeof d === 'string' ? d : d.domain;
+            if (!domainStr) continue;
+            let cleanDomain = domainStr.replace(/^\./, '');
+            if (p.hostname === cleanDomain || p.hostname.endsWith('.' + cleanDomain)) {
+                return d;
+            }
+        }
+    } catch(e) {}
+    return null;
+}
+
+function autoInjectCookies(tabId, matchedDomainObj) {
+    if (!matchedDomainObj || !matchedDomainObj.savedCookies) return;
+    
+    // Prevent spamming injections on the same tab
+    const last = autoInjectedTabs.get(tabId);
+    const now = Date.now();
+    if (last && (now - last) < 2000) return;
+    autoInjectedTabs.set(tabId, now);
+
+    let cookiesToInject = matchedDomainObj.savedCookies;
+    
+    for (const cookie of cookiesToInject) {
+        let activeDomain = cookie.domain || matchedDomainObj.domain;
+        let cleanDomainForUrl = activeDomain.replace(/^\./, '');
+        let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+
+        let cookieDetails = {
+            url: dynamicUrl,
+            name: cookie.name,
+            value: cookie.value || '',
+            domain: activeDomain,
+            path: cookie.path || '/',
+            secure: cookie.secure !== undefined ? cookie.secure : true,
+            httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false
+        };
+        
+        // Always set a fresh 10 minute expiration if we are auto-injecting
+        cookieDetails.expirationDate = (Date.now() / 1000) + (10 * 60);
+
+        if (cookie.name.startsWith('__Host-')) {
+            delete cookieDetails.domain;
+            cookieDetails.path = '/';
+            cookieDetails.secure = true;
+        } else if (cookie.name.startsWith('__Secure-')) {
+            cookieDetails.secure = true;
+        }
+
+        chrome.cookies.set(cookieDetails, () => {});
+    }
+}
+
+function handleTabNavigation(tabId, url) {
+    if (!url) return;
+    chrome.storage.local.get(['injectedDomains'], (result) => {
+        let domains = result.injectedDomains || [];
+        if (domains.length === 0) return;
+        
+        let matched = shouldAutoInject(url, domains);
+        if (matched) {
+            autoInjectCookies(tabId, matched);
+        }
+    });
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    handleTabNavigation(tabId, changeInfo.url || (tab && tab.url));
+});
+chrome.tabs.onCreated.addListener((tab) => {
+    if (tab && tab.id != null) handleTabNavigation(tab.id, tab.url || tab.pendingUrl);
+});
+chrome.tabs.onRemoved.addListener((tabId) => {
+    autoInjectedTabs.delete(tabId);
+});
