@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WeMate",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "Access your premium accounts through WeMate.",
   "permissions": [
     "cookies",

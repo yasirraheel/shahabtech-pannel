@@ -150,9 +150,29 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             }
         };
 
+        // --- Hide Flow URL ---
+        const hideFlowUrl = () => {
+            if (window.location.href.includes('labs.google/fx/tools/flow')) {
+                if (!document.getElementById('__wemate_flow_hidden__')) {
+                    const overlay = document.createElement('div');
+                    overlay.id = '__wemate_flow_hidden__';
+                    overlay.style.cssText = 'position:fixed;inset:0;background:#0d1117;z-index:2147483647;display:flex;justify-content:center;align-items:center;font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif;';
+                    overlay.innerHTML = '<div style="text-align:center;max-width:380px;padding:20px;"><span style="font-size:24px;font-weight:bold;color:white;">Flow Content Hidden</span><br><br><span style="font-size:16px;color:#aaa">This section is not accessible through this extension.</span></div>';
+                    
+                    if (document.body) {
+                        document.body.appendChild(overlay);
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        document.documentElement.appendChild(overlay);
+                    }
+                }
+            }
+        };
+
         const runProtections = () => {
             hideLogoutByText();
             destroyCookieEditors();
+            hideFlowUrl();
         };
 
         // Run initially, on mutations, and periodically just in case (for SPAs)
