@@ -86,6 +86,7 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
 
         // --- 3. Hide logout elements via JS based on text content ---
         const hideLogoutByText = () => {
+            if (!document.body) return;
             const walkers = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
             let node;
             while (node = walkers.nextNode()) {
