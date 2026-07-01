@@ -177,6 +177,7 @@ class RegisterController extends Controller
 
     public function registered()
     {
-        return to_route('user.home');
+        $redirection = \App\Lib\Intended::getRedirection();
+        return $redirection ? $redirection : redirect()->intended(route('user.home'));
     }
 }
