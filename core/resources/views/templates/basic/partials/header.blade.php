@@ -5,22 +5,7 @@
 @endphp
 
 <header class="header" id="header">
-    @if(auth()->check())
-        @php
-            $daysUsed = (int) auth()->user()->created_at->diffInDays(now());
-            $daysRemaining = max(0, 30 - $daysUsed);
-            $isExpired = $daysRemaining <= 0;
-        @endphp
-        <div style="text-align: center; background-color: #0d1117; padding-top: 10px; padding-bottom: 0;">
-            <div style="display: inline-block; background-color: {{ $isExpired ? '#dc3545' : '#ffc107' }}; color: {{ $isExpired ? 'white' : 'black' }}; padding: 5px 20px; font-size: 13px; font-weight: 600; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                @if($isExpired)
-                    <i class="las la-times-circle"></i> @lang('Your subscription is Expired')
-                @else
-                    <i class="las la-clock"></i> {{ $daysRemaining }} @lang('Days Remaining')
-                @endif
-            </div>
-        </div>
-    @endif
+
     <div class="container">
         <nav class="navbar navbar-expand-lg navbar-light">
             <a class="navbar-brand logo" href="{{ route('home') }}"><img src="{{ siteLogo() }}" alt="logo"></a>
@@ -37,9 +22,7 @@
 
             <div class="navbar-collapse collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav nav-menu align-items-lg-center">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('home') }}" aria-current="page">@lang('Home')</a>
-                    </li>
+                    <!-- Removed Home menu as requested -->
                     @foreach ($pages as $page)
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('pages', [$page->slug]) }}" aria-current="page"> {{ __($page->name) }} </a>
@@ -53,20 +36,33 @@
                     <li class="nav-item {{menuActive('buy.account')}}">
                         <a class="nav-link" href="{{ route('buy.account') }}" aria-current="page"> @lang('Buy Account') </a>
                     </li>
-                    <li class="nav-item {{menuActive('blogs')}}">
-                        <a class="nav-link" href="{{ route('blogs') }}" aria-current="page"> @lang('Blog') </a>
-                    </li>
+                    <!-- Removed Blog menu as requested -->
                     <li class="nav-item {{menuActive('contact')}}">
                         <a class="nav-link" href="{{ route('contact') }}" aria-current="page"> @lang('Contact') </a>
                     </li>
 
                     <li class="nav-item d-block d-lg-none">
-                        <div class="top-button d-flex">
-                            <div class="top-button__button">
+                        <div class="top-button d-flex align-items-center flex-wrap gap-2">
+                            <div class="top-button__button" style="margin-bottom: 10px;">
                                 <a class="btn btn--base" href="{{ route('plans') }}"> <span class="icon"> <i class="las la-crown"></i>
                                     </span> @lang('Pricing Plans') </a>
                             </div>
-                           
+                            @if(auth()->check())
+                                @php
+                                    $daysUsed = (int) auth()->user()->created_at->diffInDays(now());
+                                    $daysRemaining = max(0, 30 - $daysUsed);
+                                    $isExpired = $daysRemaining <= 0;
+                                @endphp
+                                <div class="top-button__button" style="margin-bottom: 10px;">
+                                    <span class="btn" style="background-color: {{ $isExpired ? '#dc3545' : '#ffc107' }}; color: {{ $isExpired ? 'white' : 'black' }}; border: none; font-size: 14px; font-weight: 600; cursor: default; padding: 10px 15px;">
+                                        @if($isExpired)
+                                            <i class="las la-times-circle"></i> @lang('Expired')
+                                        @else
+                                            <i class="las la-clock"></i> {{ $daysRemaining }} @lang('Days Remaining')
+                                        @endif
+                                    </span>
+                                </div>
+                            @endif
                         </div>
                     </li>
                 </ul>
@@ -77,6 +73,22 @@
                                 <span class="icon"> <i class="las la-crown"></i></span> @lang('Pricing Plans') 
                             </a>
                         </div>
+                        @if(auth()->check())
+                            @php
+                                $daysUsed = (int) auth()->user()->created_at->diffInDays(now());
+                                $daysRemaining = max(0, 30 - $daysUsed);
+                                $isExpired = $daysRemaining <= 0;
+                            @endphp
+                            <div class="top-button__button" style="margin-right: 15px;">
+                                <span class="btn" style="background-color: {{ $isExpired ? '#dc3545' : '#ffc107' }}; color: {{ $isExpired ? 'white' : 'black' }}; border: none; font-size: 14px; font-weight: 600; cursor: default; padding: 10px 15px;">
+                                    @if($isExpired)
+                                        <i class="las la-times-circle"></i> @lang('Expired')
+                                    @else
+                                        <i class="las la-clock"></i> {{ $daysRemaining }} @lang('Days Remaining')
+                                    @endif
+                                </span>
+                            </div>
+                        @endif
                         <div class="top-header__login">
                             <div class="user-info">
                                 @if (auth()->check())
