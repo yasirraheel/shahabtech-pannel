@@ -25,14 +25,7 @@
                                     <h4 class="product-item__title d-flex align-items-center mb-0">
                                         <span class="text--base">{{ __($platform->name) }}</span>
                                     </h4>
-                                    <p class="product-item__text mt-2" style="font-family: monospace; color: #dc3545;">
-                                        {{ $platform->domain }}
-                                    </p>
-                                    <div class="mt-2">
-                                        <span class="badge badge--success" style="background: transparent; border: 1px solid #28a745; color: #28a745; font-size: 13px; padding: 6px 12px;">
-                                            {{ $platform->account_listing_count }} @lang('Accounts Available')
-                                        </span>
-                                    </div>
+
                                 </div>
                             </div>
                             <div class="d-flex align-items-center flex-wrap">
