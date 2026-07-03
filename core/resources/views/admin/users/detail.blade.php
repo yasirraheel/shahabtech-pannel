@@ -204,6 +204,14 @@
 
                             <div class="col-md-6">
                                 <div class="form-group">
+                                    <label>@lang('Subscription Expiry Date')</label>
+                                    <input class="form-control" type="datetime-local" name="expires_at" value="{{ $user->expires_at ? $user->expires_at->format('Y-m-d\TH:i') : $user->created_at->addDays(30)->format('Y-m-d\TH:i') }}">
+                                    <small class="text-muted">@lang('By default, users expire 30 days after their creation date.')</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
                                     <label>@lang('Assign Specific Accounts')</label>
                                     <select name="account_ids[]" class="form-control select2" multiple="multiple">
                                         @foreach($accounts as $account)

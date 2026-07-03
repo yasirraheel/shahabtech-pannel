@@ -31,7 +31,8 @@ class User extends Authenticatable
         'address' => 'object',
         'kyc_data' => 'object',
         'ver_code_send_at' => 'datetime',
-        'account_ids' => 'array'
+        'account_ids' => 'array',
+        'expires_at' => 'datetime'
     ];
 
     public function loginLogs()

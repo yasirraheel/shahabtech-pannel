@@ -27,8 +27,9 @@ class ExtensionController extends Controller
             ]);
         }
 
-        $daysUsed = (int) $user->created_at->diffInDays(now());
-        if ($daysUsed >= 30) {
+        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
+        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+        if ($isExpired) {
             return response()->json([
                 'success'   => true,
                 'platforms' => [],
@@ -80,8 +81,9 @@ class ExtensionController extends Controller
             return response()->json(['success' => false, 'message' => 'No active plan or accounts'], 403);
         }
         
-        $daysUsed = (int) $user->created_at->diffInDays(now());
-        if ($daysUsed >= 30) {
+        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
+        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+        if ($isExpired) {
             return response()->json(['success' => false, 'message' => 'Your subscription is expired. Please contact administrator.'], 403);
         }
 
@@ -123,8 +125,8 @@ class ExtensionController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('plan');
-        $daysUsed = (int) $user->created_at->diffInDays(now());
-        $isExpired = $daysUsed >= 30;
+        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
+        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
 
         $planData = null;
         if (!$isExpired) {

@@ -96,8 +96,8 @@
             </div>
             
             @php
-                $daysUsed = (int) auth()->user()->created_at->diffInDays(now());
-                $isExpired = $daysUsed >= 30;
+                $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
+                $isExpired = now()->greaterThanOrEqualTo($expiryDate);
             @endphp
 
             @if($isExpired)

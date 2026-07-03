@@ -259,6 +259,7 @@ class ManageUsersController extends Controller
             'plan_id' => 'nullable|integer|exists:plans,id',
             'account_ids' => 'nullable|array',
             'account_ids.*' => 'integer|exists:account_listings,id',
+            'expires_at' => 'nullable|date',
         ]);
 
         if ($request->mobile) {
@@ -283,6 +284,10 @@ class ManageUsersController extends Controller
         $user->country_code = $countryCode;
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_ids = $request->account_ids ?: [];
+        
+        if ($request->expires_at) {
+            $user->expires_at = \Carbon\Carbon::parse($request->expires_at);
+        }
 
         $user->ev = $request->ev ? Status::VERIFIED : Status::UNVERIFIED;
         $user->sv = $request->sv ? Status::VERIFIED : Status::UNVERIFIED;
