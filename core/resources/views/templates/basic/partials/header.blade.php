@@ -4,6 +4,23 @@
     $pages           = App\Models\Page::where('tempname', $activeTemplate)->where('is_default', Status::NO)->get();
 @endphp
 
+@if(auth()->check())
+    @php
+        $daysUsed = (int) auth()->user()->created_at->diffInDays(now());
+        $daysRemaining = max(0, 30 - $daysUsed);
+        $isExpired = $daysRemaining <= 0;
+    @endphp
+    <div style="text-align: center; background-color: #0d1117; padding-top: 10px; padding-bottom: 0;">
+        <div style="display: inline-block; background-color: {{ $isExpired ? '#dc3545' : '#ffc107' }}; color: {{ $isExpired ? 'white' : 'black' }}; padding: 5px 20px; font-size: 13px; font-weight: 600; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+            @if($isExpired)
+                <i class="las la-times-circle"></i> @lang('Your subscription is Expired')
+            @else
+                <i class="las la-clock"></i> {{ $daysRemaining }} @lang('Days Remaining')
+            @endif
+        </div>
+    </div>
+@endif
+
 <header class="header" id="header">
     <div class="container">
         <nav class="navbar navbar-expand-lg navbar-light">
@@ -61,24 +78,6 @@
                                 <span class="icon"> <i class="las la-crown"></i></span> @lang('Pricing Plans') 
                             </a>
                         </div>
-                        @if(auth()->check())
-                            @php
-                                $daysUsed = auth()->user()->created_at->diffInDays(now());
-                                $daysRemaining = max(0, 30 - $daysUsed);
-                                $isExpired = $daysRemaining <= 0;
-                            @endphp
-                            <div class="top-button__button" style="margin-right: 15px;">
-                                @if($isExpired)
-                                    <span class="btn" style="background-color: #dc3545; color: white; border: 1px solid #dc3545; padding: 10px 20px; border-radius: 4px; cursor: default; font-weight: 600;">
-                                        <span class="icon"> <i class="las la-times-circle"></i></span> @lang('Expired')
-                                    </span>
-                                @else
-                                    <span class="btn" style="background-color: #ffc107; color: black; border: 1px solid #ffc107; padding: 10px 20px; border-radius: 4px; cursor: default; font-weight: 600;">
-                                        <span class="icon"> <i class="las la-clock"></i></span> {{ $daysRemaining }} @lang('Days Remaining')
-                                    </span>
-                                @endif
-                            </div>
-                        @endif
                         <div class="top-header__login">
                             <div class="user-info">
                                 @if (auth()->check())
