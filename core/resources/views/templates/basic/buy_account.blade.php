@@ -46,8 +46,14 @@
                                                 <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                             </button>
                                         @else
-                                            <a href="{{ route('plans') }}" class="btn btn--base">
-                                                <i class="las la-lock me-1"></i> @lang('Subscribe to Access')
+                                            @php
+                                                $contactContent = getContent('contact.content', true)->data_values;
+                                                $whatsappNumber = preg_replace('/[^0-9]/', '', @$contactContent->phone_number);
+                                                $whatsappMsg = urlencode("Hello, I am interested in getting access to the " . $platform->name . " platform. Please provide subscription details.");
+                                                $whatsappUrl = "https://wa.me/{$whatsappNumber}?text={$whatsappMsg}";
+                                            @endphp
+                                            <a href="{{ $whatsappUrl }}" target="_blank" class="btn btn--base" style="background-color: #25D366; border-color: #25D366; color: white;">
+                                                <i class="lab la-whatsapp me-1" style="font-size: 1.2rem;"></i> @lang('Subscribe to Access')
                                             </a>
                                         @endif
                                     @else
