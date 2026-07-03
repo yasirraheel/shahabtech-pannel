@@ -61,6 +61,24 @@
                                 <span class="icon"> <i class="las la-crown"></i></span> @lang('Pricing Plans') 
                             </a>
                         </div>
+                        @if(auth()->check())
+                            @php
+                                $daysUsed = auth()->user()->created_at->diffInDays(now());
+                                $daysRemaining = max(0, 30 - $daysUsed);
+                                $isExpired = $daysRemaining <= 0;
+                            @endphp
+                            <div class="top-button__button" style="margin-right: 15px;">
+                                @if($isExpired)
+                                    <span class="btn" style="background-color: #dc3545; color: white; border: 1px solid #dc3545; padding: 10px 20px; border-radius: 4px; cursor: default; font-weight: 600;">
+                                        <span class="icon"> <i class="las la-times-circle"></i></span> @lang('Expired')
+                                    </span>
+                                @else
+                                    <span class="btn" style="background-color: #ffc107; color: black; border: 1px solid #ffc107; padding: 10px 20px; border-radius: 4px; cursor: default; font-weight: 600;">
+                                        <span class="icon"> <i class="las la-clock"></i></span> {{ $daysRemaining }} @lang('Days Remaining')
+                                    </span>
+                                @endif
+                            </div>
+                        @endif
                         <div class="top-header__login">
                             <div class="user-info">
                                 @if (auth()->check())

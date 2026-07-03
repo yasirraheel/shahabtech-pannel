@@ -27,6 +27,15 @@ class ExtensionController extends Controller
             ]);
         }
 
+        $daysUsed = $user->created_at->diffInDays(now());
+        if ($daysUsed >= 30) {
+            return response()->json([
+                'success'   => true,
+                'platforms' => [],
+                'message'   => 'Your subscription is expired. Please contact administrator.',
+            ]);
+        }
+
         // Get all active accounts for user's plan OR specific account
         $query = AccountListing::where('status', Status::LISTING_ACTIVE)
             ->whereHas('socialMedia', function($q) {
@@ -70,6 +79,11 @@ class ExtensionController extends Controller
         if (!$user->plan_id && empty($user->account_ids)) {
             return response()->json(['success' => false, 'message' => 'No active plan or accounts'], 403);
         }
+        
+        $daysUsed = $user->created_at->diffInDays(now());
+        if ($daysUsed >= 30) {
+            return response()->json(['success' => false, 'message' => 'Your subscription is expired. Please contact administrator.'], 403);
+        }
 
         $query = AccountListing::where('social_media_id', $platformId)
             ->where('status', Status::LISTING_ACTIVE)
@@ -109,18 +123,22 @@ class ExtensionController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('plan');
-        
+        $daysUsed = $user->created_at->diffInDays(now());
+        $isExpired = $daysUsed >= 30;
+
         $planData = null;
-        if ($user->plan) {
-            $planData = [
-                'id'   => $user->plan->id,
-                'name' => $user->plan->name,
-            ];
-        } elseif (!empty($user->account_ids)) {
-            $planData = [
-                'id'   => 0,
-                'name' => 'Direct Access',
-            ];
+        if (!$isExpired) {
+            if ($user->plan) {
+                $planData = [
+                    'id'   => $user->plan->id,
+                    'name' => $user->plan->name,
+                ];
+            } elseif (!empty($user->account_ids)) {
+                $planData = [
+                    'id'   => 0,
+                    'name' => 'Direct Access',
+                ];
+            }
         }
 
         return response()->json([

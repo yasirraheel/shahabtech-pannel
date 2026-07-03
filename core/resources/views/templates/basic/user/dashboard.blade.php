@@ -95,6 +95,17 @@
                 </div>
             </div>
             
+            @php
+                $daysUsed = auth()->user()->created_at->diffInDays(now());
+                $isExpired = $daysUsed >= 30;
+            @endphp
+
+            @if($isExpired)
+                <div class="alert alert-danger mb-5" role="alert" style="font-size: 1.1rem; padding: 20px; border-left: 5px solid #dc3545; background-color: #fff3f3; color: #dc3545;">
+                    <i class="las la-exclamation-triangle" style="font-size: 1.5rem; vertical-align: middle;"></i> <strong>@lang('Your subscription is expired.')</strong> @lang('If you want to keep using please contact administrator.')
+                </div>
+            @endif
+
             <div class="dashboard-body">
                 <div class="row gy-4">
                     <div class="col-xl-12">
@@ -128,9 +139,15 @@
                                         </div>
                                         <div class="d-flex align-items-center flex-wrap">
                                             <div class="product-item__button">
-                                                <button type="button" class="btn btn--base btn-inject-access" data-platform-id="{{ $platform->id }}">
-                                                    <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
-                                                </button>
+                                                @if($isExpired)
+                                                    <button type="button" class="btn btn--secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+                                                        <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
+                                                    </button>
+                                                @else
+                                                    <button type="button" class="btn btn--base btn-inject-access" data-platform-id="{{ $platform->id }}">
+                                                        <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
+                                                    </button>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
