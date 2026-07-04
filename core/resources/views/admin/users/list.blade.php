@@ -12,6 +12,7 @@
                                 <th>@lang('Email-Mobile')</th>
                                 <th>@lang('Country')</th>
                                 <th>@lang('Joined At')</th>
+                                <th>@lang('Expiry')</th>
                                 <th>@lang('Balance')</th>
                                 <th>@lang('Action')</th>
                             </tr>
@@ -39,6 +40,25 @@
 
                                 <td>
                                     {{ showDateTime($user->created_at) }} <br> {{ diffForHumans($user->created_at) }}
+                                </td>
+
+                                <td>
+                                    @php
+                                        $expiry = $user->expires_at;
+                                        $isExpired = $expiry && $expiry->isPast();
+                                        $daysRemaining = $expiry ? \Carbon\Carbon::now()->diffInDays($expiry, false) : null;
+                                    @endphp
+                                    @if($expiry)
+                                        @if($isExpired)
+                                            <span class="badge badge--danger" style="font-size: 10px;">@lang('Expired')</span>
+                                        @else
+                                            <span class="badge badge--success" style="font-size: 10px;">{{ ceil($daysRemaining) }} @lang('Days')</span>
+                                        @endif
+                                        <br>
+                                        <span class="small text-muted" style="font-size: 11px;">{{ showDateTime($expiry, 'd M Y') }}</span>
+                                    @else
+                                        <span class="badge badge--dark" style="font-size: 10px;">@lang('N/A')</span>
+                                    @endif
                                 </td>
 
 
