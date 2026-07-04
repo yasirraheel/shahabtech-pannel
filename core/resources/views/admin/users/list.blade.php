@@ -26,6 +26,18 @@
                                     <span class="small">
                                     <a href="{{ route('admin.users.detail', $user->id) }}"><span>@</span>{{ $user->username }}</a>
                                     </span>
+                                    @if($user->last_seen)
+                                        <div class="mt-1">
+                                            @if(\Carbon\Carbon::parse($user->last_seen)->diffInMinutes(now()) <= 3)
+                                                <span class="badge badge--success" style="font-size: 10px; padding: 2px 6px;">Online</span>
+                                            @else
+                                                <span class="badge badge--secondary" style="font-size: 10px; padding: 2px 6px;">Offline</span>
+                                            @endif
+                                            <span class="text-muted d-block" style="font-size: 11px; margin-top: 2px;">
+                                                Last seen: {{ \Carbon\Carbon::parse($user->last_seen)->diffForHumans() }}
+                                            </span>
+                                        </div>
+                                    @endif
                                 </td>
 
 
