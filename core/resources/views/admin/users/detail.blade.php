@@ -161,8 +161,10 @@
                                 <div class="form-group">
                                     <label>@lang('Reset Password')</label>
                                     <div class="input-group">
-                                        <input class="form-control" type="text" name="password" placeholder="@lang('Leave blank to keep current password')">
-                                        <span class="input-group-text"><i class="las la-key"></i></span>
+                                        <input class="form-control" type="password" name="password" id="reset-password-field" placeholder="@lang('Leave blank to keep current password')">
+                                        <button class="btn btn-outline-secondary" type="button" id="generate-password-btn" title="@lang('Generate Random Password')"><i class="las la-dice"></i></button>
+                                        <button class="btn btn-outline-secondary" type="button" id="toggle-password-btn" title="@lang('Show/Hide Password')"><i class="las la-eye"></i></button>
+                                        <button class="btn btn-outline-secondary" type="button" id="copy-password-btn" title="@lang('Copy Password')"><i class="las la-copy"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -439,6 +441,47 @@
 
         accountSelector.on('change', renderPriceInputs);
         renderPriceInputs(); // Call on load
+
+        // Password Reset Additions
+        $('#generate-password-btn').on('click', function() {
+            const chars = "abcdefghijklmnopqrstuvwxyz!@#$%^&*()-+<>ABCDEFGHIJKLMNOP1234567890";
+            let pass = "";
+            for (let x = 0; x < 12; x++) {
+                let i = Math.floor(Math.random() * chars.length);
+                pass += chars.charAt(i);
+            }
+            $('#reset-password-field').val(pass);
+            $('#reset-password-field').attr('type', 'text');
+            $('#toggle-password-btn').find('i').removeClass('la-eye').addClass('la-eye-slash');
+        });
+
+        $('#toggle-password-btn').on('click', function() {
+            let field = $('#reset-password-field');
+            let icon = $(this).find('i');
+            if (field.attr('type') === 'password') {
+                field.attr('type', 'text');
+                icon.removeClass('la-eye').addClass('la-eye-slash');
+            } else {
+                field.attr('type', 'password');
+                icon.removeClass('la-eye-slash').addClass('la-eye');
+            }
+        });
+
+        $('#copy-password-btn').on('click', function() {
+            let pass = $('#reset-password-field').val();
+            if(!pass) return;
+            var tempInput = $("<input>");
+            $("body").append(tempInput);
+            tempInput.val(pass).select();
+            document.execCommand("copy");
+            tempInput.remove();
+            
+            let icon = $(this).find('i');
+            icon.removeClass('la-copy').addClass('la-check');
+            setTimeout(() => {
+                icon.removeClass('la-check').addClass('la-copy');
+            }, 1000);
+        });
 
     })(jQuery);
 </script>
