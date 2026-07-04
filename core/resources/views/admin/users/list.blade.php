@@ -46,7 +46,7 @@
                                     @php
                                         $expiry = $user->expires_at;
                                         $isExpired = $expiry && $expiry->isPast();
-                                        $daysRemaining = $expiry ? \Carbon\Carbon::now()->diffInDays($expiry, false) : null;
+                                        $daysRemaining = $expiry ? \Carbon\Carbon::now()->startOfDay()->diffInDays($expiry->copy()->startOfDay(), false) : null;
                                     @endphp
                                     @if($expiry)
                                         @if($isExpired)
