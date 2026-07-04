@@ -45,12 +45,12 @@
                 bg="warning"
             />
         </div><!-- dashboard-w1 end -->
-        <div class="col-xxl-3 col-sm-6">
+        <div class="col-xxl-6 col-sm-12">
             <x-widget
                 style="6"
                 link="javascript:void(0)"
                 icon="las la-hand-holding-usd"
-                title="Assigned Accounts Earning"
+                title="Total Earnings from Assigned Accounts"
                 value="{{ showAmount($widget['total_account_earnings']) }}"
                 bg="info"
             />
