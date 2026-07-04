@@ -105,6 +105,9 @@ class LoginController extends Controller
 
     public function authenticated(Request $request, $user)
     {
+        // Logout other devices
+        \Illuminate\Support\Facades\Auth::logoutOtherDevices($request->password);
+
         $user->tv = $user->ts == Status::VERIFIED ? Status::UNVERIFIED : Status::VERIFIED;
         $user->save();
         $ip = getRealIP();
