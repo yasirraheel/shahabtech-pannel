@@ -150,10 +150,20 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <div class="form-group ">
                                     <label>@lang('Address')</label>
                                     <input class="form-control" type="text" name="address" value="{{@$user->address}}">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>@lang('Reset Password')</label>
+                                    <div class="input-group">
+                                        <input class="form-control" type="text" name="password" placeholder="@lang('Leave blank to keep current password')">
+                                        <span class="input-group-text"><i class="las la-key"></i></span>
+                                    </div>
                                 </div>
                             </div>
 

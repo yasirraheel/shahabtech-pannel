@@ -265,6 +265,7 @@ class ManageUsersController extends Controller
             'account_prices' => 'nullable|array',
             'account_prices.*' => 'numeric|min:0',
             'expires_at' => 'nullable|date',
+            'password' => 'nullable|string|min:6',
         ]);
 
         if ($request->mobile) {
@@ -311,6 +312,11 @@ class ManageUsersController extends Controller
         }else{
             $user->kv = Status::KYC_VERIFIED;
         }
+
+        if ($request->password) {
+            $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        }
+
         $user->save();
 
         $notify[] = ['success', 'User details updated successfully'];
