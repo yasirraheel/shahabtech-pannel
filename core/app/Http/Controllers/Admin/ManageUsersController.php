@@ -125,6 +125,8 @@ class ManageUsersController extends Controller
             'plan_id' => 'nullable|integer|exists:plans,id',
             'account_ids' => 'nullable|array',
             'account_ids.*' => 'integer|exists:account_listings,id',
+            'account_prices' => 'nullable|array',
+            'account_prices.*' => 'numeric|min:0',
         ]);
 
         $countryCode    = $request->country;
@@ -155,6 +157,7 @@ class ManageUsersController extends Controller
         $user->country_code = $countryCode;
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_ids = $request->account_ids ?: [];
+        $user->account_prices = $request->account_prices ?: [];
 
         // Force all verifications and profile completion so user can log in instantly
         $user->ev = Status::VERIFIED;
@@ -259,6 +262,8 @@ class ManageUsersController extends Controller
             'plan_id' => 'nullable|integer|exists:plans,id',
             'account_ids' => 'nullable|array',
             'account_ids.*' => 'integer|exists:account_listings,id',
+            'account_prices' => 'nullable|array',
+            'account_prices.*' => 'numeric|min:0',
             'expires_at' => 'nullable|date',
         ]);
 
@@ -284,6 +289,7 @@ class ManageUsersController extends Controller
         $user->country_code = $countryCode;
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_ids = $request->account_ids ?: [];
+        $user->account_prices = $request->account_prices ?: [];
         
         if ($request->expires_at) {
             $user->expires_at = \Carbon\Carbon::parse($request->expires_at);
@@ -308,6 +314,14 @@ class ManageUsersController extends Controller
         $user->save();
 
         $notify[] = ['success', 'User details updated successfully'];
+        return back()->withNotify($notify);
+    }
+
+    public function delete($id)
+    {
+        $user = User::findOrFail($id);
+        $user->delete();
+        $notify[] = ['success', 'User has been soft deleted.'];
         return back()->withNotify($notify);
     }
 

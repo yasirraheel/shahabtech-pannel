@@ -59,6 +59,12 @@
                                             <i class="las la-user-check"></i>@lang('KYC Data')
                                         </a>
                                         @endif
+                                        <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline--danger">
+                                                <i class="las la-trash"></i> @lang('Delete')
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
 

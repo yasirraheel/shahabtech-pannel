@@ -5,12 +5,13 @@ namespace App\Models;
 use App\Constants\Status;
 use App\Traits\UserNotify;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, UserNotify;
+    use HasApiTokens, UserNotify, SoftDeletes;
 
     /**
      * The attributes that should be hidden for arrays.
@@ -34,6 +35,7 @@ class User extends Authenticatable
         'account_ids' => 'array',
         'expires_at' => 'datetime',
         'last_seen' => 'datetime',
+        'account_prices' => 'array',
     ];
 
     public function loginLogs()

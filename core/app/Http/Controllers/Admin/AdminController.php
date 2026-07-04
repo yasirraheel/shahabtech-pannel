@@ -32,6 +32,17 @@ class AdminController extends Controller
         $widget['email_unverified_users']  = User::emailUnverified()->count();
         $widget['mobile_unverified_users'] = User::mobileUnverified()->count();
 
+        $totalAccountEarnings = 0;
+        $activeUsersForEarnings = User::active()->get();
+        foreach($activeUsersForEarnings as $u) {
+            if ($u->account_prices) {
+                foreach($u->account_prices as $price) {
+                    $totalAccountEarnings += (float)$price;
+                }
+            }
+        }
+        $widget['total_account_earnings'] = $totalAccountEarnings;
+
 
         // user Browsing, Country, Operating Log
         $userLoginData = UserLogin::where('created_at', '>=', Carbon::now()->subDay(30))->get(['browser', 'os', 'country']);

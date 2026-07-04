@@ -47,6 +47,17 @@
         </div><!-- dashboard-w1 end -->
     </div><!-- row end-->
 
+    <div class="row gy-4 mb-4 mt-2">
+        <div class="col-12">
+            <div class="card bg--primary">
+                <div class="card-body p-4 text-center">
+                    <h3 class="text-white mb-2">{{ gs('cur_sym') }}{{ showAmount($widget['total_account_earnings']) }}</h3>
+                    <p class="text-white">@lang('Total Earnings from Assigned Accounts')</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row mt-2 gy-4">
         <div class="col-xxl-6">
             <div class="card box-shadow3 h-100">
