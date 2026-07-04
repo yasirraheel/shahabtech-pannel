@@ -45,18 +45,18 @@
                 bg="warning"
             />
         </div><!-- dashboard-w1 end -->
+        <div class="col-xxl-3 col-sm-6">
+            <x-widget
+                style="6"
+                link="javascript:void(0)"
+                icon="las la-hand-holding-usd"
+                title="Assigned Accounts Earning"
+                value="{{ showAmount($widget['total_account_earnings']) }}"
+                bg="info"
+            />
+        </div><!-- dashboard-w1 end -->
     </div><!-- row end-->
 
-    <div class="row gy-4 mb-4 mt-2">
-        <div class="col-12">
-            <div class="card bg--primary">
-                <div class="card-body p-4 text-center">
-                    <h3 class="text-white mb-2">{{ showAmount($widget['total_account_earnings']) }}</h3>
-                    <p class="text-white">@lang('Total Earnings from Assigned Accounts')</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div class="row mt-2 gy-4">
         <div class="col-xxl-6">
