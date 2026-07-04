@@ -51,7 +51,7 @@
                 link="javascript:void(0)"
                 icon="las la-hand-holding-usd"
                 title="Total Earnings from Assigned Accounts"
-                value="{{ showAmount($widget['total_account_earnings']) }}"
+                value="{{ showAmount($widget['total_account_earnings'], 0) }}"
                 bg="info"
             />
         </div><!-- dashboard-w1 end -->
