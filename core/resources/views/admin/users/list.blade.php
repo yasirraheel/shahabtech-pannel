@@ -36,6 +36,11 @@
                                             <span class="text-muted d-block" style="font-size: 11px; margin-top: 2px;">
                                                 Last seen: {{ \Carbon\Carbon::parse($user->last_seen)->diffForHumans() }}
                                             </span>
+                                            @if($user->last_seen_ip)
+                                            <span class="text-muted d-block" style="font-size: 11px;">
+                                                Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
+                                            </span>
+                                            @endif
                                         </div>
                                     @endif
                                 </td>
