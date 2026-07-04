@@ -26,7 +26,7 @@
                                     <span class="fw-bold">{{ @$log->user->fullname }}</span>
                                     <br>
                                     <span class="small"> <a href="{{ route('admin.users.detail', $log->user_id) }}"><span>@</span>{{ @$log->user->username }}</a> </span>
-                                    @if(@$log->user->last_seen)
+                                    @if(@$log->user->last_seen && @$log->user_ip === @$log->user->last_seen_ip)
                                         <div class="mt-1">
                                             @if(\Carbon\Carbon::parse($log->user->last_seen)->diffInMinutes(now()) <= 3)
                                                 <span class="badge badge--success" style="font-size: 10px; padding: 2px 6px;">Online</span>
