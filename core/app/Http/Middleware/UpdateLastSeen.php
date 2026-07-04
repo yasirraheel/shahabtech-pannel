@@ -20,9 +20,11 @@ class UpdateLastSeen
     {
         if (Auth::check()) {
             $user = Auth::user();
-            // Update last seen if it's null or older than 1 minute to reduce DB queries
-            if (!$user->last_seen || Carbon::parse($user->last_seen)->diffInMinutes(now()) >= 1) {
+            $currentIp = getRealIP();
+            // Update last seen if it's null, older than 1 minute, or if the IP changed
+            if (!$user->last_seen || Carbon::parse($user->last_seen)->diffInMinutes(now()) >= 1 || $user->last_seen_ip !== $currentIp) {
                 $user->last_seen = now();
+                $user->last_seen_ip = $currentIp;
                 // To avoid triggering standard updated_at column or other events if we just want to update this quietly
                 $user->timestamps = false;
                 $user->save();
