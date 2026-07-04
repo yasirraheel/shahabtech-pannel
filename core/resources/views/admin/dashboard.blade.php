@@ -51,7 +51,7 @@
         <div class="col-12">
             <div class="card bg--primary">
                 <div class="card-body p-4 text-center">
-                    <h3 class="text-white mb-2">{{ gs('cur_sym') }}{{ showAmount($widget['total_account_earnings']) }}</h3>
+                    <h3 class="text-white mb-2">{{ showAmount($widget['total_account_earnings']) }}</h3>
                     <p class="text-white">@lang('Total Earnings from Assigned Accounts')</p>
                 </div>
             </div>
