@@ -39,10 +39,18 @@
     <a class="scroll-top"><i class="fas fa-angle-double-up"></i></a>
 
     @if(gs('banner_status') && gs('banner_message'))
-    <div class="notification-banner" style="background-color: #{{ gs('base_color') }}; color: #fff; padding: 10px 15px; text-align: center; position: relative; z-index: 9999;">
-        <span style="font-size: 15px; font-weight: 500;">{{ gs('banner_message') }}</span>
+    <div class="notification-banner shadow-lg" style="position: fixed; bottom: 30px; right: 30px; z-index: 99999; max-width: 450px; background-color: #{{ gs('banner_color') ?? gs('base_color') }}; border-radius: 12px; padding: 20px; color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideInUp 0.5s ease-out;">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="text-white m-0" style="font-size: 16px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
+            <button type="button" style="background: none; border: none; color: #fff; opacity: 0.8; font-size: 20px; line-height: 1;" onclick="this.parentElement.parentElement.remove()" aria-label="Close">&times;</button>
+        </div>
+        <p class="mb-3" style="font-size: 14px; line-height: 1.5; margin-bottom: 15px;">{!! gs('banner_message') !!}</p>
         @if(gs('banner_cta_text') && gs('banner_cta_link'))
-            <a href="{{ gs('banner_cta_link') }}" target="_blank" class="btn btn-sm btn-light ms-3" style="border-radius: 20px; padding: 3px 15px; font-weight: 600; font-size: 13px; text-decoration: none; color: #{{ gs('base_color') }}; background-color: #fff;">{{ gs('banner_cta_text') }}</a>
+            <div class="text-end">
+                <a href="{{ gs('banner_cta_link') }}" target="_blank" class="btn btn-light btn-sm fw-bold" style="border-radius: 20px; color: #{{ gs('banner_color') ?? gs('base_color') }}; padding: 5px 15px; font-size: 13px;">
+                    {{ gs('banner_cta_text') }} <i class="las la-arrow-right ms-1"></i>
+                </a>
+            </div>
         @endif
     </div>
     @endif

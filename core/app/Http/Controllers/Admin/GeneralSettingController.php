@@ -38,6 +38,7 @@ class GeneralSettingController extends Controller
             'banner_message' => 'nullable|string',
             'banner_cta_text' => 'nullable|string|max:40',
             'banner_cta_link' => 'nullable|string',
+            'banner_color' => 'nullable|regex:/^[a-f0-9]{6}$/i',
         ]);
 
         $timezones = timezone_identifiers_list();
@@ -56,6 +57,9 @@ class GeneralSettingController extends Controller
         $general->banner_message = $request->banner_message;
         $general->banner_cta_text = $request->banner_cta_text;
         $general->banner_cta_link = $request->banner_cta_link;
+        if($request->banner_color) {
+            $general->banner_color = str_replace('#','',$request->banner_color);
+        }
         $general->save();
 
         $timezoneFile = config_path('timezone.php');

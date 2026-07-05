@@ -88,16 +88,25 @@
                                     <input class="form-control" type="text" name="banner_message" value="{{gs('banner_message')}}" placeholder="@lang('e.g. Special Offer: Get 20% off today!')">
                                 </div>
                             </div>
-                            <div class="col-xl-6 col-sm-6">
+                            <div class="col-xl-4 col-sm-6">
                                 <div class="form-group">
                                     <label>@lang('CTA Button Text')</label>
                                     <input class="form-control" type="text" name="banner_cta_text" value="{{gs('banner_cta_text')}}" placeholder="@lang('e.g. Send message us')">
                                 </div>
                             </div>
-                            <div class="col-xl-6 col-sm-6">
+                            <div class="col-xl-4 col-sm-6">
                                 <div class="form-group">
                                     <label>@lang('CTA Button Link')</label>
                                     <input class="form-control" type="text" name="banner_cta_link" value="{{gs('banner_cta_link')}}" placeholder="@lang('e.g. https://wa.me/1234567890')">
+                                </div>
+                            </div>
+                            <div class="form-group col-xl-4 col-sm-6">
+                                <label> @lang('Banner Background Color')</label>
+                                <div class="input-group">
+                                    <span class="input-group-text p-0 border-0">
+                                        <input type='text' class="form-control colorPicker" value="{{gs('banner_color') ?? gs('base_color')}}">
+                                    </span>
+                                    <input type="text" class="form-control colorCode" name="banner_color" value="{{ gs('banner_color') ?? gs('base_color') }}">
                                 </div>
                             </div>
                         </div>
