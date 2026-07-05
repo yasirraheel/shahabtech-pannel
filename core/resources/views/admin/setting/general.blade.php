@@ -82,10 +82,10 @@
                                 <label>@lang('Banner Status')</label>
                                 <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-bs-toggle="toggle" data-height="50" data-on="@lang('Enable')" data-off="@lang('Disable')" name="banner_status" @if(gs('banner_status')) checked @endif>
                             </div>
-                            <div class="col-xl-9 col-sm-6">
+                            <div class="col-xl-12">
                                 <div class="form-group">
                                     <label>@lang('Banner Message')</label>
-                                    <input class="form-control" type="text" name="banner_message" value="{{gs('banner_message')}}" placeholder="@lang('e.g. Special Offer: Get 20% off today!')">
+                                    <textarea class="form-control nicEdit" name="banner_message" rows="3" placeholder="@lang('e.g. Special Offer: Get 20% off today!')">{{gs('banner_message')}}</textarea>
                                 </div>
                             </div>
                             <div class="col-xl-4 col-sm-6">
