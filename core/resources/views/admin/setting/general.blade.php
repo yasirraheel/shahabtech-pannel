@@ -103,12 +103,12 @@
                             <div class="form-group col-xl-4 col-sm-6">
                                 <label> @lang('Banner Theme')</label>
                                 <select class="form-control" name="banner_color">
-                                    <option value="primary" @selected(gs('banner_color') == 'primary')>@lang('Primary (Blue)')</option>
-                                    <option value="success" @selected(gs('banner_color') == 'success')>@lang('Success (Green)')</option>
-                                    <option value="danger" @selected(gs('banner_color') == 'danger')>@lang('Danger (Red)')</option>
-                                    <option value="warning" @selected(gs('banner_color') == 'warning')>@lang('Warning (Yellow)')</option>
-                                    <option value="info" @selected(gs('banner_color') == 'info')>@lang('Info (Light Blue)')</option>
-                                    <option value="dark" @selected(gs('banner_color') == 'dark')>@lang('Dark')</option>
+                                    <option value="primary" @selected(gs('banner_color') == 'primary')>🟦 @lang('Primary (Blue)')</option>
+                                    <option value="success" @selected(gs('banner_color') == 'success')>🟩 @lang('Success (Green)')</option>
+                                    <option value="danger" @selected(gs('banner_color') == 'danger')>🟥 @lang('Danger (Red)')</option>
+                                    <option value="warning" @selected(gs('banner_color') == 'warning')>🟨 @lang('Warning (Yellow)')</option>
+                                    <option value="info" @selected(gs('banner_color') == 'info')>🩵 @lang('Info (Light Blue)')</option>
+                                    <option value="dark" @selected(gs('banner_color') == 'dark')>⬛ @lang('Dark')</option>
                                 </select>
                             </div>
                         </div>
