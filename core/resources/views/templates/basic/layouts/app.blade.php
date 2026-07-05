@@ -38,6 +38,15 @@
 
     <a class="scroll-top"><i class="fas fa-angle-double-up"></i></a>
 
+    @if(gs('banner_status') && gs('banner_message'))
+    <div class="notification-banner" style="background-color: #{{ gs('base_color') }}; color: #fff; padding: 10px 15px; text-align: center; position: relative; z-index: 9999;">
+        <span style="font-size: 15px; font-weight: 500;">{{ gs('banner_message') }}</span>
+        @if(gs('banner_cta_text') && gs('banner_cta_link'))
+            <a href="{{ gs('banner_cta_link') }}" target="_blank" class="btn btn-sm btn-light ms-3" style="border-radius: 20px; padding: 3px 15px; font-weight: 600; font-size: 13px; text-decoration: none; color: #{{ gs('base_color') }}; background-color: #fff;">{{ gs('banner_cta_text') }}</a>
+        @endif
+    </div>
+    @endif
+
     @yield('panel')
 
     <script src="{{ asset('assets/global/js/jquery-3.7.1.min.js') }}"></script>
