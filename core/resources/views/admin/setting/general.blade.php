@@ -101,13 +101,15 @@
                                 </div>
                             </div>
                             <div class="form-group col-xl-4 col-sm-6">
-                                <label> @lang('Banner Background Color')</label>
-                                <div class="input-group">
-                                    <span class="input-group-text p-0 border-0">
-                                        <input type='text' class="form-control colorPicker" value="{{gs('banner_color') ?? gs('base_color')}}">
-                                    </span>
-                                    <input type="text" class="form-control colorCode" name="banner_color" value="{{ gs('banner_color') ?? gs('base_color') }}">
-                                </div>
+                                <label> @lang('Banner Theme')</label>
+                                <select class="form-control" name="banner_color">
+                                    <option value="primary" @selected(gs('banner_color') == 'primary')>@lang('Primary (Blue)')</option>
+                                    <option value="success" @selected(gs('banner_color') == 'success')>@lang('Success (Green)')</option>
+                                    <option value="danger" @selected(gs('banner_color') == 'danger')>@lang('Danger (Red)')</option>
+                                    <option value="warning" @selected(gs('banner_color') == 'warning')>@lang('Warning (Yellow)')</option>
+                                    <option value="info" @selected(gs('banner_color') == 'info')>@lang('Info (Light Blue)')</option>
+                                    <option value="dark" @selected(gs('banner_color') == 'dark')>@lang('Dark')</option>
+                                </select>
                             </div>
                         </div>
 

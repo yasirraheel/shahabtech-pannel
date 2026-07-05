@@ -38,7 +38,7 @@ class GeneralSettingController extends Controller
             'banner_message' => 'nullable|string',
             'banner_cta_text' => 'nullable|string|max:40',
             'banner_cta_link' => 'nullable|string',
-            'banner_color' => 'nullable|regex:/^[a-f0-9]{6}$/i',
+            'banner_color' => 'nullable|string|in:primary,success,danger,warning,info,dark',
         ]);
 
         $timezones = timezone_identifiers_list();
@@ -58,7 +58,7 @@ class GeneralSettingController extends Controller
         $general->banner_cta_text = $request->banner_cta_text;
         $general->banner_cta_link = $request->banner_cta_link;
         if($request->banner_color) {
-            $general->banner_color = str_replace('#','',$request->banner_color);
+            $general->banner_color = $request->banner_color;
         }
         $general->save();
 

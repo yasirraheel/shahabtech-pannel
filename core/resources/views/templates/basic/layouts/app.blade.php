@@ -39,15 +39,20 @@
     <a class="scroll-top"><i class="fas fa-angle-double-up"></i></a>
 
     @if(gs('banner_status') && gs('banner_message'))
-    <div class="notification-banner shadow-lg" style="position: fixed; bottom: 30px; right: 30px; z-index: 99999; max-width: 450px; background-color: #{{ gs('banner_color') ?? gs('base_color') }}; border-radius: 12px; padding: 20px; color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideInUp 0.5s ease-out;">
+    @php
+        $bannerTheme = gs('banner_color') ?: 'primary';
+        $textColor = in_array($bannerTheme, ['warning', 'info']) ? 'text-dark' : 'text-white';
+        $btnTheme = in_array($bannerTheme, ['warning', 'info']) ? 'btn-dark' : 'btn-light';
+    @endphp
+    <div class="notification-banner shadow-lg bg-{{ $bannerTheme }}" style="position: fixed; bottom: 30px; right: 30px; z-index: 99999; max-width: 450px; border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideInUp 0.5s ease-out;">
         <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="text-white m-0" style="font-size: 16px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
-            <button type="button" style="background: none; border: none; color: #fff; opacity: 0.8; font-size: 20px; line-height: 1;" onclick="this.parentElement.parentElement.remove()" aria-label="Close">&times;</button>
+            <h6 class="{{ $textColor }} m-0" style="font-size: 16px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
+            <button type="button" class="{{ $textColor }}" style="background: none; border: none; opacity: 0.8; font-size: 20px; line-height: 1;" onclick="this.parentElement.parentElement.remove()" aria-label="Close">&times;</button>
         </div>
-        <p class="mb-3" style="font-size: 14px; line-height: 1.5; margin-bottom: 15px;">{!! gs('banner_message') !!}</p>
+        <p class="mb-3 {{ $textColor }}" style="font-size: 14px; line-height: 1.5; margin-bottom: 15px;">{!! gs('banner_message') !!}</p>
         @if(gs('banner_cta_text') && gs('banner_cta_link'))
             <div class="text-end">
-                <a href="{{ gs('banner_cta_link') }}" target="_blank" class="btn btn-light btn-sm fw-bold" style="border-radius: 20px; color: #{{ gs('banner_color') ?? gs('base_color') }}; padding: 5px 15px; font-size: 13px;">
+                <a href="{{ gs('banner_cta_link') }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold" style="border-radius: 20px; padding: 5px 15px; font-size: 13px;">
                     {{ gs('banner_cta_text') }} <i class="las la-arrow-right ms-1"></i>
                 </a>
             </div>
