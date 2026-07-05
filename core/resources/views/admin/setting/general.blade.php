@@ -75,6 +75,33 @@
                             </div>
                         </div>
 
+                        <hr>
+                        <h4 class="mb-3">@lang('Notification Banner Settings')</h4>
+                        <div class="row">
+                            <div class="form-group col-xl-3 col-sm-6">
+                                <label>@lang('Banner Status')</label>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-bs-toggle="toggle" data-height="50" data-on="@lang('Enable')" data-off="@lang('Disable')" name="banner_status" @if(gs('banner_status')) checked @endif>
+                            </div>
+                            <div class="col-xl-9 col-sm-6">
+                                <div class="form-group">
+                                    <label>@lang('Banner Message')</label>
+                                    <input class="form-control" type="text" name="banner_message" value="{{gs('banner_message')}}" placeholder="@lang('e.g. Special Offer: Get 20% off today!')">
+                                </div>
+                            </div>
+                            <div class="col-xl-6 col-sm-6">
+                                <div class="form-group">
+                                    <label>@lang('CTA Button Text')</label>
+                                    <input class="form-control" type="text" name="banner_cta_text" value="{{gs('banner_cta_text')}}" placeholder="@lang('e.g. Send message us')">
+                                </div>
+                            </div>
+                            <div class="col-xl-6 col-sm-6">
+                                <div class="form-group">
+                                    <label>@lang('CTA Button Link')</label>
+                                    <input class="form-control" type="text" name="banner_cta_link" value="{{gs('banner_cta_link')}}" placeholder="@lang('e.g. https://wa.me/1234567890')">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <button type="submit" class="btn btn--primary w-100 h-45">@lang('Submit')</button>
                         </div>

@@ -35,6 +35,9 @@ class GeneralSettingController extends Controller
             'paginate_number'=>'required|integer',
             'fixed_charge' => 'required|numeric',
             'percentage_charge' => 'required|numeric',
+            'banner_message' => 'nullable|string',
+            'banner_cta_text' => 'nullable|string|max:40',
+            'banner_cta_link' => 'nullable|string',
         ]);
 
         $timezones = timezone_identifiers_list();
@@ -49,6 +52,10 @@ class GeneralSettingController extends Controller
         $general->currency_format = $request->currency_format;
         $general->fixed_charge = $request->fixed_charge;
         $general->percentage_charge = $request->percentage_charge;
+        $general->banner_status = $request->banner_status ? 1 : 0;
+        $general->banner_message = $request->banner_message;
+        $general->banner_cta_text = $request->banner_cta_text;
+        $general->banner_cta_link = $request->banner_cta_link;
         $general->save();
 
         $timezoneFile = config_path('timezone.php');
