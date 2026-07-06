@@ -31,6 +31,13 @@
                   {{ showAmount($accountListing->sell_price) }}
                 </p>
             @endif
+            
+            @if ($accountListing->instructions)
+                <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
+                    <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                    {{ $accountListing->instructions }}
+                </div>
+            @endif
         </div>
     </div>
     <div class="d-flex  align-items-center flex-wrap">
