@@ -49,6 +49,7 @@ class AccountListingController extends Controller
             'plan_id'         => 'nullable',
             'url'             => 'required',
             'account_info'    => 'required',
+            'instructions'    => 'nullable|string',
         ]);
 
         if ($id) {
@@ -65,6 +66,7 @@ class AccountListingController extends Controller
         $account->plan_id         = $request->plan_id ?: 0;
         $account->url             = $request->url;
         $account->account_info    = json_decode($request->account_info) ? json_decode($request->account_info) : $request->account_info;
+        $account->instructions    = $request->instructions;
         $account->status          = Status::LISTING_ACTIVE;
         $account->save();
 

@@ -120,6 +120,11 @@
                             <label>@lang('Cookies (JSON array)')</label>
                             <textarea class="form-control" name="account_info" rows="4" placeholder='[{"name": "session", "value": "xyz"...}]' required></textarea>
                         </div>
+                        <div class="form-group">
+                            <label>@lang('Instructions')</label>
+                            <textarea class="form-control" name="instructions" rows="3" placeholder="@lang('e.g. Please use the extension to login.')"></textarea>
+                            <small class="text-muted">@lang('Optional. These instructions will be displayed on the platform card for subscribed users.')</small>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn--primary w-100 h-45" type="submit">@lang('Submit')</button>

@@ -143,8 +143,13 @@
                                 placeholder='[{"name":"session","value":"abc123","domain":".chatgpt.com","path":"/","httpOnly":true,"secure":true}]'
                                 required></textarea>
                             <small class="text-muted">
-                                @lang('Export cookies using the') <strong>Cookie-Editor</strong> @lang('browser extension → Export as JSON, then paste here.')
+                                @lang('Export cookies using the') <strong>Cookie-Editor</strong> @lang('browser extension. Export as JSON, then paste here.')
                             </small>
+                        </div>
+                        <div class="form-group">
+                            <label>@lang('Instructions')</label>
+                            <textarea class="form-control" name="instructions" rows="3" placeholder="@lang('e.g. Please use the extension to login.')"></textarea>
+                            <small class="text-muted">@lang('Optional. These instructions will be displayed on the platform card for subscribed users.')</small>
                         </div>
                     </div>
                     <div class="modal-footer">

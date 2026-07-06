@@ -127,7 +127,20 @@
                                                 <h4 class="product-item__title d-flex align-items-center mb-0">
                                                     <span class="text--base">{{ __($platform->name) }}</span>
                                                 </h4>
-
+                                                @php
+                                                    $account = null;
+                                                    if (auth()->user()->plan_id) {
+                                                        $account = $platform->accountListing()->where('plan_id', auth()->user()->plan_id)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                    } elseif (!empty(auth()->user()->account_ids)) {
+                                                        $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                    }
+                                                @endphp
+                                                @if($account && $account->instructions)
+                                                    <div class="alert alert-info mt-3 mb-0 p-2" style="font-size: 0.85rem; line-height: 1.4; border-radius: 4px;">
+                                                        <strong class="d-block mb-1 text--base"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                                                        {{ $account->instructions }}
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center flex-wrap">
