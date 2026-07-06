@@ -1,4 +1,4 @@
-<div class="product-item">
+<div class="product-item" style="flex-wrap: wrap;">
     <div class="product-item__wrapper">
         <div class="product-item__thumb">
             <a class="product-item__thumb"
@@ -30,13 +30,6 @@
                 <p class="product-item__text"> 
                   {{ showAmount($accountListing->sell_price) }}
                 </p>
-            @endif
-            
-            @if ($accountListing->instructions)
-                <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
-                    <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
-                    {{ $accountListing->instructions }}
-                </div>
             @endif
         </div>
     </div>
@@ -76,4 +69,11 @@
             </button>
         </div>
     </div>
+    
+    @if ($accountListing->instructions)
+        <div class="w-100 mt-3 pt-3" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; flex: 0 0 100%; border-top: 1px dashed rgba(255,255,255,0.1);">
+            <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+            {{ $accountListing->instructions }}
+        </div>
+    @endif
 </div>
