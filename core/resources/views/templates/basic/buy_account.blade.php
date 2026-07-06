@@ -53,7 +53,7 @@
                                             $userHasAccess = auth()->user()->plan_id || (!empty(auth()->user()->account_ids) && \App\Models\AccountListing::whereIn('id', auth()->user()->account_ids)->where('social_media_id', $platform->id)->exists());
                                         @endphp
                                         @if($userHasAccess)
-                                            <button type="button" class="btn btn--base btn-inject-access" data-platform-id="{{ $platform->id }}">
+                                            <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center" data-platform-id="{{ $platform->id }}">
                                                 <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                             </button>
                                         @else

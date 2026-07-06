@@ -150,7 +150,7 @@
                                                         <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
                                                     </button>
                                                 @else
-                                                    <button type="button" class="btn btn--base btn-inject-access" data-platform-id="{{ $platform->id }}">
+                                                    <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center" data-platform-id="{{ $platform->id }}">
                                                         <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                                     </button>
                                                 @endif
