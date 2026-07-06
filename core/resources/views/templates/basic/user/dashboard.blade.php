@@ -136,8 +136,8 @@
                                                     }
                                                 @endphp
                                                 @if($account && $account->instructions)
-                                                    <div class="alert alert-info mt-3 mb-0 p-2" style="font-size: 0.85rem; line-height: 1.4; border-radius: 4px;">
-                                                        <strong class="d-block mb-1 text--base"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                                                    <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
+                                                        <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
                                                         {{ $account->instructions }}
                                                     </div>
                                                 @endif
