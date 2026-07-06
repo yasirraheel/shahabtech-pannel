@@ -38,7 +38,7 @@
                                             }
                                         @endphp
                                         @if($account && $account->instructions)
-                                            <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
+                                            <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
                                                 <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
                                                 {{ $account->instructions }}
                                             </div>
@@ -46,14 +46,14 @@
                                     @endauth
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center flex-wrap">
+                            <div class="d-flex align-items-center flex-wrap flex-shrink-0">
                                 <div class="product-item__button">
                                     @auth
                                         @php
                                             $userHasAccess = auth()->user()->plan_id || (!empty(auth()->user()->account_ids) && \App\Models\AccountListing::whereIn('id', auth()->user()->account_ids)->where('social_media_id', $platform->id)->exists());
                                         @endphp
                                         @if($userHasAccess)
-                                            <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center" data-platform-id="{{ $platform->id }}">
+                                            <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $platform->id }}">
                                                 <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                             </button>
                                         @else
@@ -63,7 +63,7 @@
                                                 $whatsappMsg = urlencode("Hello, I am interested in getting access to the " . $platform->name . " platform. Please provide subscription details.");
                                                 $whatsappUrl = "https://wa.me/{$whatsappNumber}?text={$whatsappMsg}";
                                             @endphp
-                                            <a href="{{ $whatsappUrl }}" target="_blank" class="btn btn--base" style="background-color: #25D366; border-color: #25D366; color: white;">
+                                            <a href="{{ $whatsappUrl }}" target="_blank" class="btn btn--base text-nowrap" style="background-color: #25D366; border-color: #25D366; color: white;">
                                                 <i class="lab la-whatsapp me-1" style="font-size: 1.2rem;"></i> @lang('Subscribe to Access')
                                             </a>
                                         @endif

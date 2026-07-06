@@ -136,21 +136,21 @@
                                                     }
                                                 @endphp
                                                 @if($account && $account->instructions)
-                                                    <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
+                                                    <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
                                                         <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
                                                         {{ $account->instructions }}
                                                     </div>
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="d-flex align-items-center flex-wrap">
+                                        <div class="d-flex align-items-center flex-wrap flex-shrink-0">
                                             <div class="product-item__button">
                                                 @if($isExpired)
-                                                    <button type="button" class="btn btn--secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+                                                    <button type="button" class="btn btn--secondary text-nowrap" disabled style="opacity: 0.6; cursor: not-allowed;">
                                                         <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
                                                     </button>
                                                 @else
-                                                    <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center" data-platform-id="{{ $platform->id }}">
+                                                    <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $platform->id }}">
                                                         <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                                     </button>
                                                 @endif

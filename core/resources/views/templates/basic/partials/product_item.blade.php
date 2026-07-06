@@ -32,14 +32,14 @@
                 </p>
             @endif
             @if ($accountListing->instructions)
-                <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
+                <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
                     <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
                     {{ $accountListing->instructions }}
                 </div>
             @endif
         </div>
     </div>
-    <div class="d-flex  align-items-center flex-wrap">
+    <div class="d-flex align-items-center flex-wrap flex-shrink-0">
         @if ($accountListing->pricing_model == Status::AUCTION)
             <div class="remaining-time me-4">
                 <div class="remaining-time__content remaining--time"
@@ -52,7 +52,7 @@
             </div>
         @endif
         <div class="product-item__button">
-            <button class="btn btn--base bitBtn"
+            <button class="btn btn--base bitBtn text-nowrap"
                 data-my-bid-amount={{ getAmount(@$accountListing->accountBidding[0]->amount) }}
                 data-my-bid-count={{ $accountListing->my_bid_count }}
                 data-max_price="{{ getAmount($accountListing->sell_price) }}"
