@@ -25,7 +25,25 @@
                                     <h4 class="product-item__title d-flex align-items-center mb-0">
                                         <span class="text--base">{{ __($platform->name) }}</span>
                                     </h4>
-
+                                    @auth
+                                        @php
+                                            $account = null;
+                                            $userHasAccess = auth()->user()->plan_id || (!empty(auth()->user()->account_ids) && \App\Models\AccountListing::whereIn('id', auth()->user()->account_ids)->where('social_media_id', $platform->id)->exists());
+                                            if ($userHasAccess) {
+                                                if (auth()->user()->plan_id) {
+                                                    $account = $platform->accountListing()->where('plan_id', auth()->user()->plan_id)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                } elseif (!empty(auth()->user()->account_ids)) {
+                                                    $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                }
+                                            }
+                                        @endphp
+                                        @if($account && $account->instructions)
+                                            <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
+                                                <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                                                {{ $account->instructions }}
+                                            </div>
+                                        @endif
+                                    @endauth
                                 </div>
                             </div>
                             <div class="d-flex align-items-center flex-wrap">
