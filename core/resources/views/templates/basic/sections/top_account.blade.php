@@ -23,7 +23,7 @@
             <div class="row mt-3">
                 <div class="col-12">
                     @foreach ($platforms as $platform)
-                        <div class="product-item" style="flex-wrap: wrap;">
+                        <div class="product-item">
                             <div class="product-item__wrapper">
                                 <div class="product-item__thumb">
                                     <div style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
@@ -46,6 +46,12 @@
                                                 }
                                             }
                                         @endphp
+                                        @if($account && $account->instructions)
+                                            <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3;">
+                                                <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                                                {{ $account->instructions }}
+                                            </div>
+                                        @endif
                                     @endauth
                                 </div>
                             </div>
@@ -77,14 +83,6 @@
                                     @endauth
                                 </div>
                             </div>
-                            @auth
-                                @if($account && $account->instructions)
-                                    <div class="w-100 mt-3 pt-3" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; flex: 0 0 100%; border-top: 1px dashed rgba(255,255,255,0.1);">
-                                        <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
-                                        {{ $account->instructions }}
-                                    </div>
-                                @endif
-                            @endauth
                         </div>
                     @endforeach
                 </div>
