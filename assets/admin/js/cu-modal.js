@@ -59,7 +59,11 @@ $(document).on("click", ".cuModalBtn", function () {
                     if ($(element).hasClass("nicEdit")) {
                         $(".nicEdit-main").html(resource[fieldName]);
                     } else {
-                        $(`[name='${fieldName}']`).text(resource[fieldName]);
+                        if (typeof resource[fieldName] === 'object' && resource[fieldName] !== null) {
+                            $(`[name='${fieldName}']`).val(JSON.stringify(resource[fieldName]));
+                        } else {
+                            $(`[name='${fieldName}']`).val(resource[fieldName]);
+                        }
                     }
                 } else if ($(element).data("toggle") == "toggle") {
 
