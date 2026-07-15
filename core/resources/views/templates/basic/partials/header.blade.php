@@ -51,7 +51,7 @@
                                 @php
                                     $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
                                     $isExpired = now()->greaterThanOrEqualTo($expiryDate);
-                                    $daysRemaining = $isExpired ? 0 : (int) now()->startOfDay()->diffInDays($expiryDate->copy()->startOfDay(), false);
+                                    $daysRemaining = $isExpired ? 0 : (int) now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($expiryDate)->startOfDay(), false);
                                 @endphp
                                 <div class="top-button__button" style="margin-bottom: 10px;">
                                     <span class="btn" style="background-color: {{ $isExpired ? '#dc3545' : '#ffc107' }}; color: {{ $isExpired ? 'white' : 'black' }}; border: none; font-size: 14px; font-weight: 600; cursor: default; padding: 10px 15px;">
@@ -77,7 +77,7 @@
                             @php
                                 $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
                                 $isExpired = now()->greaterThanOrEqualTo($expiryDate);
-                                $daysRemaining = $isExpired ? 0 : (int) now()->diffInDays($expiryDate);
+                                $daysRemaining = $isExpired ? 0 : (int) now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($expiryDate)->startOfDay(), false);
                             @endphp
                             <div class="top-button__button" style="margin-right: 15px;">
                                 <span class="btn" style="background-color: {{ $isExpired ? '#dc3545' : '#ffc107' }}; color: {{ $isExpired ? 'white' : 'black' }}; border: none; font-size: 14px; font-weight: 600; cursor: default; padding: 10px 15px;">

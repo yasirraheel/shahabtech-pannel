@@ -83,7 +83,7 @@
     @auth
         @php
             $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
-            $daysRemaining = now()->diffInDays($expiryDate, false);
+            $daysRemaining = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($expiryDate)->startOfDay(), false);
             $contactContent = getContent('contact.content', true)->data_values;
             $whatsappNumber = preg_replace('/[^0-9]/', '', @$contactContent->phone_number);
             $whatsappUrl = "https://wa.me/{$whatsappNumber}?text=" . urlencode("Hello, I would like to renew my account.");
