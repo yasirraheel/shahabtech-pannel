@@ -98,6 +98,7 @@
                                 <div class="form-group">
                                     <label>@lang('CTA Button Link')</label>
                                     <input class="form-control" type="text" name="banner_cta_link" value="{{gs('banner_cta_link')}}" placeholder="@lang('e.g. https://wa.me/1234567890')">
+                                    <small class="text-muted">@lang('You can use <b>[username]</b> and <b>[email]</b> to dynamically insert the logged-in user\'s details in the link.')</small>
                                 </div>
                             </div>
                             <div class="form-group col-xl-4 col-sm-6">

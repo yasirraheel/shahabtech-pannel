@@ -53,13 +53,12 @@
         @if(gs('banner_cta_text') && gs('banner_cta_link'))
             @php
                 $ctaLink = gs('banner_cta_link');
-                if (auth()->check() && (strpos($ctaLink, 'wa.me') !== false || strpos($ctaLink, 'api.whatsapp.com') !== false)) {
-                    $userInfo = "\n\nUser Info:\nUsername: " . auth()->user()->username . "\nEmail: " . auth()->user()->email;
-                    if (strpos($ctaLink, 'text=') !== false) {
-                        $ctaLink .= urlencode($userInfo);
-                    } else {
-                        $ctaLink .= (strpos($ctaLink, '?') !== false ? '&' : '?') . "text=" . urlencode($userInfo);
-                    }
+                if (auth()->check()) {
+                    $ctaLink = str_replace('[username]', auth()->user()->username, $ctaLink);
+                    $ctaLink = str_replace('[email]', auth()->user()->email, $ctaLink);
+                    // Also replace urlencoded versions just in case the admin panel saved them urlencoded
+                    $ctaLink = str_replace(urlencode('[username]'), urlencode(auth()->user()->username), $ctaLink);
+                    $ctaLink = str_replace(urlencode('[email]'), urlencode(auth()->user()->email), $ctaLink);
                 }
             @endphp
             <div class="text-end">
