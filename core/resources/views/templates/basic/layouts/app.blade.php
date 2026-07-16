@@ -51,8 +51,19 @@
         </div>
         <p class="mb-3 {{ $textColor }}" style="font-size: 14px; line-height: 1.5; margin-bottom: 15px;">{!! gs('banner_message') !!}</p>
         @if(gs('banner_cta_text') && gs('banner_cta_link'))
+            @php
+                $ctaLink = gs('banner_cta_link');
+                if (auth()->check() && strpos($ctaLink, 'wa.me') !== false) {
+                    $userInfo = "\n\nUser Info:\nUsername: " . auth()->user()->username . "\nEmail: " . auth()->user()->email;
+                    if (strpos($ctaLink, '?text=') !== false) {
+                        $ctaLink .= urlencode($userInfo);
+                    } else {
+                        $ctaLink .= "?text=" . urlencode($userInfo);
+                    }
+                }
+            @endphp
             <div class="text-end">
-                <a href="{{ gs('banner_cta_link') }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold d-inline-flex align-items-center justify-content-center gap-1" style="border-radius: 20px; padding: 6px 15px; font-size: 13px;">
+                <a href="{{ $ctaLink }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold d-inline-flex align-items-center justify-content-center gap-1" style="border-radius: 20px; padding: 6px 15px; font-size: 13px;">
                     {{ gs('banner_cta_text') }} <i class="las la-arrow-right"></i>
                 </a>
             </div>
