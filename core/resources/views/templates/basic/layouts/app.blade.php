@@ -44,29 +44,34 @@
         $textColor = in_array($bannerTheme, ['warning', 'info']) ? 'text-dark' : 'text-white';
         $btnTheme = in_array($bannerTheme, ['warning', 'info']) ? 'btn-dark' : 'btn-light';
     @endphp
-    <div id="globalNotificationBanner" class="notification-banner shadow-lg bg-{{ $bannerTheme }}" style="display: none; position: fixed; bottom: 30px; right: 30px; z-index: 99999; max-width: 450px; border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideInUp 0.5s ease-out;">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="{{ $textColor }} m-0" style="font-size: 16px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
-            <button type="button" class="{{ $textColor }}" style="background: none; border: none; opacity: 0.8; font-size: 20px; line-height: 1;" onclick="closeNotificationBanner()" aria-label="Close">&times;</button>
-        </div>
-        <p class="mb-3 {{ $textColor }}" style="font-size: 14px; line-height: 1.5; margin-bottom: 15px;">{!! gs('banner_message') !!}</p>
-        @if(gs('banner_cta_text') && gs('banner_cta_link'))
-            @php
-                $ctaLink = gs('banner_cta_link');
-                if (auth()->check()) {
-                    $ctaLink = str_replace('[username]', auth()->user()->username, $ctaLink);
-                    $ctaLink = str_replace('[email]', auth()->user()->email, $ctaLink);
-                    // Also replace urlencoded versions just in case the admin panel saved them urlencoded
-                    $ctaLink = str_replace(urlencode('[username]'), urlencode(auth()->user()->username), $ctaLink);
-                    $ctaLink = str_replace(urlencode('[email]'), urlencode(auth()->user()->email), $ctaLink);
-                }
-            @endphp
-            <div class="text-end">
-                <a href="{{ $ctaLink }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold d-inline-flex align-items-center justify-content-center gap-1" style="border-radius: 20px; padding: 6px 15px; font-size: 13px;">
-                    {{ gs('banner_cta_text') }} <i class="las la-arrow-right"></i>
-                </a>
+    <div id="globalNotificationBanner" class="notification-banner shadow-lg bg-{{ $bannerTheme }}" style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 99999; padding: 15px 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.15); animation: slideInUp 0.5s ease-out;">
+        <div class="container position-relative">
+            <button type="button" class="{{ $textColor }} position-absolute" style="top: -5px; right: 15px; background: none; border: none; opacity: 0.8; font-size: 24px; line-height: 1;" onclick="closeNotificationBanner()" aria-label="Close">&times;</button>
+            <div class="row align-items-center">
+                <div class="col-md-9 col-lg-10 mb-3 mb-md-0">
+                    <h6 class="{{ $textColor }} mb-2" style="font-size: 16px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
+                    <div class="{{ $textColor }}" style="font-size: 14px; line-height: 1.5;">
+                        {!! gs('banner_message') !!}
+                    </div>
+                </div>
+                @if(gs('banner_cta_text') && gs('banner_cta_link'))
+                    @php
+                        $ctaLink = gs('banner_cta_link');
+                        if (auth()->check()) {
+                            $ctaLink = str_replace('[username]', auth()->user()->username, $ctaLink);
+                            $ctaLink = str_replace('[email]', auth()->user()->email, $ctaLink);
+                            $ctaLink = str_replace(urlencode('[username]'), urlencode(auth()->user()->username), $ctaLink);
+                            $ctaLink = str_replace(urlencode('[email]'), urlencode(auth()->user()->email), $ctaLink);
+                        }
+                    @endphp
+                    <div class="col-md-3 col-lg-2 text-md-end">
+                        <a href="{{ $ctaLink }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold w-100 d-inline-flex align-items-center justify-content-center gap-1" style="border-radius: 20px; padding: 10px 15px; font-size: 14px;">
+                            {{ gs('banner_cta_text') }} <i class="las la-arrow-right"></i>
+                        </a>
+                    </div>
+                @endif
             </div>
-        @endif
+        </div>
     </div>
 
     @push('script')
