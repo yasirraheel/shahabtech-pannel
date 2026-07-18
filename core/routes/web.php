@@ -6,7 +6,10 @@ Route::get('/clear', function(){
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
 });
 
-
+Route::get('/login', function () {
+    $notify[] = ['error', 'Your session has expired or you have been logged out remotely. Please login again.'];
+    return redirect()->route('user.login')->withNotify($notify);
+})->name('login');
 Route::get('cron', 'CronController@cron')->name('cron');
 
 // Extension API Routes (Session-based via normal auth)
