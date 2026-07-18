@@ -44,13 +44,12 @@
         $textColor = in_array($bannerTheme, ['warning', 'info']) ? 'text-dark' : 'text-white';
         $btnTheme = in_array($bannerTheme, ['warning', 'info']) ? 'btn-dark' : 'btn-light';
     @endphp
-    <div id="globalNotificationBanner" class="notification-banner shadow-lg bg-{{ $bannerTheme }}" style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 99999; padding: 15px 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.15); animation: slideInUp 0.5s ease-out;">
+    <div id="globalNotificationBanner" class="notification-banner shadow-lg bg-{{ $bannerTheme }}" style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 99999; padding: 10px 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.15); animation: slideInUp 0.5s ease-out;">
         <div class="container position-relative">
-            <button type="button" class="{{ $textColor }} position-absolute" style="top: -5px; right: 15px; background: none; border: none; opacity: 0.8; font-size: 24px; line-height: 1;" onclick="closeNotificationBanner()" aria-label="Close">&times;</button>
-            <div class="row align-items-center">
-                <div class="col-md-9 col-lg-10 mb-3 mb-md-0">
-                    <h6 class="{{ $textColor }} mb-2" style="font-size: 16px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
-                    <div class="{{ $textColor }}" style="font-size: 14px; line-height: 1.5;">
+            <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 pe-4">
+                <div class="flex-grow-1">
+                    <h6 class="{{ $textColor }} mb-1" style="font-size: 15px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
+                    <div class="{{ $textColor }}" style="font-size: 13px; line-height: 1.4;">
                         {!! gs('banner_message') !!}
                     </div>
                 </div>
@@ -64,13 +63,14 @@
                             $ctaLink = str_replace(urlencode('[email]'), urlencode(auth()->user()->email), $ctaLink);
                         }
                     @endphp
-                    <div class="col-md-3 col-lg-2 text-md-end">
-                        <a href="{{ $ctaLink }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold w-100 d-inline-flex align-items-center justify-content-center gap-1" style="border-radius: 20px; padding: 10px 15px; font-size: 14px;">
+                    <div class="flex-shrink-0 mt-2 mt-md-0">
+                        <a href="{{ $ctaLink }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold d-inline-flex align-items-center justify-content-center gap-1" style="border-radius: 20px; padding: 8px 15px; font-size: 13px; white-space: nowrap;">
                             {{ gs('banner_cta_text') }} <i class="las la-arrow-right"></i>
                         </a>
                     </div>
                 @endif
             </div>
+            <button type="button" class="{{ $textColor }} position-absolute" style="top: -2px; right: 10px; background: none; border: none; opacity: 0.8; font-size: 24px; line-height: 1; padding: 0;" onclick="closeNotificationBanner()" aria-label="Close">&times;</button>
         </div>
     </div>
 
