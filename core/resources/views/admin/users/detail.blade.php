@@ -216,9 +216,57 @@
 
                             <div class="col-md-6">
                                 <div class="form-group">
+                                    <label>@lang('Account Type')</label>
+                                    <div class="d-flex align-items-center mt-2">
+                                        <span class="me-3">@lang('Standard')</span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="is_trial" name="is_trial" @if($user->is_trial) checked @endif>
+                                            <label class="form-check-label" for="is_trial">@lang('Trial Period')</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6" id="standard-expiry-wrapper" style="{{ $user->is_trial ? 'display:none;' : '' }}">
+                                <div class="form-group">
                                     <label>@lang('Subscription Expiry Date')</label>
                                     <input class="form-control" type="datetime-local" name="expires_at" value="{{ $user->expires_at ? $user->expires_at->format('Y-m-d\TH:i') : $user->created_at->addDays(30)->format('Y-m-d\TH:i') }}">
                                     <small class="text-muted">@lang('By default, users expire 30 days after their creation date.')</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-12" id="trial-period-wrapper" style="{{ $user->is_trial ? '' : 'display:none;' }}">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>@lang('Trial Start Mode')</label>
+                                            <select name="trial_start_type" class="form-control" id="trial_start_type">
+                                                <option value="immediate" @selected($user->is_trial && !$user->pending_trial_minutes)>@lang('Start Immediately (or Already Started)')</option>
+                                                <option value="next_login" @selected($user->is_trial && $user->pending_trial_minutes > 0)>@lang('Start on User\'s Next Login')</option>
+                                            </select>
+                                            @if($user->is_trial && $user->expires_at && !$user->pending_trial_minutes)
+                                                <div class="mt-1 text-warning"><small><i class="las la-info-circle"></i> @lang('Trial is currently active and expires at:') {{ showDateTime($user->expires_at) }}</small></div>
+                                                <div class="mt-1 text-muted"><small>@lang('To extend the active trial, just change the expiry date in the standard mode.')</small></div>
+                                            @endif
+                                            @if($user->is_trial && $user->pending_trial_minutes > 0)
+                                                <div class="mt-1 text-warning"><small><i class="las la-info-circle"></i> @lang('Trial is currently pending to start. Duration:') {{ $user->pending_trial_minutes }} @lang('Minutes')</small></div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6" id="trial-duration-wrapper">
+                                        <div class="form-group">
+                                            <label>@lang('Set New Trial Duration')</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" name="trial_duration" placeholder="e.g. 2" min="1">
+                                                <select name="trial_unit" class="form-control">
+                                                    <option value="minutes">@lang('Minutes')</option>
+                                                    <option value="hours" selected>@lang('Hours')</option>
+                                                    <option value="days">@lang('Days')</option>
+                                                </select>
+                                            </div>
+                                            <small class="text-muted">@lang('Fill this only if you want to assign/override the trial duration.')</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -386,6 +434,15 @@
     (function($){
     "use strict"
 
+        $('#is_trial').on('change', function() {
+            if($(this).is(':checked')) {
+                $('#standard-expiry-wrapper').hide();
+                $('#trial-period-wrapper').show();
+            } else {
+                $('#standard-expiry-wrapper').show();
+                $('#trial-period-wrapper').hide();
+            }
+        });
 
         $('.bal-btn').on('click',function(){
 

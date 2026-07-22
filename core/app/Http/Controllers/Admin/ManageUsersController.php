@@ -127,6 +127,11 @@ class ManageUsersController extends Controller
             'account_ids.*' => 'integer|exists:account_listings,id',
             'account_prices' => 'nullable|array',
             'account_prices.*' => 'numeric|min:0',
+            'expires_at' => 'nullable|date',
+            'is_trial' => 'nullable|in:on,1',
+            'trial_start_type' => 'nullable|required_if:is_trial,on|in:immediate,next_login',
+            'trial_duration' => 'nullable|required_if:is_trial,on|integer|min:1',
+            'trial_unit' => 'nullable|required_if:is_trial,on|in:minutes,hours,days',
         ]);
 
         $countryCode    = $request->country;
@@ -158,6 +163,29 @@ class ManageUsersController extends Controller
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_ids = $request->account_ids ?: [];
         $user->account_prices = $request->account_prices ?: [];
+
+        $user->is_trial = $request->has('is_trial') ? 1 : 0;
+        
+        if ($user->is_trial && $request->trial_start_type && $request->trial_duration && $request->trial_unit) {
+            $minutes = $request->trial_duration;
+            if ($request->trial_unit == 'hours') {
+                $minutes = $request->trial_duration * 60;
+            } elseif ($request->trial_unit == 'days') {
+                $minutes = $request->trial_duration * 1440;
+            }
+
+            if ($request->trial_start_type == 'next_login') {
+                $user->pending_trial_minutes = $minutes;
+                $user->expires_at = null;
+            } else {
+                $user->pending_trial_minutes = null;
+                $user->expires_at = now()->addMinutes($minutes);
+            }
+        } elseif ($request->expires_at) {
+            $user->expires_at = \Carbon\Carbon::parse($request->expires_at);
+        } else {
+            $user->expires_at = now()->addDays(30);
+        }
 
         // Force all verifications and profile completion so user can log in instantly
         $user->ev = Status::VERIFIED;
@@ -265,6 +293,10 @@ class ManageUsersController extends Controller
             'account_prices' => 'nullable|array',
             'account_prices.*' => 'numeric|min:0',
             'expires_at' => 'nullable|date',
+            'is_trial' => 'nullable|in:on,1',
+            'trial_start_type' => 'nullable|required_if:is_trial,on|in:immediate,next_login',
+            'trial_duration' => 'nullable|required_if:is_trial,on|integer|min:1',
+            'trial_unit' => 'nullable|required_if:is_trial,on|in:minutes,hours,days',
             'password' => 'nullable|string|min:6',
         ]);
 
@@ -291,8 +323,25 @@ class ManageUsersController extends Controller
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_ids = $request->account_ids ?: [];
         $user->account_prices = $request->account_prices ?: [];
+
+        $user->is_trial = $request->has('is_trial') ? 1 : 0;
         
-        if ($request->expires_at) {
+        if ($user->is_trial && $request->trial_start_type && $request->trial_duration && $request->trial_unit) {
+            $minutes = $request->trial_duration;
+            if ($request->trial_unit == 'hours') {
+                $minutes = $request->trial_duration * 60;
+            } elseif ($request->trial_unit == 'days') {
+                $minutes = $request->trial_duration * 1440;
+            }
+
+            if ($request->trial_start_type == 'next_login') {
+                $user->pending_trial_minutes = $minutes;
+                // Don't modify expires_at yet, let the middleware do it
+            } else {
+                $user->pending_trial_minutes = null;
+                $user->expires_at = now()->addMinutes($minutes);
+            }
+        } elseif ($request->expires_at) {
             $user->expires_at = \Carbon\Carbon::parse($request->expires_at);
         }
 

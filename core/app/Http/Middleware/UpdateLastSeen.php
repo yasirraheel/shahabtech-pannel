@@ -25,6 +25,13 @@ class UpdateLastSeen
             if (!$user->last_seen || Carbon::parse($user->last_seen)->diffInMinutes(now()) >= 1 || $user->last_seen_ip !== $currentIp) {
                 $user->last_seen = now();
                 $user->last_seen_ip = $currentIp;
+                
+                // If they have a pending trial, start it now
+                if ($user->pending_trial_minutes > 0) {
+                    $user->expires_at = now()->addMinutes($user->pending_trial_minutes);
+                    $user->pending_trial_minutes = null;
+                }
+
                 // To avoid triggering standard updated_at column or other events if we just want to update this quietly
                 $user->timestamps = false;
                 $user->save();

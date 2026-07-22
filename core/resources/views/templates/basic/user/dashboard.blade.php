@@ -67,7 +67,15 @@
                         <div class="dashboard-item__content">
                             <span class="dashboard-item__title"> @lang('Current Plan') </span>
                             <h3 class="dashboard-item__currency" style="color: var(--base-color);">
-                                {{ $user->plan ? __($user->plan->name) : 'No Active Plan' }}
+                                @if(auth()->user()->is_trial)
+                                    @if(auth()->user()->pending_trial_minutes > 0)
+                                        @lang('Trial Pending')
+                                    @else
+                                        @lang('Trial Active')
+                                    @endif
+                                @else
+                                    {{ $user->plan ? __($user->plan->name) : 'No Active Plan' }}
+                                @endif
                             </h3>
                         </div>
                         <span class="dashboard-item__icon"> <i class="fas fa-crown"></i> </span>
@@ -97,7 +105,13 @@
             
             @php
                 $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
-                $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+                $isExpired = auth()->user()->expires_at ? now()->greaterThanOrEqualTo($expiryDate) : false;
+                if (!auth()->user()->expires_at && !auth()->user()->is_trial) {
+                    $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+                }
+                if (auth()->user()->is_trial && auth()->user()->pending_trial_minutes > 0) {
+                    $isExpired = false;
+                }
             @endphp
 
             @if($isExpired)

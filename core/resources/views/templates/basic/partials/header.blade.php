@@ -76,12 +76,37 @@
                         @if(auth()->check())
                             @php
                                 $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
-                                $isExpired = now()->greaterThanOrEqualTo($expiryDate);
-                                $daysRemaining = $isExpired ? 0 : (int) now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($expiryDate)->startOfDay(), false);
+                                $isExpired = auth()->user()->expires_at ? now()->greaterThanOrEqualTo($expiryDate) : false;
+                                if (!auth()->user()->expires_at && !auth()->user()->is_trial) {
+                                    $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+                                }
+                                
+                                $trialText = '';
+                                if (auth()->user()->is_trial) {
+                                    if (auth()->user()->pending_trial_minutes > 0) {
+                                        $trialText = 'Trial: Pending Start';
+                                        $isExpired = false;
+                                    } else {
+                                        $diff = now()->diff(\Carbon\Carbon::parse($expiryDate));
+                                        if ($isExpired) {
+                                            $trialText = 'Trial Expired';
+                                        } elseif ($diff->days > 0) {
+                                            $trialText = 'Trial: ' . $diff->days . ' ' . __('Days');
+                                        } elseif ($diff->h > 0) {
+                                            $trialText = 'Trial: ' . $diff->h . ' ' . __('Hours');
+                                        } else {
+                                            $trialText = 'Trial: ' . $diff->i . ' ' . __('Mins');
+                                        }
+                                    }
+                                } else {
+                                    $daysRemaining = $isExpired ? 0 : (int) now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($expiryDate)->startOfDay(), false);
+                                }
                             @endphp
                             <div class="top-button__button" style="margin-right: 15px;">
                                 <span class="btn" style="background-color: {{ $isExpired ? '#dc3545' : '#ffc107' }}; color: {{ $isExpired ? 'white' : 'black' }}; border: none; font-size: 14px; font-weight: 600; cursor: default; padding: 10px 15px;">
-                                    @if($isExpired)
+                                    @if(auth()->user()->is_trial)
+                                        <i class="las la-clock"></i> {{ $trialText }}
+                                    @elseif($isExpired)
                                         <i class="las la-times-circle"></i> @lang('Expired')
                                     @else
                                         <i class="las la-clock"></i> {{ $daysRemaining }} @lang('Days Remaining')
