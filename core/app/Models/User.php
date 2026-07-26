@@ -177,4 +177,60 @@ class User extends Authenticatable
         return implode(' ', $parts);
     }
 
+    public function syncPlatformsWithLoadBalancing(array $platformIds)
+    {
+        $currentAccountIds = (array) ($this->account_ids ?? []);
+        $existingAccounts = AccountListing::whereIn('id', $currentAccountIds)->get()->keyBy('social_media_id');
+
+        $assignedAccountIds = [];
+
+        foreach ($platformIds as $platformId) {
+            $platformId = (int) $platformId;
+            if (!$platformId) continue;
+
+            if (isset($existingAccounts[$platformId]) && $existingAccounts[$platformId]->status == Status::LISTING_ACTIVE) {
+                $assignedAccountIds[] = $existingAccounts[$platformId]->id;
+                continue;
+            }
+
+            $listings = AccountListing::where('social_media_id', $platformId)
+                ->where('status', Status::LISTING_ACTIVE)
+                ->get();
+
+            if ($listings->isEmpty()) {
+                continue;
+            }
+
+            $bestListing = null;
+            $minUserCount = PHP_INT_MAX;
+
+            foreach ($listings as $listing) {
+                $count = User::whereJsonContains('account_ids', (int) $listing->id)
+                    ->orWhereJsonContains('account_ids', (string) $listing->id)
+                    ->count();
+
+                if ($count < $minUserCount) {
+                    $minUserCount = $count;
+                    $bestListing = $listing;
+                }
+            }
+
+            if ($bestListing) {
+                $assignedAccountIds[] = $bestListing->id;
+            }
+        }
+
+        $this->account_ids = array_values(array_unique($assignedAccountIds));
+        return $this->account_ids;
+    }
+
+    public function assignedAccountListings()
+    {
+        $accountIds = (array) ($this->account_ids ?? []);
+        if (empty($accountIds)) {
+            return collect();
+        }
+        return AccountListing::whereIn('id', $accountIds)->with('socialMedia')->get();
+    }
+
 }

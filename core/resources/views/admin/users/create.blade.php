@@ -139,13 +139,13 @@
 
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label>@lang('Assign Specific Accounts')</label>
-                                    <select name="account_ids[]" class="form-control select2" multiple="multiple">
-                                        @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}">{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
+                                    <label>@lang('Assign Platforms / Social Media')</label>
+                                    <select name="platform_ids[]" class="form-control select2" multiple="multiple" data-placeholder="@lang('Select Platforms (e.g. Google Flow, ChatGPT)')">
+                                        @foreach($socialMedias as $sm)
+                                            <option value="{{ $sm->id }}">{{ __($sm->name) }}</option>
                                         @endforeach
                                     </select>
-                                    <small class="text-muted">@lang('Assign specific accounts if you do not want to give them a full plan. You can select multiple.')</small>
+                                    <small class="text-muted">@lang('Select platforms to assign. The system will automatically balance users evenly across available account listings for each platform.')</small>
                                 </div>
                             </div>
 

@@ -280,17 +280,28 @@
                                 </div>
                             </div>
 
+                            @php
+                                $userAssignedAccountListings = $user->assignedAccountListings();
+                                $userAssignedPlatformIds = $userAssignedAccountListings->pluck('social_media_id')->toArray();
+                            @endphp
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>@lang('Assign Specific Accounts')</label>
-                                    <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector">
-                                        @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}" data-name="{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}" @selected(in_array($account->id, $user->account_ids ?? []))>{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
+                                    <label>@lang('Assign Platforms / Social Media')</label>
+                                    <select name="platform_ids[]" class="form-control select2" multiple="multiple" id="platform-selector">
+                                        @foreach($socialMedias as $sm)
+                                            <option value="{{ $sm->id }}" @selected(in_array($sm->id, $userAssignedPlatformIds))>{{ __($sm->name) }}</option>
                                         @endforeach
                                     </select>
-                                    <small class="text-muted">@lang('Assign specific accounts if you do not want to give them a full plan. You can select multiple.')</small>
+                                    <small class="text-muted">@lang('Selecting a platform automatically balances and assigns the user to the least-loaded account instance.')</small>
                                 </div>
-                                <div id="account-prices-container" class="mt-2"></div>
+                                @if($userAssignedAccountListings->isNotEmpty())
+                                    <div class="mt-2 p-2 bg--light rounded border">
+                                        <small class="fw-bold d-block text--primary mb-1"><i class="las la-shield-alt"></i> @lang('Active Assigned Accounts (Admin Only View):')</small>
+                                        @foreach($userAssignedAccountListings as $assignedAccount)
+                                            <span class="badge badge--dark me-1 mb-1">{{ __(@$assignedAccount->socialMedia->name) }} - {{ __($assignedAccount->title) }}</span>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
 
 

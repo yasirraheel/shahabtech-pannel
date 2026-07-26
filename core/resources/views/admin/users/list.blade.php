@@ -44,6 +44,21 @@
                                                 Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
                                             </span>
                                             @endif
+                                            @php
+                                                $assignedAccountsList = $user->assignedAccountListings();
+                                            @endphp
+                                            @if($assignedAccountsList->isNotEmpty())
+                                                <div class="mt-1">
+                                                    <span class="text-muted d-block" style="font-size: 10px; margin-bottom: 1px;">
+                                                        <i class="las la-layer-group"></i> <strong>Assigned Accounts:</strong>
+                                                    </span>
+                                                    @foreach($assignedAccountsList as $accItem)
+                                                        <span class="badge badge--primary d-inline-block" style="font-size: 9px; padding: 2px 5px; margin-top: 1px;">
+                                                            {{ __(@$accItem->socialMedia->name) }} - {{ __($accItem->title) }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         </div>
                                     @endif
                                 </td>

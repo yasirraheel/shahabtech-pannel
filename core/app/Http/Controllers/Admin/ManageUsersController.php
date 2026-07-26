@@ -114,7 +114,8 @@ class ManageUsersController extends Controller
         $countries = json_decode(file_get_contents(resource_path('views/partials/country.json')));
         $plans = \App\Models\Plan::active()->get();
         $accounts = \App\Models\AccountListing::with('socialMedia')->active()->get();
-        return view('admin.users.create', compact('pageTitle', 'countries', 'plans', 'accounts'));
+        $socialMedias = \App\Models\SocialMedia::active()->get();
+        return view('admin.users.create', compact('pageTitle', 'countries', 'plans', 'accounts', 'socialMedias'));
     }
 
     public function store(Request $request)
@@ -132,6 +133,8 @@ class ManageUsersController extends Controller
             'mobile' => 'nullable|string|max:40',
             'country' => 'required|in:'.$countries,
             'plan_id' => 'nullable|integer|exists:plans,id',
+            'platform_ids' => 'nullable|array',
+            'platform_ids.*' => 'integer|exists:social_media,id',
             'account_ids' => 'nullable|array',
             'account_ids.*' => 'integer|exists:account_listings,id',
             'account_prices' => 'nullable|array',
@@ -170,8 +173,13 @@ class ManageUsersController extends Controller
         $user->dial_code = $dialCode;
         $user->country_code = $countryCode;
         $user->plan_id = $request->plan_id ?: 0;
-        $user->account_ids = $request->account_ids ?: [];
         $user->account_prices = $request->account_prices ?: [];
+
+        if ($request->has('platform_ids')) {
+            $user->syncPlatformsWithLoadBalancing($request->platform_ids ?: []);
+        } else {
+            $user->account_ids = $request->account_ids ?: [];
+        }
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
         
@@ -223,8 +231,9 @@ class ManageUsersController extends Controller
         
         $plans = \App\Models\Plan::active()->get();
         $accounts = \App\Models\AccountListing::with('socialMedia')->active()->get();
+        $socialMedias = \App\Models\SocialMedia::active()->get();
 
-        return view('admin.users.detail', compact('pageTitle', 'user','totalDeposit','totalWithdrawals','totalTransaction','countries', 'plans', 'accounts'));
+        return view('admin.users.detail', compact('pageTitle', 'user','totalDeposit','totalWithdrawals','totalTransaction','countries', 'plans', 'accounts', 'socialMedias'));
     }
 
     public function logout($id)
@@ -297,6 +306,8 @@ class ManageUsersController extends Controller
             'mobile' => 'nullable|string|max:40',
             'country' => 'required|in:'.$countries,
             'plan_id' => 'nullable|integer|exists:plans,id',
+            'platform_ids' => 'nullable|array',
+            'platform_ids.*' => 'integer|exists:social_media,id',
             'account_ids' => 'nullable|array',
             'account_ids.*' => 'integer|exists:account_listings,id',
             'account_prices' => 'nullable|array',
@@ -330,8 +341,13 @@ class ManageUsersController extends Controller
         $user->dial_code = $dialCode;
         $user->country_code = $countryCode;
         $user->plan_id = $request->plan_id ?: 0;
-        $user->account_ids = $request->account_ids ?: [];
         $user->account_prices = $request->account_prices ?: [];
+
+        if ($request->has('platform_ids')) {
+            $user->syncPlatformsWithLoadBalancing($request->platform_ids ?: []);
+        } else {
+            $user->account_ids = $request->account_ids ?: [];
+        }
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
         
