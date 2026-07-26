@@ -28,6 +28,7 @@
                                     <th>@lang('Social Media') </th>
                                     <th> @lang('Category') </th>
                                     <th> @lang('Plan') </th>
+                                    <th> @lang('Assigned Users') </th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
                                 </tr>
@@ -43,6 +44,11 @@
                                         </td>
                                         <td> {{ __(@$accountListing->category->name) }} </td>
                                         <td> {{ __(@$accountListing->plan->name) }} </td>
+                                        <td>
+                                            <span class="badge badge--info" style="font-size: 11px; padding: 4px 8px;" title="@lang('Total Users Currently Assigned')">
+                                                <i class="las la-users"></i> {{ $accountListing->assignedUsersCount() }} @lang('Users')
+                                            </span>
+                                        </td>
                                         <td> @php echo $accountListing->statusBadge; @endphp </td>
                                         <td>
                                             <div class="d-flex justify-content-end flex-wrap gap-1">

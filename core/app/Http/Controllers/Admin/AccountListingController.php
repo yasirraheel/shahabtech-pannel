@@ -148,6 +148,60 @@ class AccountListingController extends Controller
 
     public function status($id)
     {
-        return AccountListing::changeStatus($id);
+        $account = AccountListing::findOrFail($id);
+
+        if ($account->status == Status::LISTING_ACTIVE) {
+            $account->status = Status::LISTING_INACTIVE;
+        } else {
+            $account->status = Status::LISTING_ACTIVE;
+        }
+        $account->save();
+
+        $platformId = $account->social_media_id;
+        $allPlatformAccountIds = AccountListing::where('social_media_id', $platformId)->pluck('id')->toArray();
+        $activeListings = AccountListing::where('social_media_id', $platformId)
+            ->where('status', Status::LISTING_ACTIVE)
+            ->get();
+
+        $affectedUsers = User::where(function($q) use ($allPlatformAccountIds) {
+            foreach ($allPlatformAccountIds as $accId) {
+                $q->orWhereJsonContains('account_ids', (int) $accId)
+                  ->orWhereJsonContains('account_ids', (string) $accId);
+            }
+        })->get();
+
+        foreach ($affectedUsers as $user) {
+            $currentAccountIds = (array) ($user->account_ids ?? []);
+            $otherAccountIds = array_diff($currentAccountIds, $allPlatformAccountIds);
+
+            if ($activeListings->isNotEmpty()) {
+                $bestListing = null;
+                $minUserCount = PHP_INT_MAX;
+
+                foreach ($activeListings as $listing) {
+                    $count = User::whereJsonContains('account_ids', (int) $listing->id)
+                        ->orWhereJsonContains('account_ids', (string) $listing->id)
+                        ->count();
+
+                    if ($count < $minUserCount) {
+                        $minUserCount = $count;
+                        $bestListing = $listing;
+                    }
+                }
+
+                if ($bestListing) {
+                    $otherAccountIds[] = $bestListing->id;
+                }
+            }
+
+            $user->account_ids = array_values(array_unique($otherAccountIds));
+            $user->timestamps = false;
+            $user->save();
+            $user->timestamps = true;
+        }
+
+        $statusText = $account->status == Status::LISTING_ACTIVE ? 'enabled' : 'disabled';
+        $notify[] = ['success', "Account {$statusText} successfully. Assigned users re-balanced."];
+        return back()->withNotify($notify);
     }
 }

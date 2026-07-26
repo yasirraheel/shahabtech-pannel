@@ -45,6 +45,13 @@ class AccountListing extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function assignedUsersCount()
+    {
+        return User::whereJsonContains('account_ids', (int) $this->id)
+            ->orWhereJsonContains('account_ids', (string) $this->id)
+            ->count();
+    }
+
     public function scopePending($query)
     {
         return $query->where('status', Status::LISTING_PENDING);
