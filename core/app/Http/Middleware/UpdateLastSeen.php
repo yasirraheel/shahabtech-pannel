@@ -22,31 +22,37 @@ class UpdateLastSeen
             $user = Auth::user();
             $currentIp = getRealIP();
             $now = now();
-            $lastSeen = $user->last_seen ? Carbon::parse($user->last_seen) : null;
 
-            // Update if last_seen is null, at least 15 seconds have passed, or IP changed
-            if (!$lastSeen || $now->diffInSeconds($lastSeen) >= 15 || $user->last_seen_ip !== $currentIp) {
-                if ($lastSeen) {
-                    $diffInSeconds = $now->diffInSeconds($lastSeen);
-                    // Only accumulate if session gap is within 15 minutes (900 seconds)
-                    if ($diffInSeconds > 0 && $diffInSeconds <= 900) {
-                        $user->total_online_time = ($user->total_online_time ?? 0) + $diffInSeconds;
-                    }
-                }
-
+            if (!$user->last_seen) {
                 $user->last_seen = $now;
                 $user->last_seen_ip = $currentIp;
-                
-                // If they have a pending trial, start it now
-                if ($user->pending_trial_minutes > 0) {
-                    $user->expires_at = $now->copy()->addMinutes($user->pending_trial_minutes);
-                    $user->pending_trial_minutes = null;
-                }
-
-                // To avoid triggering standard updated_at column or other events if we just want to update this quietly
                 $user->timestamps = false;
                 $user->save();
                 $user->timestamps = true;
+            } else {
+                $lastSeen = Carbon::parse($user->last_seen);
+                $diffInSeconds = $lastSeen->diffInSeconds($now);
+
+                // Update if at least 10 seconds passed or IP changed
+                if ($diffInSeconds >= 10 || $user->last_seen_ip !== $currentIp) {
+                    // Accumulate online time if session gap is within 15 minutes (900s)
+                    if ($diffInSeconds > 0 && $diffInSeconds <= 900) {
+                        $user->total_online_time = (int) $user->total_online_time + $diffInSeconds;
+                    }
+
+                    $user->last_seen = $now;
+                    $user->last_seen_ip = $currentIp;
+
+                    // If they have a pending trial, start it now
+                    if ($user->pending_trial_minutes > 0) {
+                        $user->expires_at = $now->copy()->addMinutes($user->pending_trial_minutes);
+                        $user->pending_trial_minutes = null;
+                    }
+
+                    $user->timestamps = false;
+                    $user->save();
+                    $user->timestamps = true;
+                }
             }
         }
 
