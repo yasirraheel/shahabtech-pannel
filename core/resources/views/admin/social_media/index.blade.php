@@ -99,6 +99,11 @@
                             <input class="form-control" name="url" type="url" placeholder="https://chatgpt.com" required>
                             <small class="text-muted">@lang('Users will be redirected here when accessing this platform.')</small>
                         </div>
+                        <div class="form-group">
+                            <label>@lang('Instructions')</label>
+                            <textarea class="form-control" name="instructions" rows="3" placeholder="@lang('e.g. Please use the extension to login.')"></textarea>
+                            <small class="text-muted">@lang('Optional. These instructions will be displayed on the platform card for all users assigned to this platform.')</small>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn--primary w-100 h-45" type="submit">@lang('Save Platform')</button>

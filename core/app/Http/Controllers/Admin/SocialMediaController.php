@@ -19,22 +19,24 @@ class SocialMediaController extends Controller
     public function store(Request $request, $id = null)
     {
         $request->validate([
-            'name'  => 'required',
-            'domain'=> 'required',
-            'url'   => 'required|url',
+            'name'         => 'required',
+            'domain'       => 'required',
+            'url'          => 'required|url',
+            'instructions' => 'nullable|string',
         ]);
 
         if ($id) {
             $socialMedia   = SocialMedia::findOrFail($id);
-            $notifyMessage = 'Social media update successfully';
+            $notifyMessage = 'Platform updated successfully';
         } else {
             $socialMedia   = new SocialMedia();
-            $notifyMessage = 'Social media added successfully';
+            $notifyMessage = 'Platform added successfully';
         }
 
-        $socialMedia->name    = $request->name;
-        $socialMedia->domain  = $request->domain;
-        $socialMedia->url     = $request->url;
+        $socialMedia->name         = $request->name;
+        $socialMedia->domain       = $request->domain;
+        $socialMedia->url          = $request->url;
+        $socialMedia->instructions = $request->instructions;
         $socialMedia->save();
 
         $notify[] = ['success', $notifyMessage];

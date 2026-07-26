@@ -148,11 +148,13 @@
                                                     } elseif (!empty(auth()->user()->account_ids)) {
                                                         $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
                                                     }
+                                                @php
+                                                    $instructions = $platform->instructions ?: ($account ? $account->instructions : null);
                                                 @endphp
-                                                @if($account && $account->instructions)
+                                                @if($instructions)
                                                     <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
                                                         <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
-                                                        {{ $account->instructions }}
+                                                        {{ $instructions }}
                                                     </div>
                                                 @endif
                                             </div>
