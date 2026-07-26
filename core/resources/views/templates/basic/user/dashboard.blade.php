@@ -148,7 +148,6 @@
                                                     } elseif (!empty(auth()->user()->account_ids)) {
                                                         $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
                                                     }
-                                                @php
                                                     $instructions = $platform->instructions ?: ($account ? $account->instructions : null);
                                                 @endphp
                                                 @if($instructions)
