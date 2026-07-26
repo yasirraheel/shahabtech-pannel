@@ -129,8 +129,13 @@
 
 
 @push('breadcrumb-plugins')
-    <x-search-form placeholder="Username / Email" />
-    <a href="{{ route('admin.users.create') }}" class="btn btn-outline--primary">
-        <i class="las la-plus"></i>@lang('Add New')
-    </a>
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+        <a href="{{ request()->fullUrlWithQuery(['sort' => request()->sort == 'last_seen' ? '' : 'last_seen']) }}" class="btn {{ request()->sort == 'last_seen' ? 'btn--info' : 'btn-outline--info' }}">
+            <i class="las la-sort-amount-down"></i> @lang('Sort by Last Seen')
+        </a>
+        <x-search-form placeholder="Username / Email" />
+        <a href="{{ route('admin.users.create') }}" class="btn btn-outline--primary">
+            <i class="las la-plus"></i>@lang('Add New')
+        </a>
+    </div>
 @endpush

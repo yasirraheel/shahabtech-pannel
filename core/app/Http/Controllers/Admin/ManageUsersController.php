@@ -96,7 +96,16 @@ class ManageUsersController extends Controller
         }else{
             $users = User::query();
         }
-        return $users->searchable(['username','email'])->orderBy('id','desc')->paginate(getPaginate());
+        
+        $users = $users->searchable(['username','email']);
+        
+        if (request()->sort == 'last_seen') {
+            $users = $users->orderBy('last_seen', 'desc');
+        } else {
+            $users = $users->orderBy('id','desc');
+        }
+        
+        return $users->paginate(getPaginate());
     }
 
     public function create()
