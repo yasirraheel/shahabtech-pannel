@@ -33,11 +33,11 @@
                                             @else
                                                 <span class="badge badge--secondary" style="font-size: 10px; padding: 2px 6px;">Offline</span>
                                             @endif
-                                            <span class="text--primary fw-bold d-block" style="font-size: 12px; margin-top: 4px;">
-                                                Last seen: {{ \Carbon\Carbon::parse($user->last_seen)->diffForHumans() }}
+                                            <span class="badge badge--dark d-inline-block" style="font-size: 10px; padding: 3px 7px; margin-top: 3px;">
+                                                <i class="las la-clock"></i> Last seen: {{ \Carbon\Carbon::parse($user->last_seen)->diffForHumans() }}
                                             </span>
                                             @if($user->last_seen_ip)
-                                            <span class="text-muted d-block" style="font-size: 11px;">
+                                            <span class="text-muted d-block" style="font-size: 11px; margin-top: 2px;">
                                                 Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
                                             </span>
                                             @endif
