@@ -14,15 +14,40 @@ class AccountListingController extends Controller
     // All accounts across all platforms
     public function index(Request $request)
     {
-        $pageTitle       = 'All Accounts';
-        $accountListings = AccountListing::searchable(['title'])
-            ->with('socialMedia', 'plan')
-            ->latest()
-            ->paginate(getPaginate());
+        $pageTitle = 'All Accounts';
+
+        // Reset persistent filter if requested
+        if ($request->has('reset_filter')) {
+            session()->forget('admin_account_filter_platforms');
+            return redirect()->route('admin.account.listing.index');
+        }
+
+        // Update persistent filter if submitted
+        if ($request->has('platforms') || $request->has('filter_applied')) {
+            $platforms = $request->input('platforms', []);
+            if (!is_array($platforms)) {
+                $platforms = array_filter([$platforms]);
+            }
+            $platforms = array_map('intval', array_filter($platforms));
+            session(['admin_account_filter_platforms' => $platforms]);
+        }
+
+        $selectedPlatforms = session('admin_account_filter_platforms', []);
+
+        $query = AccountListing::searchable(['title'])
+            ->with('socialMedia', 'plan', 'category');
+
+        if (!empty($selectedPlatforms)) {
+            $query->whereIn('social_media_id', $selectedPlatforms);
+        }
+
+        $accountListings = $query->latest()->paginate(getPaginate());
+
         $plans = Plan::active()->get();
         $socialMedias = SocialMedia::active()->get();
         $categories = \App\Models\Category::active()->get();
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'plans', 'socialMedias', 'categories'));
+
+        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'plans', 'socialMedias', 'categories', 'selectedPlatforms'));
     }
 
     // Accounts for a specific platform

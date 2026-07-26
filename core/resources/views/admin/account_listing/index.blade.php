@@ -2,6 +2,22 @@
 @section('panel')
     <div class="row">
         <div class="col-md-12">
+            @if(!empty($selectedPlatforms))
+                <div class="alert alert border--primary bg--white d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                        <i class="las la-filter text--primary me-1 fs-5"></i>
+                        <span class="fw-bold me-2">@lang('Active Filter:')</span>
+                        @foreach($socialMedias->whereIn('id', $selectedPlatforms) as $activeSm)
+                            <span class="badge badge--primary me-1">{{ $activeSm->name }}</span>
+                        @endforeach
+                        <small class="text-muted ms-1">(@lang('Persistent filter active'))</small>
+                    </div>
+                    <a href="{{ route('admin.account.listing.index', ['reset_filter' => 1]) }}" class="btn btn-sm btn-outline--danger">
+                        <i class="las la-times"></i> @lang('Clear Filter')
+                    </a>
+                </div>
+            @endif
+
             <div class="card ">
                 <div class="card-body p-0">
                     <div class="table-responsive--lg table-responsive">
@@ -138,7 +154,40 @@
 @endsection
 
 @push('breadcrumb-plugins')
-    <button class="btn btn-sm btn-outline--primary cuModalBtn" data-modal_title="@lang('Add Account')">
-        <i class="las la-plus"></i>@lang('Add New')
-    </button>
+    <form action="{{ route('admin.account.listing.index') }}" method="GET" class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+        <input type="hidden" name="filter_applied" value="1">
+        <div style="min-width: 220px; max-width: 320px;">
+            <select name="platforms[]" class="form-control select2" multiple="multiple" data-placeholder="@lang('Filter Platforms')">
+                @foreach($socialMedias as $sm)
+                    <option value="{{ $sm->id }}" @selected(in_array($sm->id, $selectedPlatforms))>{{ $sm->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <button type="submit" class="btn btn-outline--primary">
+            <i class="las la-filter"></i> @lang('Filter')
+        </button>
+        @if(!empty($selectedPlatforms))
+            <a href="{{ route('admin.account.listing.index', ['reset_filter' => 1]) }}" class="btn btn-outline--danger" title="@lang('Clear Filter')">
+                <i class="las la-times"></i> @lang('Clear')
+            </a>
+        @endif
+        <x-search-form placeholder="Search Title" />
+        <button class="btn btn-outline--primary cuModalBtn" data-modal_title="@lang('Add Account')">
+            <i class="las la-plus"></i>@lang('Add New')
+        </button>
+    </form>
+@endpush
+
+@push('script')
+<script>
+    (function($){
+        "use strict";
+        if ($.fn.select2) {
+            $('.select2').select2({
+                placeholder: "@lang('Filter Platforms')",
+                allowClear: true
+            });
+        }
+    })(jQuery);
+</script>
 @endpush
