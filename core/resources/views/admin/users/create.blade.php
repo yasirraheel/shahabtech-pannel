@@ -137,15 +137,27 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>@lang('Assign Platforms / Social Media')</label>
+                                    <label>@lang('Assign Platforms (Auto Load-Balanced)')</label>
                                     <select name="platform_ids[]" class="form-control select2" multiple="multiple" data-placeholder="@lang('Select Platforms (e.g. Google Flow, ChatGPT)')">
                                         @foreach($socialMedias as $sm)
                                             <option value="{{ $sm->id }}">{{ __($sm->name) }}</option>
                                         @endforeach
                                     </select>
-                                    <small class="text-muted">@lang('Select platforms to assign. The system will automatically balance users evenly across available account listings for each platform.')</small>
+                                    <small class="text-muted">@lang('Select platforms to automatically balance users evenly across available account listings.')</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>@lang('Assign Specific Accounts (Manual Override)')</label>
+                                    <select name="account_ids[]" class="form-control select2" multiple="multiple" data-placeholder="@lang('Select Specific Account Instance')">
+                                        @foreach($accounts as $account)
+                                            <option value="{{ $account->id }}">{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">@lang('Select specific account instances if you want to manually assign a specific account.')</small>
                                 </div>
                             </div>
 

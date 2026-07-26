@@ -175,11 +175,32 @@ class ManageUsersController extends Controller
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_prices = $request->account_prices ?: [];
 
-        if ($request->has('platform_ids')) {
-            $user->syncPlatformsWithLoadBalancing($request->platform_ids ?: []);
-        } else {
-            $user->account_ids = $request->account_ids ?: [];
+        $assignedAccountIds = [];
+        if ($request->filled('platform_ids')) {
+            $user->syncPlatformsWithLoadBalancing((array) $request->platform_ids);
+            $assignedAccountIds = (array) ($user->account_ids ?? []);
         }
+
+        if ($request->filled('account_ids')) {
+            $specificIds = array_map('intval', (array) $request->account_ids);
+            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get()->keyBy('social_media_id');
+            
+            $filteredAutoIds = [];
+            foreach ($assignedAccountIds as $accId) {
+                $acc = \App\Models\AccountListing::find($accId);
+                if ($acc && isset($specificAccounts[$acc->social_media_id])) {
+                    continue;
+                }
+                $filteredAutoIds[] = $accId;
+            }
+            $assignedAccountIds = array_merge($filteredAutoIds, $specificIds);
+        }
+
+        if (!$request->filled('platform_ids') && !$request->filled('account_ids')) {
+            $assignedAccountIds = [];
+        }
+
+        $user->account_ids = array_values(array_unique($assignedAccountIds));
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
         
@@ -343,11 +364,32 @@ class ManageUsersController extends Controller
         $user->plan_id = $request->plan_id ?: 0;
         $user->account_prices = $request->account_prices ?: [];
 
-        if ($request->has('platform_ids')) {
-            $user->syncPlatformsWithLoadBalancing($request->platform_ids ?: []);
-        } else {
-            $user->account_ids = $request->account_ids ?: [];
+        $assignedAccountIds = [];
+        if ($request->filled('platform_ids')) {
+            $user->syncPlatformsWithLoadBalancing((array) $request->platform_ids);
+            $assignedAccountIds = (array) ($user->account_ids ?? []);
         }
+
+        if ($request->filled('account_ids')) {
+            $specificIds = array_map('intval', (array) $request->account_ids);
+            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get()->keyBy('social_media_id');
+            
+            $filteredAutoIds = [];
+            foreach ($assignedAccountIds as $accId) {
+                $acc = \App\Models\AccountListing::find($accId);
+                if ($acc && isset($specificAccounts[$acc->social_media_id])) {
+                    continue;
+                }
+                $filteredAutoIds[] = $accId;
+            }
+            $assignedAccountIds = array_merge($filteredAutoIds, $specificIds);
+        }
+
+        if (!$request->filled('platform_ids') && !$request->filled('account_ids')) {
+            $assignedAccountIds = [];
+        }
+
+        $user->account_ids = array_values(array_unique($assignedAccountIds));
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
         

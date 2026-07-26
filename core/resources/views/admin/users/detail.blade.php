@@ -282,11 +282,12 @@
 
                             @php
                                 $userAssignedAccountListings = $user->assignedAccountListings();
+                                $userAssignedAccountIds = $userAssignedAccountListings->pluck('id')->toArray();
                                 $userAssignedPlatformIds = $userAssignedAccountListings->pluck('social_media_id')->toArray();
                             @endphp
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>@lang('Assign Platforms / Social Media')</label>
+                                    <label>@lang('Assign Platforms (Auto Load-Balanced)')</label>
                                     <select name="platform_ids[]" class="form-control select2" multiple="multiple" id="platform-selector">
                                         @foreach($socialMedias as $sm)
                                             <option value="{{ $sm->id }}" @selected(in_array($sm->id, $userAssignedPlatformIds))>{{ __($sm->name) }}</option>
@@ -294,15 +295,30 @@
                                     </select>
                                     <small class="text-muted">@lang('Selecting a platform automatically balances and assigns the user to the least-loaded account instance.')</small>
                                 </div>
-                                @if($userAssignedAccountListings->isNotEmpty())
-                                    <div class="mt-2 p-2 bg--light rounded border">
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>@lang('Assign Specific Accounts (Manual Override)')</label>
+                                    <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector">
+                                        @foreach($accounts as $account)
+                                            <option value="{{ $account->id }}" @selected(in_array($account->id, $userAssignedAccountIds))>{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">@lang('Manually select specific account instances to override platform load-balancing for this user.')</small>
+                                </div>
+                            </div>
+
+                            @if($userAssignedAccountListings->isNotEmpty())
+                                <div class="col-md-12 mb-3">
+                                    <div class="p-2 bg--light rounded border">
                                         <small class="fw-bold d-block text--primary mb-1"><i class="las la-shield-alt"></i> @lang('Active Assigned Accounts (Admin Only View):')</small>
                                         @foreach($userAssignedAccountListings as $assignedAccount)
                                             <span class="badge badge--dark me-1 mb-1">{{ __(@$assignedAccount->socialMedia->name) }} - {{ __($assignedAccount->title) }}</span>
                                         @endforeach
                                     </div>
-                                @endif
-                            </div>
+                                </div>
+                            @endif
 
 
                             <div class="col-xl-3 col-md-6 col-12">
