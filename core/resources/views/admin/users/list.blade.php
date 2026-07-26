@@ -36,6 +36,9 @@
                                             <span class="badge badge--dark d-inline-block" style="font-size: 10px; padding: 3px 7px; margin-top: 3px;">
                                                 <i class="las la-clock"></i> Last seen: {{ \Carbon\Carbon::parse($user->last_seen)->diffForHumans() }}
                                             </span>
+                                            <span class="badge badge--info d-inline-block" style="font-size: 10px; padding: 3px 7px; margin-top: 3px;" title="Total Active Time Spent">
+                                                <i class="las la-stopwatch"></i> Total Online: {{ $user->onlineTimeFormatted() }}
+                                            </span>
                                             @if($user->last_seen_ip)
                                             <span class="text-muted d-block" style="font-size: 11px; margin-top: 2px;">
                                                 Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>

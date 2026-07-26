@@ -148,4 +148,33 @@ class User extends Authenticatable
         return $this->hasMany(DeviceToken::class);
     }
 
+    public function onlineTimeFormatted()
+    {
+        $seconds = (int) ($this->total_online_time ?? 0);
+        if ($seconds <= 0) {
+            return '0m';
+        }
+
+        $days = floor($seconds / 86400);
+        $hours = floor(($seconds % 86400) / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        $secs = $seconds % 60;
+
+        $parts = [];
+        if ($days > 0) {
+            $parts[] = "{$days}d";
+        }
+        if ($hours > 0) {
+            $parts[] = "{$hours}h";
+        }
+        if ($minutes > 0) {
+            $parts[] = "{$minutes}m";
+        }
+        if (empty($parts) && $secs > 0) {
+            $parts[] = "{$secs}s";
+        }
+
+        return implode(' ', $parts);
+    }
+
 }

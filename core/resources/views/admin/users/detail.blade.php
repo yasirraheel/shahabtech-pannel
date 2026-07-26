@@ -54,7 +54,17 @@
                     />
                 </div>
 
-
+                <div class="col-xxl-3 col-sm-6">
+                    <x-widget
+                        style="7"
+                        link="javascript:void(0)"
+                        title="Total Time Online"
+                        icon="las la-stopwatch"
+                        value="{{ $user->onlineTimeFormatted() }}"
+                        bg="19"
+                        type="2"
+                    />
+                </div>
             </div>
 
             <div class="d-flex flex-wrap gap-3 mt-4">
