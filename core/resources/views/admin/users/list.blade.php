@@ -33,7 +33,7 @@
                                             @else
                                                 <span class="badge badge--secondary" style="font-size: 10px; padding: 2px 6px;">Offline</span>
                                             @endif
-                                            <span class="text-muted d-block" style="font-size: 11px; margin-top: 2px;">
+                                            <span class="text--primary fw-bold d-block" style="font-size: 12px; margin-top: 4px;">
                                                 Last seen: {{ \Carbon\Carbon::parse($user->last_seen)->diffForHumans() }}
                                             </span>
                                             @if($user->last_seen_ip)
