@@ -56,7 +56,12 @@
                                             @if ($message->attachments->count() > 0)
                                                 <div class="mt-2">
                                                     @foreach ($message->attachments as $k => $image)
-                                                        <a class="me-3" href="{{ route('ticket.download', encrypt($image->id)) }}"><i class="fa fa-file"></i> @lang('Attachment') {{ ++$k }} </a>
+                                                        @php
+                                                            $ext = pathinfo($image->attachment, PATHINFO_EXTENSION);
+                                                            $fileUrl = route('ticket.download', encrypt($image->id));
+                                                            $downloadUrl = route('ticket.download', encrypt($image->id)) . '?download=1';
+                                                        @endphp
+                                                        <a class="me-3 view-attachment-btn" href="javascript:void(0)" data-url="{{ $fileUrl }}" data-download="{{ $downloadUrl }}" data-ext="{{ strtolower($ext) }}" data-title="@lang('Attachment') {{ ++$k }}"><i class="fa fa-file"></i> @lang('Attachment') {{ $k }} </a>
                                                     @endforeach
                                                 </div>
                                             @endif
@@ -75,7 +80,12 @@
                                             @if ($message->attachments->count() > 0)
                                                 <div class="mt-2">
                                                     @foreach ($message->attachments as $k => $image)
-                                                        <a class="me-3" href="{{ route('ticket.download', encrypt($image->id)) }}"><i class="fa fa-file"></i> @lang('Attachment') {{ ++$k }} </a>
+                                                        @php
+                                                            $ext = pathinfo($image->attachment, PATHINFO_EXTENSION);
+                                                            $fileUrl = route('ticket.download', encrypt($image->id));
+                                                            $downloadUrl = route('ticket.download', encrypt($image->id)) . '?download=1';
+                                                        @endphp
+                                                        <a class="me-3 view-attachment-btn" href="javascript:void(0)" data-url="{{ $fileUrl }}" data-download="{{ $downloadUrl }}" data-ext="{{ strtolower($ext) }}" data-title="@lang('Attachment') {{ ++$k }}"><i class="fa fa-file"></i> @lang('Attachment') {{ $k }} </a>
                                                     @endforeach
                                                 </div>
                                             @endif
@@ -90,6 +100,23 @@
             </div>
         </div>
     </section>
+
+    <div class="modal fade" id="attachmentPreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attachmentPreviewTitle"><i class="las la-paperclip me-1"></i> @lang('Attachment Preview')</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-3" id="attachmentPreviewBody">
+                </div>
+                <div class="modal-footer">
+                    <a href="#" id="attachmentDownloadBtn" class="btn btn--base btn-sm"><i class="las la-download"></i> @lang('Download File')</a>
+                    <button type="button" class="btn btn--secondary btn-sm" data-bs-dismiss="modal">@lang('Close')</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     @php
         $addClass = 'custom--modal';
@@ -138,6 +165,31 @@
                 $('.addAttachment').removeAttr('disabled', true)
                 fileAdded--;
                 $(this).closest('.removeFileInput').remove();
+            });
+
+            $(document).on('click', '.view-attachment-btn', function(e) {
+                e.preventDefault();
+                var fileUrl = $(this).data('url');
+                var downloadUrl = $(this).data('download');
+                var ext = $(this).data('ext');
+                var title = $(this).data('title');
+
+                $('#attachmentPreviewTitle').text(title + ' (.' + ext + ')');
+                $('#attachmentDownloadBtn').attr('href', downloadUrl);
+
+                var content = '';
+                var imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                
+                if (imageExts.includes(ext)) {
+                    content = '<img src="' + fileUrl + '" class="img-fluid rounded shadow-sm" style="max-height: 70vh; object-fit: contain;">';
+                } else if (ext === 'pdf') {
+                    content = '<iframe src="' + fileUrl + '" style="width: 100%; height: 60vh; border: none;" class="rounded"></iframe>';
+                } else {
+                    content = '<div class="p-4"><i class="las la-file-alt" style="font-size: 64px; color: #6c757d;"></i><p class="mt-2 text-muted">' + title + '</p></div>';
+                }
+
+                $('#attachmentPreviewBody').html(content);
+                $('#attachmentPreviewModal').modal('show');
             });
         })(jQuery);
     </script>

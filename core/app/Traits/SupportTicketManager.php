@@ -294,6 +294,12 @@ trait SupportTicketManager
                 'reply' => $request->message,
                 'link' => route('ticket.view', $ticket->ticket),
             ], $sendVia, $createLog);
+        } else {
+            $adminNotification = new AdminNotification();
+            $adminNotification->user_id = $user ? $user->id : 0;
+            $adminNotification->title = 'Support ticket replied: #' . $ticket->ticket;
+            $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
+            $adminNotification->save();
         }
 
         if($this->apiRequest){
@@ -438,7 +444,8 @@ trait SupportTicketManager
         $title = slug($attachment->supportMessage->ticket->subject);
         $ext = pathinfo($file, PATHINFO_EXTENSION);
         $mimetype = mime_content_type($fullPath);
-        header('Content-Disposition: attachment; filename="' . $title . '.' . $ext . '";');
+        $disposition = request()->has('download') ? 'attachment' : 'inline';
+        header('Content-Disposition: ' . $disposition . '; filename="' . $title . '.' . $ext . '";');
         header("Content-Type: " . $mimetype);
         return readfile($fullPath);
     }
