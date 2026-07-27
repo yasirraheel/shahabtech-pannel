@@ -79,6 +79,16 @@
                             </a>
                         </div>
                         @if(auth()->check())
+                            @php
+                                $userAnsweredCount = \App\Models\SupportTicket::where('user_id', auth()->id())->where('status', \App\Constants\Status::TICKET_ANSWER)->count();
+                            @endphp
+                            @if($userAnsweredCount > 0)
+                                <div class="top-button__button" style="margin-right: 15px;">
+                                    <a class="btn" href="{{ route('ticket.index') }}" style="background-color: #198754; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;" title="@lang('Staff Answered Your Support Ticket')">
+                                        <i class="las la-comment-dots me-1"></i> {{ $userAnsweredCount }} @lang('Ticket Reply')
+                                    </a>
+                                </div>
+                            @endif
                             <div class="top-button__button" style="margin-right: 15px;">
                                 <a class="btn" href="{{ route('ticket.open') }}" style="background-color: #0d6efd; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;">
                                     <i class="las la-headset me-1"></i> @lang('Create Ticket')
@@ -178,9 +188,14 @@
                                             </a>
                                         </li>
                                         <li class="user-info-dropdown__item">
-                                            <a class="{{menuActive('ticket.index')}} user-info-dropdown__link" href="{{ route('ticket.index') }}">
-                                                <span class="icon"> <i class="las la-ticket-alt"></i> </span>
-                                                <span class="text"> @lang('My Ticket') </span>
+                                            <a class="{{menuActive('ticket.index')}} user-info-dropdown__link d-flex align-items-center justify-content-between" href="{{ route('ticket.index') }}">
+                                                <div>
+                                                    <span class="icon"> <i class="las la-ticket-alt"></i> </span>
+                                                    <span class="text"> @lang('My Ticket') </span>
+                                                </div>
+                                                @if(@$userAnsweredCount > 0)
+                                                    <span class="badge bg--success ms-2">{{ $userAnsweredCount }} @lang('New')</span>
+                                                @endif
                                             </a>
                                         </li>
                                         <li class="user-info-dropdown__item">

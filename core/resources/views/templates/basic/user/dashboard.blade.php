@@ -3,6 +3,27 @@
     <div class="dashboard-section py-120">
         <div class="container">
             <div class="notice"></div>
+            @php
+                $userAnsweredTickets = \App\Models\SupportTicket::where('user_id', auth()->id())->where('status', \App\Constants\Status::TICKET_ANSWER)->get();
+            @endphp
+            @if($userAnsweredTickets->isNotEmpty())
+                <div class="mb-4">
+                    @foreach($userAnsweredTickets as $ansTicket)
+                        <div class="alert alert--info d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2" style="background-color: rgba(13, 110, 253, 0.15); border: 1px solid #0d6efd; color: #ffffff; padding: 14px 20px; border-radius: 8px;">
+                            <div class="d-flex align-items-center me-3">
+                                <i class="las la-envelope-open-text me-3" style="font-size: 28px; color: #0d6efd;"></i>
+                                <div>
+                                    <h6 class="mb-1" style="color: #60a5fa; font-weight: 700;">@lang('Admin Answered Your Ticket!')</h6>
+                                    <div style="font-size: 14px; color: #e2e8f0;">@lang('Ticket') <strong>#{{ $ansTicket->ticket }}</strong>: {{ strLimit($ansTicket->subject, 60) }}</div>
+                                </div>
+                            </div>
+                            <a href="{{ route('ticket.view', $ansTicket->ticket) }}" class="btn btn-sm btn--primary text-nowrap" style="padding: 8px 16px; font-size: 13px; font-weight: 600; background-color: #0d6efd; border-color: #0d6efd;">
+                                <i class="las la-eye me-1"></i> @lang('View Reply')
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
             <div class="row justify-content-center">
                 <div class="col-md-12">
                     @php
