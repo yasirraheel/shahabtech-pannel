@@ -185,6 +185,11 @@ trait SupportTicketManager
             }
             abort(404);
         }
+        if ($this->userType == 'user' && $myTicket->status == Status::TICKET_ANSWER) {
+            $myTicket->status = Status::TICKET_OPEN;
+            $myTicket->save();
+        }
+
         $messages = SupportMessage::where('support_ticket_id', $myTicket->id)->with('ticket', 'admin', 'attachments')->orderBy('id', 'desc')->get();
 
         if ($this->apiRequest) {
