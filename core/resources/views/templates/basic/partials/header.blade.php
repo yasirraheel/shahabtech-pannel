@@ -48,6 +48,11 @@
                                     </span> @lang('Pricing Plans') </a>
                             </div>
                             @if(auth()->check())
+                                <div class="top-button__button" style="margin-bottom: 10px;">
+                                    <a class="btn" href="{{ route('ticket.open') }}" style="background-color: #0d6efd; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;">
+                                        <i class="las la-headset me-1"></i> @lang('Create Ticket')
+                                    </a>
+                                </div>
                                 @php
                                     $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
                                     $isExpired = now()->greaterThanOrEqualTo($expiryDate);
@@ -74,6 +79,11 @@
                             </a>
                         </div>
                         @if(auth()->check())
+                            <div class="top-button__button" style="margin-right: 15px;">
+                                <a class="btn" href="{{ route('ticket.open') }}" style="background-color: #0d6efd; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;">
+                                    <i class="las la-headset me-1"></i> @lang('Create Ticket')
+                                </a>
+                            </div>
                             @php
                                 $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
                                 $isExpired = auth()->user()->expires_at ? now()->greaterThanOrEqualTo($expiryDate) : false;
