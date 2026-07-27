@@ -43,10 +43,6 @@
 
                     <li class="nav-item d-block d-lg-none">
                         <div class="top-button d-flex align-items-center flex-wrap gap-2">
-                            <div class="top-button__button" style="margin-bottom: 10px;">
-                                <a class="btn btn--base" href="{{ route('plans') }}"> <span class="icon"> <i class="las la-crown"></i>
-                                    </span> @lang('Pricing Plans') </a>
-                            </div>
                             @if(auth()->check())
                                 @php
                                     $userAnsweredCount = \App\Models\SupportTicket::where('user_id', auth()->id())->where('status', \App\Constants\Status::TICKET_ANSWER)->count();
@@ -80,11 +76,6 @@
                 </ul>
                 <div class="d-none d-lg-block">
                     <div class="top-button d-flex justify-content-between align-items-center flex-wrap">
-                        <div class="top-button__button" style="margin-right: 15px;">
-                            <a class="btn btn--base" href="{{ route('plans') }}"> 
-                                <span class="icon"> <i class="las la-crown"></i></span> @lang('Pricing Plans') 
-                            </a>
-                        </div>
                         @if(auth()->check())
                             @php
                                 $userAnsweredCount = \App\Models\SupportTicket::where('user_id', auth()->id())->where('status', \App\Constants\Status::TICKET_ANSWER)->count();
