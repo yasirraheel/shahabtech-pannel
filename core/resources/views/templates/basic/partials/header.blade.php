@@ -48,9 +48,16 @@
                                     </span> @lang('Pricing Plans') </a>
                             </div>
                             @if(auth()->check())
+                                @php
+                                    $userAnsweredCount = \App\Models\SupportTicket::where('user_id', auth()->id())->where('status', \App\Constants\Status::TICKET_ANSWER)->count();
+                                    $ticketUrl = $userAnsweredCount > 0 ? route('ticket.index') : route('ticket.open');
+                                @endphp
                                 <div class="top-button__button" style="margin-bottom: 10px;">
-                                    <a class="btn" href="{{ route('ticket.open') }}" style="background-color: #0d6efd; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;">
+                                    <a class="btn position-relative" href="{{ $ticketUrl }}" style="background-color: #0d6efd; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;" title="{{ $userAnsweredCount > 0 ? __($userAnsweredCount . ' Ticket Answered by Staff - Click to View') : __('Create Support Ticket') }}">
                                         <i class="las la-headset me-1"></i> @lang('Create Ticket')
+                                        @if($userAnsweredCount > 0)
+                                            <span class="badge rounded-pill bg-danger ms-1" style="font-size: 11px; padding: 3px 6px;">{{ $userAnsweredCount }}</span>
+                                        @endif
                                     </a>
                                 </div>
                                 @php
@@ -81,17 +88,14 @@
                         @if(auth()->check())
                             @php
                                 $userAnsweredCount = \App\Models\SupportTicket::where('user_id', auth()->id())->where('status', \App\Constants\Status::TICKET_ANSWER)->count();
+                                $ticketUrl = $userAnsweredCount > 0 ? route('ticket.index') : route('ticket.open');
                             @endphp
-                            @if($userAnsweredCount > 0)
-                                <div class="top-button__button" style="margin-right: 15px;">
-                                    <a class="btn" href="{{ route('ticket.index') }}" style="background-color: #198754; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;" title="@lang('Staff Answered Your Support Ticket')">
-                                        <i class="las la-comment-dots me-1"></i> {{ $userAnsweredCount }} @lang('Ticket Reply')
-                                    </a>
-                                </div>
-                            @endif
                             <div class="top-button__button" style="margin-right: 15px;">
-                                <a class="btn" href="{{ route('ticket.open') }}" style="background-color: #0d6efd; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;">
+                                <a class="btn position-relative" href="{{ $ticketUrl }}" style="background-color: #0d6efd; color: #ffffff; border: none; font-size: 14px; font-weight: 600; padding: 10px 15px; border-radius: 5px; text-decoration: none;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ $userAnsweredCount > 0 ? __($userAnsweredCount . ' Ticket Answered by Staff - Click to View') : __('Create Support Ticket') }}">
                                     <i class="las la-headset me-1"></i> @lang('Create Ticket')
+                                    @if($userAnsweredCount > 0)
+                                        <span class="badge rounded-pill bg-danger ms-1" style="font-size: 11px; padding: 3px 6px;">{{ $userAnsweredCount }}</span>
+                                    @endif
                                 </a>
                             </div>
                             @php
