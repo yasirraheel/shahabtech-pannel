@@ -302,10 +302,11 @@
                                     <label>@lang('Assign Specific Accounts (Manual Override)')</label>
                                     <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector">
                                         @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}" @selected(in_array($account->id, $userAssignedAccountIds))>{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
+                                            <option value="{{ $account->id }}" data-name="{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}" @selected(in_array($account->id, $userAssignedAccountIds))>{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
                                         @endforeach
                                     </select>
                                     <small class="text-muted">@lang('Manually select specific account instances to override platform load-balancing for this user.')</small>
+                                    <div id="account-prices-container" class="mt-2"></div>
                                 </div>
                             </div>
 

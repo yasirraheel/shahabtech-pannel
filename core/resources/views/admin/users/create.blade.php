@@ -152,12 +152,13 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Assign Specific Accounts (Manual Override)')</label>
-                                    <select name="account_ids[]" class="form-control select2" multiple="multiple" data-placeholder="@lang('Select Specific Account Instance')">
+                                    <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector" data-placeholder="@lang('Select Specific Account Instance')">
                                         @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}">{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
+                                            <option value="{{ $account->id }}" data-name="{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}">{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
                                         @endforeach
                                     </select>
                                     <small class="text-muted">@lang('Select specific account instances if you want to manually assign a specific account.')</small>
+                                    <div id="account-prices-container" class="mt-2"></div>
                                 </div>
                             </div>
 
@@ -284,6 +285,41 @@
                 $('#trial-period-wrapper').hide();
             }
         });
+        
+        // Dynamic Account Prices Logic
+        let accountSelector = $('#account-selector');
+        let pricesContainer = $('#account-prices-container');
+
+        function renderPriceInputs() {
+            let selectedOptions = accountSelector.find('option:selected');
+            let html = '';
+            
+            let currentValues = {};
+            pricesContainer.find('input[type=number]').each(function() {
+                let id = $(this).data('id');
+                currentValues[id] = $(this).val();
+            });
+
+            selectedOptions.each(function() {
+                let accountId = $(this).val();
+                let accountName = $(this).data('name');
+                let price = currentValues[accountId] || 0;
+                
+                html += `
+                    <div class="form-group mt-2 mb-2 p-2 border rounded">
+                        <label class="d-block font-weight-bold" style="font-size: 12px;">Price for: ${accountName}</label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ gs('cur_sym') }}</span>
+                            <input type="number" step="any" min="0" class="form-control form-control-sm" name="account_prices[${accountId}]" data-id="${accountId}" value="${price}" placeholder="0.00" required>
+                        </div>
+                    </div>
+                `;
+            });
+            pricesContainer.html(html);
+        }
+
+        accountSelector.on('change', renderPriceInputs);
+        renderPriceInputs();
         
     })(jQuery);
 </script>
