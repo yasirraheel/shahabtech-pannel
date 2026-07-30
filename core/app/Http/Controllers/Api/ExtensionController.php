@@ -144,14 +144,28 @@ class ExtensionController extends Controller
         }
 
         return response()->json([
-            'success' => true,
-            'user'    => [
+            'success'          => true,
+            'required_version' => gs('min_extension_version') ?: '1.9.6',
+            'download_url'     => getExtensionDownloadUrl(),
+            'user'             => [
                 'id'       => $user->id,
                 'name'     => $user->fullname,
                 'username' => $user->username,
                 'email'    => $user->email,
                 'plan'     => $planData,
             ],
+        ]);
+    }
+
+    /**
+     * Public extension version check endpoint
+     */
+    public function version()
+    {
+        return response()->json([
+            'success'          => true,
+            'required_version' => gs('min_extension_version') ?: '1.9.6',
+            'download_url'     => getExtensionDownloadUrl(),
         ]);
     }
 }

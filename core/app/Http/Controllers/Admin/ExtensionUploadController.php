@@ -9,7 +9,7 @@ class ExtensionUploadController extends Controller
 {
     public function index()
     {
-        $pageTitle = 'Extension Distribution';
+        $pageTitle = 'Extension Distribution & Versioning';
         
         $directory = storage_path('app/public/extension');
         $extensionExists = false;
@@ -26,15 +26,21 @@ class ExtensionUploadController extends Controller
         }
         
         $downloadUrl = getExtensionDownloadUrl();
+        $minVersion = gs('min_extension_version') ?: '1.9.6';
 
-        return view('admin.extension.upload', compact('pageTitle', 'downloadUrl', 'extensionExists', 'lastModified'));
+        return view('admin.extension.upload', compact('pageTitle', 'downloadUrl', 'extensionExists', 'lastModified', 'minVersion'));
     }
 
     public function upload(Request $request)
     {
         $request->validate([
-            'extension_zip' => 'required|file|mimes:zip',
+            'extension_zip'         => 'nullable|file|mimes:zip',
+            'min_extension_version' => 'required|string',
         ]);
+
+        $general = gs();
+        $general->min_extension_version = $request->min_extension_version;
+        $general->save();
 
         if ($request->hasFile('extension_zip')) {
             $file = $request->file('extension_zip');
@@ -57,15 +63,12 @@ class ExtensionUploadController extends Controller
                 }
             }
             
-            // Use the original filename provided by the admin (e.g. wemate-ext-v1.4.zip)
+            // Use the original filename provided by the admin (e.g. wemate-ext-v1.6.zip)
             $filename = $file->getClientOriginalName();
             $file->move($directory, $filename);
-            
-            $notify[] = ['success', 'Extension uploaded successfully!'];
-            return back()->withNotify($notify);
         }
 
-        $notify[] = ['error', 'File upload failed.'];
+        $notify[] = ['success', 'Extension distribution settings updated successfully!'];
         return back()->withNotify($notify);
     }
 }

@@ -13,10 +13,13 @@ Route::get('/login', function () {
 Route::get('cron', 'CronController@cron')->name('cron');
 
 // Extension API Routes (Session-based via normal auth)
-Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->middleware('auth')->group(function () {
-    Route::get('me', 'ExtensionController@me')->name('me');
-    Route::get('platforms', 'ExtensionController@platforms')->name('platforms');
-    Route::get('cookies/{platformId}', 'ExtensionController@getCookies')->name('cookies');
+Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->group(function () {
+    Route::get('version', 'ExtensionController@version')->name('version');
+    Route::middleware('auth')->group(function () {
+        Route::get('me', 'ExtensionController@me')->name('me');
+        Route::get('platforms', 'ExtensionController@platforms')->name('platforms');
+        Route::get('cookies/{platformId}', 'ExtensionController@getCookies')->name('cookies');
+    });
 });
 
 

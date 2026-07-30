@@ -10,19 +10,27 @@
                     <form action="{{ route('admin.extension.upload.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="row">
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>@lang('Extension File (must be .zip)')</label>
+                                    <label>@lang('Extension File (.zip)')</label>
                                     <div class="custom-file">
-                                        <input type="file" class="form-control" name="extension_zip" id="customFile" accept=".zip" required>
+                                        <input type="file" class="form-control" name="extension_zip" id="customFile" accept=".zip">
                                     </div>
+                                    <small class="text-muted">@lang('Leave empty if updating version only')</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>@lang('Minimum Required Extension Version')</label>
+                                    <input type="text" class="form-control" name="min_extension_version" value="{{ $minVersion }}" placeholder="e.g. 1.9.6" required>
+                                    <small class="text-muted">@lang('Users with older extension versions will be forced to update')</small>
                                 </div>
                             </div>
                         </div>
 
                         <div class="row mt-4">
                             <div class="col-md-12">
-                                <button type="submit" class="btn btn--primary w-100 h-45">@lang('Upload Extension')</button>
+                                <button type="submit" class="btn btn--primary w-100 h-45">@lang('Save & Upload Extension')</button>
                             </div>
                         </div>
                     </form>

@@ -1,19 +1,43 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    const manifestVersion = chrome.runtime.getManifest().version;
+
     const ui = {
         loading: document.getElementById('loading-screen'),
         login: document.getElementById('login-screen'),
+        update: document.getElementById('update-screen'),
         dashboard: document.getElementById('dashboard-screen'),
         actionError: document.getElementById('action-error'),
         displayName: document.getElementById('display-name'),
         displayPlan: document.getElementById('display-plan'),
         platformsContainer: document.getElementById('platforms-container'),
+        versionChip: document.getElementById('version-chip'),
+        updateMsg: document.getElementById('update-msg'),
+        updateDownloadBtn: document.getElementById('update-download-btn'),
     };
 
+    if (ui.versionChip) {
+        ui.versionChip.textContent = `v${manifestVersion}`;
+    }
+
     const API_URL = 'https://panel.shahabtech.com/api/extension';
+
+    function isOutdated(installed, required) {
+        if (!required) return false;
+        const p1 = installed.split('.').map(Number);
+        const p2 = required.split('.').map(Number);
+        for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+            const n1 = p1[i] || 0;
+            const n2 = p2[i] || 0;
+            if (n1 < n2) return true;
+            if (n1 > n2) return false;
+        }
+        return false;
+    }
 
     function showScreen(screen) {
         ui.loading.style.display = 'none';
         ui.login.style.display = 'none';
+        ui.update.style.display = 'none';
         ui.dashboard.style.display = 'none';
         if (ui[screen]) ui[screen].style.display = 'block';
     }
@@ -24,15 +48,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => ui.actionError.style.display = 'none', 4000);
     }
 
+    // Check minimum required version
+    async function checkVersion() {
+        try {
+            const res = await fetch(`${API_URL}/version`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.required_version && isOutdated(manifestVersion, data.required_version)) {
+                    triggerUpdateScreen(data.required_version, data.download_url);
+                    return false;
+                }
+            }
+        } catch (e) {}
+        return true;
+    }
+
+    function triggerUpdateScreen(requiredVer, downloadUrl) {
+        ui.updateMsg.textContent = `Your extension (v${manifestVersion}) is outdated. Version ${requiredVer} or higher is required to continue accessing platforms.`;
+        if (downloadUrl && ui.updateDownloadBtn) {
+            ui.updateDownloadBtn.href = downloadUrl;
+        }
+        showScreen('update');
+    }
+
     // Auto-check authentication via browser session cookie
     async function checkAuth() {
+        // First check version compatibility
+        const isVerValid = await checkVersion();
+        if (!isVerValid) return;
+
         try {
             const res = await fetch(`${API_URL}/me`, {
                 method: 'GET',
                 credentials: 'include',
-                headers: { 'Accept': 'application/json' }
+                headers: { 
+                    'Accept': 'application/json',
+                    'X-Ext-Version': manifestVersion 
+                }
             });
-            
+
             if (res.status === 401 || res.status === 403 || !res.ok) {
                 chrome.runtime.sendMessage({ type: 'WIPE_COOKIES' });
                 showScreen('login');
@@ -47,9 +104,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const data = await res.json();
+            
+            // Check version from response
+            if (data.required_version && isOutdated(manifestVersion, data.required_version)) {
+                triggerUpdateScreen(data.required_version, data.download_url);
+                return;
+            }
+
             if (data.success && data.user) {
                 ui.displayName.textContent = data.user.name;
-                ui.displayPlan.textContent = data.user.plan ? `Plan: ${data.user.plan.name}` : 'Plan: None';
+                ui.displayPlan.textContent = data.user.plan ? `Plan: ${data.user.plan.name}` : 'Plan: Direct Access';
                 loadPlatforms();
                 showScreen('dashboard');
             } else {
@@ -68,7 +132,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(`${API_URL}/platforms`, {
                 method: 'GET',
                 credentials: 'include',
-                headers: { 'Accept': 'application/json' }
+                headers: { 
+                    'Accept': 'application/json',
+                    'X-Ext-Version': manifestVersion 
+                }
             });
 
             if (!res.ok) throw new Error('Failed to load platforms');
@@ -116,7 +183,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(`${API_URL}/cookies/${platformId}`, {
                 method: 'GET',
                 credentials: 'include',
-                headers: { 'Accept': 'application/json' }
+                headers: { 
+                    'Accept': 'application/json',
+                    'X-Ext-Version': manifestVersion 
+                }
             });
             const data = await res.json();
 
@@ -132,8 +202,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, (response) => {
                 if (response && response.success) {
                     btnElement.textContent = 'Opened!';
-                    btnElement.style.background = '#10b981'; // Green
-                    btnElement.style.borderColor = '#10b981';
+                    btnElement.style.background = '#00e676'; // Emerald Green
+                    btnElement.style.borderColor = '#00e676';
+                    btnElement.style.color = '#000000';
                 } else {
                     throw new Error(response ? response.error : 'Injection failed');
                 }
@@ -143,6 +214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnElement.disabled = false;
                     btnElement.style.background = '';
                     btnElement.style.borderColor = '';
+                    btnElement.style.color = '';
                 }, 3000);
             });
         } catch (err) {
