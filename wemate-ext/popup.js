@@ -25,6 +25,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const API_URL = 'https://panel.shahabtech.com/api/extension';
+    let currentTabUrl = '';
+    let currentTabId = null;
+
+    // Get active tab details
+    try {
+        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (activeTab) {
+            currentTabUrl = activeTab.url || '';
+            currentTabId = activeTab.id;
+        }
+    } catch(e) {}
 
     function isOutdated(installed, required) {
         if (!required) return false;
@@ -63,11 +74,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const downloadUrl = data.download_url || 'https://panel.shahabtech.com/user/dashboard';
 
         if (isStrictForce) {
-            // STRICT MODE: Block usage completely
             triggerStrictUpdateScreen(data.required_version, downloadUrl);
             return true;
         } else {
-            // SOFT MODE: Check 6-hour snooze window
             const res = await new Promise(resolve => chrome.storage.local.get(['wemate_last_snooze_time'], resolve));
             const lastSnooze = res ? (res.wemate_last_snooze_time || 0) : 0;
             const now = Date.now();
@@ -75,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (now - lastSnooze > SNOOZE_MS) {
                 showSoftUpdateDialog(data.required_version, downloadUrl);
             }
-            return false; // Allow dashboard to load
+            return false;
         }
     }
 
@@ -103,7 +112,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Check minimum required version
     async function checkVersion() {
         try {
             const res = await fetch(`${API_URL}/version`, {
@@ -119,9 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return true;
     }
 
-    // Auto-check authentication via browser session cookie
     async function checkAuth() {
-        // First check version compatibility
         const isVerValid = await checkVersion();
         if (!isVerValid) return;
 
@@ -150,7 +156,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await res.json();
             
-            // Check version from response
             const isBlocked = await evaluateVersionUpdate(data);
             if (isBlocked) return;
 
@@ -202,22 +207,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         platforms.forEach(p => {
             const card = document.createElement('div');
             card.className = 'platform-card';
+
+            // Check if user is currently viewing this platform's domain
+            let isCurrentTab = false;
+            if (currentTabUrl) {
+                try {
+                    const u = new URL(currentTabUrl);
+                    const domainClean = p.domain ? p.domain.replace(/^\./, '').toLowerCase() : '';
+                    if (domainClean && (u.hostname.toLowerCase() === domainClean || u.hostname.toLowerCase().endsWith('.' + domainClean))) {
+                        isCurrentTab = true;
+                    }
+                } catch(e) {}
+            }
+
+            const btnText = isCurrentTab ? '⚡ Inject & Reload' : 'Access';
+            const btnClass = isCurrentTab ? 'btn btn-success' : 'btn btn-primary';
+
             card.innerHTML = `
                 <div class="platform-info">
                     <span class="platform-name">${p.name}</span>
                     <span class="platform-domain">${p.domain}</span>
                 </div>
-                <button class="btn btn-primary" style="width:auto; padding: 6px 12px; font-size:11px;">Access</button>
+                <button class="${btnClass}" style="width:auto; padding: 6px 12px; font-size:11px;">${btnText}</button>
             `;
             
             const btn = card.querySelector('button');
-            btn.addEventListener('click', () => injectCookies(p.id, btn));
+            btn.addEventListener('click', () => injectCookies(p.id, btn, isCurrentTab));
             
             ui.platformsContainer.appendChild(card);
         });
     }
 
-    async function injectCookies(platformId, btnElement) {
+    async function injectCookies(platformId, btnElement, isCurrentTab) {
         const originalText = btnElement.textContent;
         btnElement.innerHTML = '<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div>';
         btnElement.disabled = true;
@@ -237,15 +258,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(data.message || 'Failed to fetch access data');
             }
 
-            // Send to background script
+            // Send to background script with current tabId if matching
             chrome.runtime.sendMessage({
                 type: 'INJECT_COOKIES',
                 platform: data.platform,
-                cookies: data.cookies
+                cookies: data.cookies,
+                targetTabId: isCurrentTab ? currentTabId : null
             }, (response) => {
                 if (response && response.success) {
-                    btnElement.textContent = 'Opened!';
-                    btnElement.style.background = '#00e676'; // Emerald Green
+                    btnElement.textContent = isCurrentTab ? 'Reloading...' : 'Opened!';
+                    btnElement.style.background = '#00e676';
                     btnElement.style.borderColor = '#00e676';
                     btnElement.style.color = '#000000';
                 } else {

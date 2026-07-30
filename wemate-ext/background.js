@@ -6,7 +6,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.type === 'INJECT_COOKIES') {
-        handleCookieInjection(request.platform, request.cookies)
+        handleCookieInjection(request.platform, request.cookies, request.targetTabId)
             .then(() => sendResponse({ success: true }))
             .catch((err) => sendResponse({ success: false, error: err.message }));
         return true; // Keep message channel open for async
@@ -169,7 +169,7 @@ function setSingleCookie(cookie, platformUrl, fallbackDomain) {
     });
 }
 
-async function handleCookieInjection(platform, cookiesDataInput) {
+async function handleCookieInjection(platform, cookiesDataInput, targetTabId) {
     try {
         if (!platform || !cookiesDataInput) throw new Error('Invalid platform or cookies data.');
         
@@ -216,7 +216,11 @@ async function handleCookieInjection(platform, cookiesDataInput) {
             await setSingleCookie(cookie, platform.url, platform.domain);
         }
 
-        chrome.tabs.create({ url: platform.url });
+        if (targetTabId) {
+            chrome.tabs.reload(targetTabId);
+        } else {
+            chrome.tabs.create({ url: platform.url });
+        }
     } catch (error) {
         throw error;
     }
