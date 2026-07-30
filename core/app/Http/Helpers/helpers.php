@@ -539,10 +539,15 @@ function getExtensionDownloadUrl()
     $filename = 'wemate-ext.zip';
     if (is_dir($directory)) {
         $files = scandir($directory);
+        $latestMtime = 0;
         foreach ($files as $file) {
             if (pathinfo($file, PATHINFO_EXTENSION) === 'zip') {
-                $filename = $file;
-                break;
+                $filePath = $directory . '/' . $file;
+                $mtime = filemtime($filePath);
+                if ($mtime > $latestMtime) {
+                    $latestMtime = $mtime;
+                    $filename = $file;
+                }
             }
         }
     }

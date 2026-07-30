@@ -172,8 +172,34 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     });
                 };
 
+                let lastReinjectTime = 0;
+                const checkChatGPTLoggedOut = () => {
+                    const now = Date.now();
+                    if (now - lastReinjectTime < 5000) return;
+
+                    const loginBtn = document.querySelector('a[href*="/auth/login"], a[href*="login"]');
+                    const hasLoginBtn = Array.from(document.querySelectorAll('button, a')).some(el => {
+                        const txt = (el.textContent || '').trim().toLowerCase();
+                        return txt === 'log in' || txt === 'login';
+                    });
+                    
+                    if (loginBtn || hasLoginBtn) {
+                        lastReinjectTime = now;
+                        try {
+                            chrome.runtime.sendMessage({ type: 'REINJECT_PLATFORM_COOKIES', domain: 'chatgpt.com' }, () => {
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 800);
+                            });
+                        } catch(e) {}
+                    }
+                };
+
                 filterChatGPTChats();
-                setInterval(filterChatGPTChats, 800);
+                setInterval(() => {
+                    filterChatGPTChats();
+                    checkChatGPTLoggedOut();
+                }, 1000);
             }
         };
 
