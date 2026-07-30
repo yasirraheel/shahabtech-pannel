@@ -129,10 +129,12 @@ function setSingleCookie(cookie, fallbackDomain) {
             }
         }
 
-        if (cookie.name.startsWith('__Host-')) {
+        if (cookie.name.startsWith('__Host-') || cookie.hostOnly === true) {
             delete cookieDetails.domain;
-            cookieDetails.path = '/';
-            cookieDetails.secure = true;
+            if (cookie.name.startsWith('__Host-')) {
+                cookieDetails.path = '/';
+                cookieDetails.secure = true;
+            }
         } else if (cookie.name.startsWith('__Secure-')) {
             cookieDetails.secure = true;
         }
