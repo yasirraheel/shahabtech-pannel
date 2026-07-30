@@ -109,8 +109,8 @@
                 let platformId = btn.data('platform-id');
                 
                 // Check if extension is installed
-                if ($('meta[name="shahabtech-extension-installed"]').length === 0) {
-                    notify('error', 'ShahabTech Access Extension is not installed or enabled.');
+                if ($('meta[name="shahabtech-extension-installed"]').length === 0 && $('meta[name="extension-installed"]').length === 0) {
+                    notify('error', '{{ __(gs("site_name")) }} Access Extension is not installed or enabled.');
                     return;
                 }
 
