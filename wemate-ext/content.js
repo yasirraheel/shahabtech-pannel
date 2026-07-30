@@ -41,3 +41,8 @@ const meta2 = document.createElement('meta');
 meta2.name = 'wemate-extension-installed';
 meta2.content = 'true';
 document.head.appendChild(meta2);
+
+const metaVersion = document.createElement('meta');
+metaVersion.name = 'extension-version';
+metaVersion.content = chrome.runtime.getManifest().version;
+document.head.appendChild(metaVersion);
