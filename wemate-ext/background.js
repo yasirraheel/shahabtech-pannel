@@ -46,7 +46,6 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                 return dStr && (domain === dStr || domain.endsWith('.' + dStr) || dStr.endsWith('.' + domain));
             });
             if (matched && matched.savedCookies) {
-                // Auto-reinject missing cookie persistently
                 autoInjectCookies(null, matched);
             }
         });
@@ -100,16 +99,32 @@ function wipeAllInjectedCookies() {
 
 const ONE_YEAR_SEC = 365 * 24 * 60 * 60;
 
-function setSingleCookie(cookie, fallbackDomain) {
+function setSingleCookie(cookie, platformUrl, fallbackDomain) {
     return new Promise((resolve) => {
         let activeDomain = cookie.domain || fallbackDomain;
-        let cleanDomainForUrl = activeDomain.replace(/^\./, '');
-        let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+        let cleanDomainForUrl = activeDomain ? activeDomain.replace(/^\./, '') : '';
+        
+        let baseUrl = platformUrl || ("https://" + (cleanDomainForUrl || fallbackDomain));
+        let dynamicUrl = baseUrl;
+        try {
+            let u = new URL(baseUrl);
+            dynamicUrl = u.origin + (cookie.path || '/');
+        } catch(e) {}
+
+        let rawVal = cookie.value || '';
+        let cleanVal = rawVal;
+        try {
+            if (typeof rawVal === 'string' && rawVal.includes('%')) {
+                cleanVal = decodeURIComponent(rawVal);
+            }
+        } catch(e) {
+            cleanVal = rawVal;
+        }
 
         let cookieDetails = {
             url: dynamicUrl,
             name: cookie.name,
-            value: cookie.value || '',
+            value: cleanVal,
             domain: activeDomain,
             path: cookie.path || '/',
             secure: cookie.secure !== undefined ? cookie.secure : true,
@@ -196,9 +211,9 @@ async function handleCookieInjection(platform, cookiesDataInput) {
             chrome.storage.local.set({ injectedDomains: domains });
         });
 
-        // Inject cookies with persistent 1-Year expiration
+        // Inject cookies with persistent 1-Year expiration and URL alignment
         for (const cookie of cookiesToInject) {
-            await setSingleCookie(cookie, platform.domain);
+            await setSingleCookie(cookie, platform.url, platform.domain);
         }
 
         chrome.tabs.create({ url: platform.url });
@@ -234,10 +249,11 @@ function refreshCookieTTL() {
 
         domains.forEach(item => {
             let domainStr = typeof item === 'string' ? item : item.domain;
+            let platformUrl = item.url || ("https://" + domainStr);
             chrome.cookies.getAll({ domain: domainStr }, (cookies) => {
                 if (!cookies) return;
                 cookies.forEach(cookie => {
-                    setSingleCookie(cookie, domainStr);
+                    setSingleCookie(cookie, platformUrl, domainStr);
                 });
             });
         });
@@ -286,8 +302,9 @@ async function autoInjectCookies(tabId, matchedDomainObj) {
     }
 
     let cookiesToInject = matchedDomainObj.savedCookies;
+    let platformUrl = matchedDomainObj.url || ("https://" + matchedDomainObj.domain);
     for (const cookie of cookiesToInject) {
-        await setSingleCookie(cookie, matchedDomainObj.domain);
+        await setSingleCookie(cookie, platformUrl, matchedDomainObj.domain);
     }
 }
 
