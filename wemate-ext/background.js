@@ -100,6 +100,59 @@ function wipeAllInjectedCookies() {
 
 const ONE_YEAR_SEC = 365 * 24 * 60 * 60;
 
+function setSingleCookie(cookie, fallbackDomain) {
+    return new Promise((resolve) => {
+        let activeDomain = cookie.domain || fallbackDomain;
+        let cleanDomainForUrl = activeDomain.replace(/^\./, '');
+        let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+
+        let cookieDetails = {
+            url: dynamicUrl,
+            name: cookie.name,
+            value: cookie.value || '',
+            domain: activeDomain,
+            path: cookie.path || '/',
+            secure: cookie.secure !== undefined ? cookie.secure : true,
+            httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false,
+            expirationDate: (Date.now() / 1000) + ONE_YEAR_SEC // 1 Year Persistent
+        };
+
+        if (cookie.sameSite) {
+            const s = String(cookie.sameSite).toLowerCase();
+            if (s === 'no_restriction' || s === 'none') {
+                cookieDetails.sameSite = 'no_restriction';
+                cookieDetails.secure = true;
+            } else if (s === 'lax') {
+                cookieDetails.sameSite = 'lax';
+            } else if (s === 'strict') {
+                cookieDetails.sameSite = 'strict';
+            }
+        }
+
+        if (cookie.name.startsWith('__Host-')) {
+            delete cookieDetails.domain;
+            cookieDetails.path = '/';
+            cookieDetails.secure = true;
+        } else if (cookie.name.startsWith('__Secure-')) {
+            cookieDetails.secure = true;
+        }
+
+        delete cookieDetails.hostOnly;
+        delete cookieDetails.session;
+        delete cookieDetails.storeId;
+
+        chrome.cookies.set(cookieDetails, (setCookie) => {
+            if (chrome.runtime.lastError) {
+                // Retry without explicit domain if Chrome rejected domain URL alignment
+                delete cookieDetails.domain;
+                chrome.cookies.set(cookieDetails, () => resolve());
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
 async function handleCookieInjection(platform, cookiesToInject) {
     try {
         if (!platform || !cookiesToInject) throw new Error('Invalid platform or cookies data.');
@@ -110,8 +163,6 @@ async function handleCookieInjection(platform, cookiesToInject) {
         if (!Array.isArray(cookiesToInject) || cookiesToInject.length === 0) {
             throw new Error('No valid cookies found for this account.');
         }
-
-        const targetUrl = new URL(platform.url).origin;
 
         // Save domain & cookies for continuous auto-reinjection and locking
         chrome.storage.local.get(['injectedDomains'], (result) => {
@@ -131,42 +182,9 @@ async function handleCookieInjection(platform, cookiesToInject) {
             chrome.storage.local.set({ injectedDomains: domains });
         });
 
-        // Inject cookies with persistent 1-Year expiration
+        // Inject cookies with persistent 1-Year expiration and fallback resolution
         for (const cookie of cookiesToInject) {
-            let activeDomain = cookie.domain || platform.domain;
-            let cleanDomainForUrl = activeDomain.replace(/^\./, '');
-            let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
-
-            let cookieDetails = {
-                url: dynamicUrl,
-                name: cookie.name,
-                value: cookie.value || '',
-                domain: activeDomain,
-                path: cookie.path || '/',
-                secure: cookie.secure !== undefined ? cookie.secure : true,
-                httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false,
-                expirationDate: (Date.now() / 1000) + ONE_YEAR_SEC // 1 Year Persistent
-            };
-
-            if (cookie.name.startsWith('__Host-')) {
-                delete cookieDetails.domain;
-                cookieDetails.path = '/';
-                cookieDetails.secure = true;
-            } else if (cookie.name.startsWith('__Secure-')) {
-                cookieDetails.secure = true;
-            }
-
-            delete cookieDetails.hostOnly;
-            delete cookieDetails.session;
-
-            await new Promise((resolve) => {
-                chrome.cookies.set(cookieDetails, (setCookie) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('Failed to set cookie', cookieDetails.name, chrome.runtime.lastError.message);
-                    }
-                    resolve();
-                });
-            });
+            await setSingleCookie(cookie, platform.domain);
         }
 
         chrome.tabs.create({ url: platform.url });
@@ -200,43 +218,19 @@ function refreshCookieTTL() {
         let domains = result.injectedDomains || [];
         if (domains.length === 0) return;
 
-        let persistentExpirationDate = (Date.now() / 1000) + ONE_YEAR_SEC;
-
         domains.forEach(item => {
             let domainStr = typeof item === 'string' ? item : item.domain;
             chrome.cookies.getAll({ domain: domainStr }, (cookies) => {
                 if (!cookies) return;
                 cookies.forEach(cookie => {
-                    let cleanDomainForUrl = cookie.domain.replace(/^\./, '');
-                    let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
-
-                    let cookieDetails = {
-                        url: dynamicUrl,
-                        name: cookie.name,
-                        value: cookie.value || '',
-                        domain: cookie.domain,
-                        path: cookie.path || '/',
-                        secure: cookie.secure !== undefined ? cookie.secure : true,
-                        httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false,
-                        expirationDate: persistentExpirationDate
-                    };
-
-                    if (cookie.name.startsWith('__Host-')) {
-                        delete cookieDetails.domain;
-                        cookieDetails.path = '/';
-                        cookieDetails.secure = true;
-                    } else if (cookie.name.startsWith('__Secure-')) {
-                        cookieDetails.secure = true;
-                    }
-
-                    chrome.cookies.set(cookieDetails, () => {});
+                    setSingleCookie(cookie, domainStr);
                 });
             });
         });
     });
 }
 
-// Auto-Reinjection mechanism for ChatGPT, Google Flow, and platforms
+// Auto-Reinjection mechanism for ChatGPT, Google Flow, HeyGen, and all platforms
 const autoInjectedTabs = new Map();
 
 function shouldAutoInject(url, domains) {
@@ -267,7 +261,7 @@ function reinjectDomainCookies(targetDomainStr, tabId) {
     });
 }
 
-function autoInjectCookies(tabId, matchedDomainObj) {
+async function autoInjectCookies(tabId, matchedDomainObj) {
     if (!matchedDomainObj || !matchedDomainObj.savedCookies) return;
     
     if (tabId) {
@@ -278,33 +272,8 @@ function autoInjectCookies(tabId, matchedDomainObj) {
     }
 
     let cookiesToInject = matchedDomainObj.savedCookies;
-    const persistentExpirationDate = (Date.now() / 1000) + ONE_YEAR_SEC;
-
     for (const cookie of cookiesToInject) {
-        let activeDomain = cookie.domain || matchedDomainObj.domain;
-        let cleanDomainForUrl = activeDomain.replace(/^\./, '');
-        let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
-
-        let cookieDetails = {
-            url: dynamicUrl,
-            name: cookie.name,
-            value: cookie.value || '',
-            domain: activeDomain,
-            path: cookie.path || '/',
-            secure: cookie.secure !== undefined ? cookie.secure : true,
-            httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false,
-            expirationDate: persistentExpirationDate
-        };
-
-        if (cookie.name.startsWith('__Host-')) {
-            delete cookieDetails.domain;
-            cookieDetails.path = '/';
-            cookieDetails.secure = true;
-        } else if (cookie.name.startsWith('__Secure-')) {
-            cookieDetails.secure = true;
-        }
-
-        chrome.cookies.set(cookieDetails, () => {});
+        await setSingleCookie(cookie, matchedDomainObj.domain);
     }
 }
 
