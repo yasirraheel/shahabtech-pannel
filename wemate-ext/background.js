@@ -143,7 +143,6 @@ function setSingleCookie(cookie, fallbackDomain) {
 
         chrome.cookies.set(cookieDetails, (setCookie) => {
             if (chrome.runtime.lastError) {
-                // Retry without explicit domain if Chrome rejected domain URL alignment
                 delete cookieDetails.domain;
                 chrome.cookies.set(cookieDetails, () => resolve());
             } else {
@@ -153,18 +152,30 @@ function setSingleCookie(cookie, fallbackDomain) {
     });
 }
 
-async function handleCookieInjection(platform, cookiesToInject) {
+async function handleCookieInjection(platform, cookiesDataInput) {
     try {
-        if (!platform || !cookiesToInject) throw new Error('Invalid platform or cookies data.');
+        if (!platform || !cookiesDataInput) throw new Error('Invalid platform or cookies data.');
         
-        if (typeof cookiesToInject === 'string') {
-            try { cookiesToInject = JSON.parse(cookiesToInject); } catch(e) {}
-        }
-        if (!Array.isArray(cookiesToInject) || cookiesToInject.length === 0) {
-            throw new Error('No valid cookies found for this account.');
+        let parsedData = cookiesDataInput;
+        if (typeof parsedData === 'string') {
+            try { parsedData = JSON.parse(parsedData); } catch(e) {}
         }
 
-        // Save domain & cookies for continuous auto-reinjection and locking
+        let cookiesToInject = [];
+        let localStorageData = null;
+
+        if (Array.isArray(parsedData)) {
+            cookiesToInject = parsedData;
+        } else if (parsedData && typeof parsedData === 'object') {
+            cookiesToInject = parsedData.cookies || [];
+            localStorageData = parsedData.localStorage || parsedData.local_storage || null;
+        }
+
+        if (!Array.isArray(cookiesToInject) || (cookiesToInject.length === 0 && !localStorageData)) {
+            throw new Error('No valid cookies or localStorage found for this account.');
+        }
+
+        // Save domain, cookies & localStorage for continuous auto-reinjection and locking
         chrome.storage.local.get(['injectedDomains'], (result) => {
             let domains = result.injectedDomains || [];
             let domainToSave = platform.domain.replace(/^\./, '');
@@ -177,12 +188,13 @@ async function handleCookieInjection(platform, cookiesToInject) {
             domains.push({
                 domain: domainToSave,
                 url: platform.url,
-                savedCookies: cookiesToInject
+                savedCookies: cookiesToInject,
+                localStorageData: localStorageData
             });
             chrome.storage.local.set({ injectedDomains: domains });
         });
 
-        // Inject cookies with persistent 1-Year expiration and fallback resolution
+        // Inject cookies with persistent 1-Year expiration
         for (const cookie of cookiesToInject) {
             await setSingleCookie(cookie, platform.domain);
         }

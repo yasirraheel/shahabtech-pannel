@@ -18,6 +18,18 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
     }
 
     if (matchedPlatform) {
+        // --- 0. Auto-Inject LocalStorage Data if present ---
+        if (matchedPlatform.localStorageData && typeof matchedPlatform.localStorageData === 'object') {
+            try {
+                for (let [k, v] of Object.entries(matchedPlatform.localStorageData)) {
+                    const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                    if (window.localStorage.getItem(k) !== valStr) {
+                        window.localStorage.setItem(k, valStr);
+                    }
+                }
+            } catch(e) {}
+        }
+
         // --- 1. Prevent top-level navigation to unauthorized paths or logout URLs ---
         if (window.top === window) {
             const currentUrl = window.location.href.toLowerCase();
