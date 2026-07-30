@@ -146,6 +146,7 @@ class ExtensionController extends Controller
         return response()->json([
             'success'          => true,
             'required_version' => gs('min_extension_version') ?: '1.9.6',
+            'force_update'     => (bool) gs('force_extension_update'),
             'download_url'     => getExtensionDownloadUrl(),
             'user'             => [
                 'id'       => $user->id,
@@ -165,6 +166,7 @@ class ExtensionController extends Controller
         return response()->json([
             'success'          => true,
             'required_version' => gs('min_extension_version') ?: '1.9.6',
+            'force_update'     => (bool) gs('force_extension_update'),
             'download_url'     => getExtensionDownloadUrl(),
         ]);
     }

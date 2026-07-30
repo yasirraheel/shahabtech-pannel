@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const manifestVersion = chrome.runtime.getManifest().version;
+    const SNOOZE_MS = 6 * 60 * 60 * 1000; // 6 Hours in Milliseconds
 
     const ui = {
         loading: document.getElementById('loading-screen'),
@@ -13,6 +14,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         versionChip: document.getElementById('version-chip'),
         updateMsg: document.getElementById('update-msg'),
         updateDownloadBtn: document.getElementById('update-download-btn'),
+        softUpdateDialog: document.getElementById('soft-update-dialog'),
+        softUpdateText: document.getElementById('soft-update-text'),
+        softUpdateBtn: document.getElementById('soft-update-btn'),
+        softSnoozeBtn: document.getElementById('soft-snooze-btn'),
     };
 
     if (ui.versionChip) {
@@ -48,6 +53,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => ui.actionError.style.display = 'none', 4000);
     }
 
+    async function evaluateVersionUpdate(data) {
+        if (!data || !data.required_version) return false;
+
+        const isVerOutdated = isOutdated(manifestVersion, data.required_version);
+        if (!isVerOutdated) return false;
+
+        const isStrictForce = !!data.force_update;
+        const downloadUrl = data.download_url || 'https://panel.shahabtech.com/user/dashboard';
+
+        if (isStrictForce) {
+            // STRICT MODE: Block usage completely
+            triggerStrictUpdateScreen(data.required_version, downloadUrl);
+            return true;
+        } else {
+            // SOFT MODE: Check 6-hour snooze window
+            const res = await new Promise(resolve => chrome.storage.local.get(['wemate_last_snooze_time'], resolve));
+            const lastSnooze = res ? (res.wemate_last_snooze_time || 0) : 0;
+            const now = Date.now();
+
+            if (now - lastSnooze > SNOOZE_MS) {
+                showSoftUpdateDialog(data.required_version, downloadUrl);
+            }
+            return false; // Allow dashboard to load
+        }
+    }
+
+    function triggerStrictUpdateScreen(requiredVer, downloadUrl) {
+        ui.updateMsg.textContent = `Your extension (v${manifestVersion}) is outdated. Admin has enabled Strict Force Update. Version ${requiredVer} or higher is required to continue accessing platforms.`;
+        if (downloadUrl && ui.updateDownloadBtn) {
+            ui.updateDownloadBtn.href = downloadUrl;
+        }
+        showScreen('update');
+    }
+
+    function showSoftUpdateDialog(requiredVer, downloadUrl) {
+        if (!ui.softUpdateDialog) return;
+        ui.softUpdateText.textContent = `Extension v${requiredVer} is available. You are currently on v${manifestVersion}. Would you like to update now?`;
+        if (downloadUrl && ui.softUpdateBtn) {
+            ui.softUpdateBtn.href = downloadUrl;
+        }
+        ui.softUpdateDialog.style.display = 'block';
+
+        if (ui.softSnoozeBtn) {
+            ui.softSnoozeBtn.onclick = () => {
+                chrome.storage.local.set({ wemate_last_snooze_time: Date.now() });
+                ui.softUpdateDialog.style.display = 'none';
+            };
+        }
+    }
+
     // Check minimum required version
     async function checkVersion() {
         try {
@@ -57,21 +112,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             if (res.ok) {
                 const data = await res.json();
-                if (data.required_version && isOutdated(manifestVersion, data.required_version)) {
-                    triggerUpdateScreen(data.required_version, data.download_url);
-                    return false;
-                }
+                const isBlocked = await evaluateVersionUpdate(data);
+                if (isBlocked) return false;
             }
         } catch (e) {}
         return true;
-    }
-
-    function triggerUpdateScreen(requiredVer, downloadUrl) {
-        ui.updateMsg.textContent = `Your extension (v${manifestVersion}) is outdated. Version ${requiredVer} or higher is required to continue accessing platforms.`;
-        if (downloadUrl && ui.updateDownloadBtn) {
-            ui.updateDownloadBtn.href = downloadUrl;
-        }
-        showScreen('update');
     }
 
     // Auto-check authentication via browser session cookie
@@ -106,10 +151,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await res.json();
             
             // Check version from response
-            if (data.required_version && isOutdated(manifestVersion, data.required_version)) {
-                triggerUpdateScreen(data.required_version, data.download_url);
-                return;
-            }
+            const isBlocked = await evaluateVersionUpdate(data);
+            if (isBlocked) return;
 
             if (data.success && data.user) {
                 ui.displayName.textContent = data.user.name;

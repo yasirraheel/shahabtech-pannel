@@ -27,8 +27,9 @@ class ExtensionUploadController extends Controller
         
         $downloadUrl = getExtensionDownloadUrl();
         $minVersion = gs('min_extension_version') ?: '1.9.6';
+        $forceUpdate = gs('force_extension_update') ? 1 : 0;
 
-        return view('admin.extension.upload', compact('pageTitle', 'downloadUrl', 'extensionExists', 'lastModified', 'minVersion'));
+        return view('admin.extension.upload', compact('pageTitle', 'downloadUrl', 'extensionExists', 'lastModified', 'minVersion', 'forceUpdate'));
     }
 
     public function upload(Request $request)
@@ -40,6 +41,7 @@ class ExtensionUploadController extends Controller
 
         $general = gs();
         $general->min_extension_version = $request->min_extension_version;
+        $general->force_extension_update = $request->force_extension_update ? 1 : 0;
         $general->save();
 
         if ($request->hasFile('extension_zip')) {

@@ -10,20 +10,32 @@
                     <form action="{{ route('admin.extension.upload.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>@lang('Extension File (.zip)')</label>
                                     <div class="custom-file">
                                         <input type="file" class="form-control" name="extension_zip" id="customFile" accept=".zip">
                                     </div>
-                                    <small class="text-muted">@lang('Leave empty if updating version only')</small>
+                                    <small class="text-muted">@lang('Leave empty if updating settings only')</small>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>@lang('Minimum Required Extension Version')</label>
                                     <input type="text" class="form-control" name="min_extension_version" value="{{ $minVersion }}" placeholder="e.g. 1.9.6" required>
-                                    <small class="text-muted">@lang('Users with older extension versions will be forced to update')</small>
+                                    <small class="text-muted">@lang('Version threshold for update notification')</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>@lang('Strict Force Update Mode')</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input type="checkbox" class="form-check-input" name="force_extension_update" value="1" id="forceUpdateSwitch" {{ $forceUpdate ? 'checked' : '' }}>
+                                        <label class="form-check-label ms-2" for="forceUpdateSwitch">
+                                            <strong>{{ $forceUpdate ? __('STRICT FORCE UPDATE') : __('SOFT REMINDER (6-Hour Snooze Allowed)') }}</strong>
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">@lang('Strict Mode blocks usage. Soft Mode shows dialog every 6h with Cancel/Skip.')</small>
                                 </div>
                             </div>
                         </div>
