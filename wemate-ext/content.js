@@ -36,3 +36,8 @@ const meta = document.createElement('meta');
 meta.name = 'shahabtech-extension-installed';
 meta.content = 'true';
 document.head.appendChild(meta);
+
+const meta2 = document.createElement('meta');
+meta2.name = 'wemate-extension-installed';
+meta2.content = 'true';
+document.head.appendChild(meta2);

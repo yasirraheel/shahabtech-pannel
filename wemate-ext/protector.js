@@ -81,6 +81,21 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             .mavatar-footer-row [role="button"] {
                 pointer-events: none !important;
             }
+
+            /* Hide ChatGPT Chat History Sidebar sections */
+            .group\\/sidebar-expando-section,
+            [class*="group/sidebar-expando-section"],
+            nav ol,
+            nav ul,
+            [data-testid="history-item"],
+            a[href*="/c/"] {
+                display: none !important;
+                pointer-events: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                overflow: hidden !important;
+            }
         `;
         document.documentElement.appendChild(style);
 
@@ -120,6 +135,15 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     btn.style.setProperty('cursor', 'not-allowed', 'important');
                 });
             });
+
+            // Forcefully hide ChatGPT sidebar chat history
+            if (currentHost.includes('chatgpt.com') || currentHost.includes('openai.com')) {
+                const chatHistoryElements = document.querySelectorAll('.group\\/sidebar-expando-section, [class*="group/sidebar-expando-section"], nav ol, [data-testid="history-item"], a[href*="/c/"]');
+                chatHistoryElements.forEach(el => {
+                    el.style.setProperty('display', 'none', 'important');
+                    el.style.setProperty('visibility', 'hidden', 'important');
+                });
+            }
         };
 
         // --- DOM Destroyer for Cookie Editor Extensions ---
