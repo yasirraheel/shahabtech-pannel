@@ -69,32 +69,9 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 visibility: hidden !important;
             }
 
-            /* Make Gemini bottom profile area unclickable with warning cursor */
+            /* Gemini / ChatGPT footer protection */
             .mavatar-footer-row {
                 cursor: not-allowed !important;
-            }
-            .mavatar-footer-row * {
-                cursor: not-allowed !important;
-            }
-            .mavatar-footer-row a, 
-            .mavatar-footer-row button, 
-            .mavatar-footer-row [role="button"] {
-                pointer-events: none !important;
-            }
-
-            /* Hide ChatGPT Chat History Sidebar sections */
-            .group\\/sidebar-expando-section,
-            [class*="group/sidebar-expando-section"],
-            nav ol,
-            nav ul,
-            [data-testid="history-item"],
-            a[href*="/c/"] {
-                display: none !important;
-                pointer-events: none !important;
-                opacity: 0 !important;
-                visibility: hidden !important;
-                height: 0 !important;
-                overflow: hidden !important;
             }
         `;
         document.documentElement.appendChild(style);
@@ -136,13 +113,67 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 });
             });
 
-            // Forcefully hide ChatGPT sidebar chat history
+            // Dynamic ChatGPT Chat History Isolation (Show owned chats, hide unowned chats)
             if (currentHost.includes('chatgpt.com') || currentHost.includes('openai.com')) {
-                const chatHistoryElements = document.querySelectorAll('.group\\/sidebar-expando-section, [class*="group/sidebar-expando-section"], nav ol, [data-testid="history-item"], a[href*="/c/"]');
-                chatHistoryElements.forEach(el => {
-                    el.style.setProperty('display', 'none', 'important');
-                    el.style.setProperty('visibility', 'hidden', 'important');
-                });
+                let ownedChats = [];
+
+                try {
+                    chrome.storage.local.get(['wemate_owned_chats'], (res) => {
+                        if (res && Array.isArray(res.wemate_owned_chats)) {
+                            ownedChats = res.wemate_owned_chats;
+                        }
+                    });
+                } catch(e) {}
+
+                const captureCurrentChat = () => {
+                    const match = window.location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/);
+                    if (match && match[1]) {
+                        const chatId = match[1];
+                        if (!ownedChats.includes(chatId)) {
+                            ownedChats.push(chatId);
+                            try {
+                                chrome.storage.local.set({ wemate_owned_chats: ownedChats });
+                            } catch(e) {}
+                        }
+                    }
+                };
+
+                const filterChatGPTChats = () => {
+                    captureCurrentChat();
+
+                    const chatLinks = document.querySelectorAll('a[href*="/c/"], [data-testid="history-item"]');
+                    chatLinks.forEach(el => {
+                        const href = el.getAttribute('href') || el.querySelector('a')?.getAttribute('href') || '';
+                        const match = href.match(/\/c\/([a-zA-Z0-9-]+)/);
+                        if (match && match[1]) {
+                            const chatId = match[1];
+                            const container = el.closest('li') || el;
+                            if (ownedChats.includes(chatId)) {
+                                el.style.setProperty('display', 'flex', 'important');
+                                el.style.setProperty('visibility', 'visible', 'important');
+                                el.style.setProperty('opacity', '1', 'important');
+                                el.style.setProperty('height', 'auto', 'important');
+                                el.style.setProperty('pointer-events', 'auto', 'important');
+                                if (container && container !== el) {
+                                    container.style.setProperty('display', 'block', 'important');
+                                    container.style.setProperty('visibility', 'visible', 'important');
+                                }
+                            } else {
+                                el.style.setProperty('display', 'none', 'important');
+                                el.style.setProperty('visibility', 'hidden', 'important');
+                                el.style.setProperty('opacity', '0', 'important');
+                                el.style.setProperty('height', '0', 'important');
+                                el.style.setProperty('pointer-events', 'none', 'important');
+                                if (container && container !== el) {
+                                    container.style.setProperty('display', 'none', 'important');
+                                }
+                            }
+                        }
+                    });
+                };
+
+                filterChatGPTChats();
+                setInterval(filterChatGPTChats, 800);
             }
         };
 
