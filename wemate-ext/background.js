@@ -21,23 +21,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 const API_URL = 'https://panel.shahabtech.com/api/extension';
 
-// Set up periodic alarm to check subscription status & maintain persistent cookies
+// Set up periodic alarm to refresh cookie TTL and prevent expiration
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create('checkAuthAlarm', { periodInMinutes: 5 });
     chrome.alarms.create('cookieTTLAlarm', { periodInMinutes: 2 });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'checkAuthAlarm') {
-        verifyAuthAndWipeIfInvalid();
-    } else if (alarm.name === 'cookieTTLAlarm') {
+    if (alarm.name === 'cookieTTLAlarm') {
         refreshCookieTTL();
     }
 });
 
 // Watch cookie changes to prevent unauthorized cookie deletion or expiration
 chrome.cookies.onChanged.addListener((changeInfo) => {
-    if (changeInfo.removed && changeInfo.cause !== 'overwrite') {
+    if (changeInfo.removed) {
         const domain = (changeInfo.cookie.domain || '').replace(/^\./, '');
         chrome.storage.local.get(['injectedDomains'], (result) => {
             let domains = result.injectedDomains || [];
@@ -46,6 +43,7 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                 return dStr && (domain === dStr || domain.endsWith('.' + dStr) || dStr.endsWith('.' + domain));
             });
             if (matched && matched.savedCookies) {
+                // Auto-reinject missing cookie persistently
                 autoInjectCookies(null, matched);
             }
         });
