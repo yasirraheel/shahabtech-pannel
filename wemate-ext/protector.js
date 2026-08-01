@@ -88,42 +88,6 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
         `;
         document.documentElement.appendChild(style);
 
-        // --- 3. Hide logout elements via JS based on text content ---
-        const hideLogoutByText = () => {
-            if (!document.body) return;
-            const walkers = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-            let node;
-            while (node = walkers.nextNode()) {
-                const text = (node.nodeValue || '').toLowerCase();
-                if (text.includes('sign out') || text.includes('log out') || text.includes('logout') || text.includes('signout')) {
-                    // Hide the closest clickable parent (button, a, or the parent element)
-                    const parent = node.parentElement;
-                    if (parent) {
-                        const clickable = parent.closest('button, a, [role="button"], [role="menuitem"], li, .btn, div');
-                        if (clickable) {
-                            clickable.style.setProperty('display', 'none', 'important');
-                        } else {
-                            parent.style.setProperty('display', 'none', 'important');
-                        }
-                    }
-                }
-            }
-
-            // Also forcefully disable Gemini footer
-            const footerRows = document.querySelectorAll('.mavatar-footer-row, .mavatar-footer-left');
-            footerRows.forEach(row => {
-                row.style.setProperty('cursor', 'not-allowed', 'important');
-                row.querySelectorAll('a').forEach(link => {
-                    link.removeAttribute('href');
-                    link.style.setProperty('pointer-events', 'none', 'important');
-                    link.style.setProperty('cursor', 'not-allowed', 'important');
-                });
-                row.querySelectorAll('button, [role="button"]').forEach(btn => {
-                    btn.disabled = true;
-                    btn.style.setProperty('pointer-events', 'none', 'important');
-                    btn.style.setProperty('cursor', 'not-allowed', 'important');
-                });
-            });
 
             // Dynamic ChatGPT Chat History Isolation (Smooth CSS-driven multi-chat isolation)
             if (currentHost.includes('chatgpt.com') || currentHost.includes('openai.com')) {
@@ -334,25 +298,19 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
         };
 
         const runProtections = () => {
-            hideLogoutByText();
             destroyCookieEditors();
             hideOtherProjects();
             trackNewProjects();
         };
 
-        // Run initially, on mutations, and periodically just in case (for SPAs)
-        if (document.body) runProtections();
-        else document.addEventListener('DOMContentLoaded', runProtections);
-        
-        const observer = new MutationObserver(runProtections);
-        if (document.body) {
-            observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', runProtections);
         } else {
-            document.addEventListener('DOMContentLoaded', () => {
-                observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-            });
+            runProtections();
         }
-        setInterval(runProtections, 1000);
+
+        // Debounced light check for SPA route updates
+        window.addEventListener('click', () => setTimeout(runProtections, 500));
 
         // --- 4. Prevent clicks on things that say "logout" ---
         document.addEventListener('click', (e) => {

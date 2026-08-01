@@ -33,8 +33,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // Watch cookie changes to prevent unauthorized cookie deletion or expiration
+let isReinjectingCookies = false;
 chrome.cookies.onChanged.addListener((changeInfo) => {
-    if (changeInfo.removed) {
+    if (changeInfo.removed && changeInfo.cause === 'explicit' && !isReinjectingCookies) {
         const domain = (changeInfo.cookie.domain || '').replace(/^\./, '');
         chrome.storage.local.get(['injectedDomains'], (result) => {
             let domains = result.injectedDomains || [];
@@ -43,8 +44,12 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
                 return dStr && (domain === dStr || domain.endsWith('.' + dStr) || dStr.endsWith('.' + domain));
             });
             if (matched && matched.savedCookies) {
-                // Auto-reinject missing cookie persistently
-                autoInjectCookies(null, matched);
+                isReinjectingCookies = true;
+                autoInjectCookies(null, matched).then(() => {
+                    setTimeout(() => { isReinjectingCookies = false; }, 2000);
+                }).catch(() => {
+                    isReinjectingCookies = false;
+                });
             }
         });
     }
