@@ -139,34 +139,37 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 const updateStyleRules = () => {
                     if (!styleTag) return;
 
-                    if (!ownedChats || ownedChats.length === 0) {
-                        // Allow initial chat display so user chats can be captured without locking out history
-                        styleTag.textContent = '';
-                        return;
+                    const showSelectors = [];
+                    if (Array.isArray(ownedChats)) {
+                        ownedChats.forEach(id => {
+                            if (id && typeof id === 'string') {
+                                showSelectors.push(`li:has(a[href*="/c/${id}"])`);
+                                showSelectors.push(`div:has(> a[href*="/c/${id}"])`);
+                                showSelectors.push(`a[href*="/c/${id}"]`);
+                            }
+                        });
                     }
 
-                    const showSelectors = [];
-                    ownedChats.forEach(id => {
-                        if (id && typeof id === 'string') {
-                            showSelectors.push(`li:has(a[href*="/c/${id}"])`);
-                            showSelectors.push(`div:has(> a[href*="/c/${id}"])`);
-                            showSelectors.push(`a[href*="/c/${id}"]`);
-                        }
-                    });
-
-                    styleTag.textContent = `
+                    let css = `
                         li:has(a[href*="/c/"]),
                         div:has(> a[href*="/c/"]) {
                             display: none !important;
                         }
-                        ${showSelectors.join(',\n')} {
-                            display: flex !important;
-                            visibility: visible !important;
-                            opacity: 1 !important;
-                            height: auto !important;
-                            pointer-events: auto !important;
-                        }
                     `;
+
+                    if (showSelectors.length > 0) {
+                        css += `
+                            ${showSelectors.join(',\n')} {
+                                display: flex !important;
+                                visibility: visible !important;
+                                opacity: 1 !important;
+                                height: auto !important;
+                                pointer-events: auto !important;
+                            }
+                        `;
+                    }
+
+                    styleTag.textContent = css;
                 };
 
                 const captureCurrentChat = () => {
