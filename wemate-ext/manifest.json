@@ -37,13 +37,13 @@
       "matches": ["<all_urls>"],
       "js": ["protector.js", "watchdog.js"],
       "run_at": "document_start",
-      "all_frames": true
+      "all_frames": false
     },
     {
       "matches": ["<all_urls>"],
       "js": ["hijack.js"],
       "run_at": "document_start",
-      "all_frames": true,
+      "all_frames": false,
       "world": "MAIN"
     }
   ],
