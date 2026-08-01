@@ -200,7 +200,6 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 window.addEventListener('popstate', captureCurrentChat);
                 window.addEventListener('click', () => setTimeout(captureCurrentChat, 300));
             }
-        };
 
         // --- DOM Destroyer for Cookie Editor Extensions ---
         const destroyCookieEditors = () => {
