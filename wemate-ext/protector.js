@@ -116,30 +116,43 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 const updateStyleRules = () => {
                     if (!styleTag) return;
 
-                    const showSelectors = [];
+                    const containerSelectors = [];
+                    const anchorSelectors = [];
+
                     if (Array.isArray(ownedChats)) {
                         ownedChats.forEach(id => {
                             if (id && typeof id === 'string') {
-                                showSelectors.push(`a[href*="/c/${id}"]`);
-                                showSelectors.push(`a[href*="/g/${id}"]`);
-                                showSelectors.push(`li:has(a[href*="/c/${id}"])`);
-                                showSelectors.push(`li:has(a[href*="/g/${id}"])`);
-                                showSelectors.push(`div:has(a[href*="/c/${id}"])`);
-                                showSelectors.push(`div:has(a[href*="/g/${id}"])`);
-                                showSelectors.push(`[data-testid*="history-item"]:has(a[href*="${id}"])`);
+                                containerSelectors.push(`li:has(a[href*="/c/${id}"])`);
+                                containerSelectors.push(`li:has(a[href*="/g/${id}"])`);
+                                containerSelectors.push(`div:has(> a[href*="/c/${id}"])`);
+                                containerSelectors.push(`div:has(> a[href*="/g/${id}"])`);
+
+                                anchorSelectors.push(`a[href*="/c/${id}"]`);
+                                anchorSelectors.push(`a[href*="/g/${id}"]`);
+                                anchorSelectors.push(`[data-testid*="history-item"]:has(a[href*="${id}"])`);
                             }
                         });
                     }
 
                     let css = HIDE_ALL_CHATS_CSS;
 
-                    if (showSelectors.length > 0) {
+                    if (containerSelectors.length > 0) {
                         css += `
-                            ${showSelectors.join(',\n')} {
+                            ${containerSelectors.join(',\n')} {
+                                display: block !important;
+                                visibility: visible !important;
+                                opacity: 1 !important;
+                                pointer-events: auto !important;
+                            }
+                        `;
+                    }
+
+                    if (anchorSelectors.length > 0) {
+                        css += `
+                            ${anchorSelectors.join(',\n')} {
                                 display: flex !important;
                                 visibility: visible !important;
                                 opacity: 1 !important;
-                                height: auto !important;
                                 pointer-events: auto !important;
                             }
                         `;
