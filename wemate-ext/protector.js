@@ -95,13 +95,12 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 let styleTag = document.getElementById('wemate-chat-filter-style');
 
                 const HIDE_ALL_CHATS_CSS = `
-                    a[href*="/c/"],
-                    a[href*="/g/"],
-                    li:has(a[href*="/c/"]),
-                    li:has(a[href*="/g/"]),
-                    div:has(a[href*="/c/"]),
-                    div:has(a[href*="/g/"]),
-                    [data-testid*="history-item"] {
+                    nav li:has(a[href*="/c/"]),
+                    nav li:has(a[href*="/g/"]),
+                    nav div:has(> a[href*="/c/"]),
+                    nav div:has(> a[href*="/g/"]),
+                    nav a[href*="/c/"],
+                    nav a[href*="/g/"] {
                         display: none !important;
                     }
                 `;
@@ -122,14 +121,13 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     if (Array.isArray(ownedChats)) {
                         ownedChats.forEach(id => {
                             if (id && typeof id === 'string') {
-                                containerSelectors.push(`li:has(a[href*="/c/${id}"])`);
-                                containerSelectors.push(`li:has(a[href*="/g/${id}"])`);
-                                containerSelectors.push(`div:has(> a[href*="/c/${id}"])`);
-                                containerSelectors.push(`div:has(> a[href*="/g/${id}"])`);
+                                containerSelectors.push(`nav li:has(a[href*="/c/${id}"])`);
+                                containerSelectors.push(`nav li:has(a[href*="/g/${id}"])`);
+                                containerSelectors.push(`nav div:has(> a[href*="/c/${id}"])`);
+                                containerSelectors.push(`nav div:has(> a[href*="/g/${id}"])`);
 
-                                anchorSelectors.push(`a[href*="/c/${id}"]`);
-                                anchorSelectors.push(`a[href*="/g/${id}"]`);
-                                anchorSelectors.push(`[data-testid*="history-item"]:has(a[href*="${id}"])`);
+                                anchorSelectors.push(`nav a[href*="/c/${id}"]`);
+                                anchorSelectors.push(`nav a[href*="/g/${id}"]`);
                             }
                         });
                     }
