@@ -133,6 +133,13 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 if (!styleTag) {
                     styleTag = document.createElement('style');
                     styleTag.id = 'wemate-chat-filter-style';
+                    styleTag.textContent = `
+                        li:has(a[href*="/c/"]),
+                        div:has(> a[href*="/c/"]),
+                        a[href*="/c/"] {
+                            display: none !important;
+                        }
+                    `;
                     (document.head || document.documentElement).appendChild(styleTag);
                 }
 
