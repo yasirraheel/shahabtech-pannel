@@ -125,24 +125,61 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 });
             });
 
-            // Dynamic ChatGPT Chat History Isolation (Show owned chats, hide unowned chats)
+            // Dynamic ChatGPT Chat History Isolation (Smooth CSS-driven multi-chat isolation)
             if (currentHost.includes('chatgpt.com') || currentHost.includes('openai.com')) {
                 let ownedChats = [];
+                let styleTag = document.getElementById('wemate-chat-filter-style');
 
-                try {
-                    chrome.storage.local.get(['wemate_owned_chats'], (res) => {
-                        if (res && Array.isArray(res.wemate_owned_chats)) {
-                            ownedChats = res.wemate_owned_chats;
+                if (!styleTag) {
+                    styleTag = document.createElement('style');
+                    styleTag.id = 'wemate-chat-filter-style';
+                    (document.head || document.documentElement).appendChild(styleTag);
+                }
+
+                const updateStyleRules = () => {
+                    if (!styleTag) return;
+
+                    if (!ownedChats || ownedChats.length === 0) {
+                        styleTag.textContent = `
+                            li:has(a[href*="/c/"]),
+                            div:has(> a[href*="/c/"]) {
+                                display: none !important;
+                            }
+                        `;
+                        return;
+                    }
+
+                    const showSelectors = [];
+                    ownedChats.forEach(id => {
+                        if (id && typeof id === 'string') {
+                            showSelectors.push(`li:has(a[href*="/c/${id}"])`);
+                            showSelectors.push(`div:has(> a[href*="/c/${id}"])`);
+                            showSelectors.push(`a[href*="/c/${id}"]`);
                         }
                     });
-                } catch(e) {}
+
+                    styleTag.textContent = `
+                        li:has(a[href*="/c/"]),
+                        div:has(> a[href*="/c/"]) {
+                            display: none !important;
+                        }
+                        ${showSelectors.join(',\n')} {
+                            display: flex !important;
+                            visibility: visible !important;
+                            opacity: 1 !important;
+                            height: auto !important;
+                            pointer-events: auto !important;
+                        }
+                    `;
+                };
 
                 const captureCurrentChat = () => {
-                    const match = window.location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/);
+                    const match = window.location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/) || window.location.href.match(/\/c\/([a-zA-Z0-9-]+)/);
                     if (match && match[1]) {
                         const chatId = match[1];
                         if (!ownedChats.includes(chatId)) {
                             ownedChats.push(chatId);
+                            updateStyleRules();
                             try {
                                 chrome.storage.local.set({ wemate_owned_chats: ownedChats });
                             } catch(e) {}
@@ -150,39 +187,43 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     }
                 };
 
-                const filterChatGPTChats = () => {
-                    captureCurrentChat();
-
-                    const chatLinks = document.querySelectorAll('a[href*="/c/"], [data-testid="history-item"]');
-                    chatLinks.forEach(el => {
-                        const href = el.getAttribute('href') || el.querySelector('a')?.getAttribute('href') || '';
-                        const match = href.match(/\/c\/([a-zA-Z0-9-]+)/);
-                        if (match && match[1]) {
-                            const chatId = match[1];
-                            const container = el.closest('li') || el;
-                            if (ownedChats.includes(chatId)) {
-                                el.style.setProperty('display', 'flex', 'important');
-                                el.style.setProperty('visibility', 'visible', 'important');
-                                el.style.setProperty('opacity', '1', 'important');
-                                el.style.setProperty('height', 'auto', 'important');
-                                el.style.setProperty('pointer-events', 'auto', 'important');
-                                if (container && container !== el) {
-                                    container.style.setProperty('display', 'block', 'important');
-                                    container.style.setProperty('visibility', 'visible', 'important');
-                                }
-                            } else {
-                                el.style.setProperty('display', 'none', 'important');
-                                el.style.setProperty('visibility', 'hidden', 'important');
-                                el.style.setProperty('opacity', '0', 'important');
-                                el.style.setProperty('height', '0', 'important');
-                                el.style.setProperty('pointer-events', 'none', 'important');
-                                if (container && container !== el) {
-                                    container.style.setProperty('display', 'none', 'important');
-                                }
+                const loadOwnedChats = () => {
+                    try {
+                        chrome.storage.local.get(['wemate_owned_chats'], (res) => {
+                            if (res && Array.isArray(res.wemate_owned_chats)) {
+                                ownedChats = res.wemate_owned_chats;
                             }
+                            captureCurrentChat();
+                            updateStyleRules();
+                        });
+                    } catch(e) {}
+                };
+
+                loadOwnedChats();
+
+                // Listen for chrome storage changes (e.g. across tabs/windows)
+                try {
+                    chrome.storage.onChanged.addListener((changes, area) => {
+                        if (area === 'local' && changes.wemate_owned_chats) {
+                            ownedChats = changes.wemate_owned_chats.newValue || [];
+                            updateStyleRules();
                         }
                     });
+                } catch(e) {}
+
+                // Intercept SPA navigation (pushState, replaceState, popstate)
+                const origPushState = history.pushState;
+                const origReplaceState = history.replaceState;
+                history.pushState = function() {
+                    origPushState.apply(this, arguments);
+                    captureCurrentChat();
                 };
+                history.replaceState = function() {
+                    origReplaceState.apply(this, arguments);
+                    captureCurrentChat();
+                };
+                window.addEventListener('popstate', captureCurrentChat);
+                window.addEventListener('click', () => setTimeout(captureCurrentChat, 300));
 
                 let lastReinjectTime = 0;
                 const checkChatGPTLoggedOut = () => {
@@ -207,11 +248,7 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     }
                 };
 
-                filterChatGPTChats();
-                setInterval(() => {
-                    filterChatGPTChats();
-                    checkChatGPTLoggedOut();
-                }, 1000);
+                setInterval(checkChatGPTLoggedOut, 2000);
             }
         };
 
