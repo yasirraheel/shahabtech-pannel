@@ -140,12 +140,8 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     if (!styleTag) return;
 
                     if (!ownedChats || ownedChats.length === 0) {
-                        styleTag.textContent = `
-                            li:has(a[href*="/c/"]),
-                            div:has(> a[href*="/c/"]) {
-                                display: none !important;
-                            }
-                        `;
+                        // Allow initial chat display so user chats can be captured without locking out history
+                        styleTag.textContent = '';
                         return;
                     }
 
@@ -224,31 +220,6 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                 };
                 window.addEventListener('popstate', captureCurrentChat);
                 window.addEventListener('click', () => setTimeout(captureCurrentChat, 300));
-
-                let lastReinjectTime = 0;
-                const checkChatGPTLoggedOut = () => {
-                    const now = Date.now();
-                    if (now - lastReinjectTime < 5000) return;
-
-                    const loginBtn = document.querySelector('a[href*="/auth/login"], a[href*="login"]');
-                    const hasLoginBtn = Array.from(document.querySelectorAll('button, a')).some(el => {
-                        const txt = (el.textContent || '').trim().toLowerCase();
-                        return txt === 'log in' || txt === 'login';
-                    });
-                    
-                    if (loginBtn || hasLoginBtn) {
-                        lastReinjectTime = now;
-                        try {
-                            chrome.runtime.sendMessage({ type: 'REINJECT_PLATFORM_COOKIES', domain: 'chatgpt.com' }, () => {
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 800);
-                            });
-                        } catch(e) {}
-                    }
-                };
-
-                setInterval(checkChatGPTLoggedOut, 2000);
             }
         };
 
