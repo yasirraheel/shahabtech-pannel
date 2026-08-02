@@ -66,6 +66,12 @@
                 "menu_active": "admin.users.active"
             },
             {
+                "keyword": ["expired users", "Manage Users", "User management", "Expired subscription"],
+                "title": "Expired Users",
+                "route_name": "admin.users.expired",
+                "menu_active": "admin.users.expired"
+            },
+            {
                 "keyword": ["banned users", "Manage Users", "User management", "Account bans", "User activity"],
                 "title": "Banned Users",
                 "route_name": "admin.users.banned",

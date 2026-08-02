@@ -56,6 +56,7 @@ Route::middleware('admin')->group(function () {
         Route::get('create', 'create')->name('create');
         Route::post('store', 'store')->name('store');
         Route::get('active', 'activeUsers')->name('active');
+        Route::get('expired', 'expiredUsers')->name('expired');
         Route::get('banned', 'bannedUsers')->name('banned');
         Route::get('email-verified', 'emailVerifiedUsers')->name('email.verified');
         Route::post('logout/{id}', 'logout')->name('logout');

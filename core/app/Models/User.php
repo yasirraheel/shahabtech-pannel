@@ -100,7 +100,20 @@ class User extends Authenticatable
     // SCOPES
     public function scopeActive($query)
     {
-        return $query->where('status', Status::USER_ACTIVE)->where('ev',Status::VERIFIED)->where('sv',Status::VERIFIED);
+        return $query->where('status', Status::USER_ACTIVE)
+            ->where('ev', Status::VERIFIED)
+            ->where('sv', Status::VERIFIED)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now());
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('status', '!=', Status::USER_BAN)
+            ->where(function($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '<=', now());
+            });
     }
 
     public function scopeBanned($query)

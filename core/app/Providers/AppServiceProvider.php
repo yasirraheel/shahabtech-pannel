@@ -56,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
             view()->composer('admin.partials.sidenav', function ($view) {
                 $view->with([
                     'bannedUsersCount'           => User::banned()->count(),
+                    'expiredUsersCount'          => User::expired()->count(),
                     'emailUnverifiedUsersCount' => User::emailUnverified()->count(),
                     'mobileUnverifiedUsersCount'   => User::mobileUnverified()->count(),
                     'kycUnverifiedUsersCount'   => User::kycUnverified()->count(),

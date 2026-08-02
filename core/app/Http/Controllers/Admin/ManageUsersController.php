@@ -42,6 +42,19 @@ class ManageUsersController extends Controller
         return view('admin.users.list', compact('pageTitle', 'users'));
     }
 
+    public function expiredUsers()
+    {
+        $pageTitle = 'Expired Users';
+        if (request()->account_id) {
+            $account = \App\Models\AccountListing::find(request()->account_id);
+            if ($account) {
+                $pageTitle = 'Expired Users Assigned to: ' . $account->title;
+            }
+        }
+        $users = $this->userData('expired');
+        return view('admin.users.list', compact('pageTitle', 'users'));
+    }
+
     public function bannedUsers()
     {
         $pageTitle = 'Banned Users';
