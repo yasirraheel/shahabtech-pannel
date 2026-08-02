@@ -132,10 +132,17 @@ class ManageUsersController extends Controller
         
         $users = $users->searchable(['username','email']);
         
-        if (request()->sort == 'last_seen') {
+        if (request()->has('sort')) {
+            $sortVal = request()->sort === 'last_seen' ? 'last_seen' : 'id';
+            session(['admin_users_sort' => $sortVal]);
+        }
+
+        $currentSort = session('admin_users_sort', 'id');
+
+        if ($currentSort === 'last_seen') {
             $users = $users->orderBy('last_seen', 'desc');
         } else {
-            $users = $users->orderBy('id','desc');
+            $users = $users->orderBy('id', 'desc');
         }
         
         return $users->paginate(getPaginate());

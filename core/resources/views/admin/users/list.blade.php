@@ -140,7 +140,10 @@
             <i class="las la-times"></i> @lang('Clear Filter')
         </a>
     @endif
-    <a href="{{ request()->fullUrlWithQuery(['sort' => request()->sort == 'last_seen' ? '' : 'last_seen']) }}" class="btn {{ request()->sort == 'last_seen' ? 'btn--primary' : 'btn-outline--primary' }}">
+    @php
+        $isSortedByLastSeen = session('admin_users_sort') === 'last_seen';
+    @endphp
+    <a href="{{ request()->fullUrlWithQuery(['sort' => $isSortedByLastSeen ? 'id' : 'last_seen']) }}" class="btn {{ $isSortedByLastSeen ? 'btn--primary' : 'btn-outline--primary' }}">
         <i class="las la-sort-amount-down"></i> @lang('Sort by Last Seen')
     </a>
     <x-search-form placeholder="Username / Email" />
