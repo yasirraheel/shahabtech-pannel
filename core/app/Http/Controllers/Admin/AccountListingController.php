@@ -229,4 +229,27 @@ class AccountListingController extends Controller
         $notify[] = ['success', 'Account deleted successfully. Assigned users updated.'];
         return back()->withNotify($notify);
     }
+
+    public function duplicate(Request $request, $id)
+    {
+        $request->validate([
+            'title' => 'required|string',
+        ]);
+
+        $original = AccountListing::findOrFail($id);
+
+        $duplicate = new AccountListing();
+        $duplicate->title           = $request->title;
+        $duplicate->social_media_id = $original->social_media_id;
+        $duplicate->category_id     = $original->category_id;
+        $duplicate->plan_id         = $original->plan_id;
+        $duplicate->url             = $original->url;
+        $duplicate->account_info    = $original->account_info;
+        $duplicate->instructions    = $original->instructions;
+        $duplicate->status          = Status::LISTING_ACTIVE;
+        $duplicate->save();
+
+        $notify[] = ['success', 'Account duplicated successfully'];
+        return back()->withNotify($notify);
+    }
 }

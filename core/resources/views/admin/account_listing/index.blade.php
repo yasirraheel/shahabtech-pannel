@@ -70,6 +70,9 @@
                                                 <button class="btn btn-outline--warning btn-sm confirmationBtn" data-question="@lang('Are you sure you want to decrease cookie expiry by 30 days?')" data-action="{{ route('admin.account.listing.modify.expiry', ['id' => $accountListing->id, 'action' => 'decrease']) }}">
                                                     <i class="las la-calendar-minus"></i>@lang('-30 Days')
                                                 </button>
+                                                <button class="btn btn-outline--info btn-sm duplicateBtn" data-id="{{ $accountListing->id }}" data-title="{{ $accountListing->title }} - Copy">
+                                                    <i class="las la-copy"></i>@lang('Duplicate')
+                                                </button>
                                                 <button class="btn btn-outline--danger btn-sm confirmationBtn" data-question="@lang('Are you sure you want to delete this account?')" data-action="{{ route('admin.account.listing.delete', $accountListing->id) }}">
                                                     <i class="las la-trash"></i>@lang('Delete')
                                                 </button>
@@ -90,6 +93,33 @@
                         {{ paginateLinks($accountListings) }}
                     </div>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- Duplicate Account Modal --}}
+    <div class="modal fade" id="duplicateModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@lang('Duplicate Account')</h5>
+                    <button class="close" data-bs-dismiss="modal" type="button" aria-label="Close">
+                        <i class="las la-times"></i>
+                    </button>
+                </div>
+                <form action="" method="POST" id="duplicateForm">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>@lang('New Account Title / Name') <span class="text-danger">*</span></label>
+                            <input class="form-control" name="title" type="text" id="duplicateTitle" required>
+                            <small class="text-muted">@lang('All cookies, platform details, plan, and instructions will be copied automatically.')</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn--primary w-100 h-45" type="submit">@lang('Duplicate Account')</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -123,15 +153,15 @@
                             <label>@lang('Category')</label>
                             <select class="form-control" name="category_id" required>
                                 <option value="">@lang('Select Category')</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
                             <label>@lang('Plan')</label>
                             <select class="form-control" name="plan_id">
-                                <option value="">@lang('Select Plan')</option>
+                                <option value="">@lang('No Plan (Direct Access)')</option>
                                 @foreach($plans as $plan)
                                     <option value="{{ $plan->id }}">{{ $plan->name }}</option>
                                 @endforeach
@@ -142,8 +172,12 @@
                             <input class="form-control" name="url" type="url" required>
                         </div>
                         <div class="form-group">
-                            <label>@lang('Cookies (JSON array)')</label>
-                            <textarea class="form-control" name="account_info" rows="4" placeholder='[{"name": "session", "value": "xyz"...}]' required></textarea>
+                            <label>@lang('Cookies / Account Info (JSON)')</label>
+                            <textarea class="form-control" name="account_info" rows="5" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>@lang('Instructions')</label>
+                            <textarea class="form-control" name="instructions" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -192,6 +226,14 @@
                 allowClear: true
             });
         }
+        $('.duplicateBtn').on('click', function () {
+            var modal = $('#duplicateModal');
+            var id = $(this).data('id');
+            var title = $(this).data('title');
+            modal.find('#duplicateTitle').val(title);
+            modal.find('#duplicateForm').attr('action', "{{ route('admin.account.listing.duplicate', '') }}/" + id);
+            modal.modal('show');
+        });
     })(jQuery);
 </script>
 @endpush
