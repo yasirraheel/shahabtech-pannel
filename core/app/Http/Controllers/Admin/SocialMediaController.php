@@ -123,38 +123,48 @@ class SocialMediaController extends Controller
         $updatedUsersCount = 0;
         $mode = $request->mode;
 
-        // Track user counts per active account for round-robin load balancing
+        // Initialize account user counts map for active accounts
         $accountUserCounts = [];
-        foreach ($activeAccounts as $acc) {
-            $accId = (int) $acc->id;
-            $count = User::whereJsonContains('account_ids', $accId)
-                ->orWhereJsonContains('account_ids', (string) $accId)
-                ->count();
-            $accountUserCounts[$accId] = $count;
+        foreach ($activeAccountIds as $accId) {
+            $accountUserCounts[(int) $accId] = 0;
+        }
+
+        if ($mode === 'keep_manual') {
+            // Count users who will KEEP their existing manual assignment for this platform
+            foreach ($users as $user) {
+                $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
+                $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
+                
+                if (!empty($userPlatformAccs)) {
+                    foreach ($userPlatformAccs as $existingAccId) {
+                        if (isset($accountUserCounts[$existingAccId])) {
+                            $accountUserCounts[$existingAccId]++;
+                        }
+                    }
+                }
+            }
         }
 
         foreach ($users as $user) {
-            $currentAccountIds = (array) ($user->account_ids ?? []);
+            $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
+            $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
             
-            // Find if user currently has an account assigned for this platform
-            $existingPlatformAccountIds = array_intersect($currentAccountIds, $allPlatformAccountIds);
-            
-            if (!empty($existingPlatformAccountIds) && $mode === 'keep_manual') {
-                // Keep existing manual assignment for this platform
+            if ($mode === 'keep_manual' && !empty($userPlatformAccs)) {
+                // User already has an assignment for this platform, keep it!
                 continue;
             }
 
-            // Remove all current accounts belonging to this platform from user's account_ids
-            $otherPlatformAccountIds = array_diff($currentAccountIds, $allPlatformAccountIds);
+            // Strip out ALL previous assignments for this platform
+            $otherAccountIds = array_diff($currentAccountIds, $allPlatformAccountIds);
 
-            // Pick the active account with the lowest user count
+            // Pick the active account with the lowest current count
             asort($accountUserCounts);
             $bestAccountId = key($accountUserCounts);
 
-            $otherPlatformAccountIds[] = $bestAccountId;
+            $otherAccountIds[] = $bestAccountId;
             $accountUserCounts[$bestAccountId]++;
 
-            $user->account_ids = array_values(array_unique($otherPlatformAccountIds));
+            $user->account_ids = array_values(array_unique($otherAccountIds));
             $user->timestamps = false;
             $user->save();
             $user->timestamps = true;
