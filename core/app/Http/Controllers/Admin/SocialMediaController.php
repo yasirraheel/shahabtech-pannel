@@ -114,16 +114,40 @@ class SocialMediaController extends Controller
         $activeAccountIds = $activeAccounts->pluck('id')->toArray();
         $allPlatformAccountIds = AccountListing::where('social_media_id', $platform->id)->pluck('id')->toArray();
 
-        // Fetch all active (non-banned) users
-        $users = User::where('status', '!=', Status::USER_BAN)->get();
+        // Fetch all non-banned users
+        $allUsers = User::where('status', '!=', Status::USER_BAN)->get();
 
-        if ($users->isEmpty()) {
-            $notify[] = ['error', "No active users found to load balance."];
+        // Separate active unexpired users from expired users
+        $now = now();
+        $validUsers = collect();
+        $expiredUsersCount = 0;
+
+        foreach ($allUsers as $user) {
+            $isExpired = !$user->expires_at || $user->expires_at <= $now;
+
+            if ($isExpired) {
+                // Strip all accounts belonging to this platform from expired user
+                $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
+                $otherAccountIds = array_values(array_diff($currentAccountIds, $allPlatformAccountIds));
+
+                if (count($currentAccountIds) !== count($otherAccountIds)) {
+                    $user->account_ids = $otherAccountIds;
+                    $user->timestamps = false;
+                    $user->save();
+                    $user->timestamps = true;
+                    $expiredUsersCount++;
+                }
+            } else {
+                $validUsers->push($user);
+            }
+        }
+
+        if ($validUsers->isEmpty()) {
+            $notify[] = ['warning', "No active, non-expired subscribed users found to load balance. Removed assignments from {$expiredUsersCount} expired user(s)."];
             return back()->withNotify($notify);
         }
 
         $updatedUsersCount = 0;
-        $mode = $request->mode;
 
         // Initialize account user counts map for active accounts
         $accountUserCounts = [];
@@ -132,8 +156,8 @@ class SocialMediaController extends Controller
         }
 
         if ($mode === 'keep_manual') {
-            // Count users who will KEEP their existing manual assignment for this platform
-            foreach ($users as $user) {
+            // Count valid users who will KEEP their existing manual assignment for this platform
+            foreach ($validUsers as $user) {
                 $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
                 $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
                 
@@ -147,7 +171,7 @@ class SocialMediaController extends Controller
             }
         }
 
-        foreach ($users as $user) {
+        foreach ($validUsers as $user) {
             $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
             $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
             
@@ -175,7 +199,7 @@ class SocialMediaController extends Controller
         }
 
         $modeText = $mode === 'override_manual' ? 'overriding manual assignments' : 'keeping manual assignments';
-        $notify[] = ['success', "Load balancing completed for {$platform->name}: {$updatedUsersCount} users updated across {$activeAccounts->count()} active account(s) ({$modeText})."];
+        $notify[] = ['success', "Load balancing completed for {$platform->name}: {$updatedUsersCount} active unexpired user(s) load balanced across {$activeAccounts->count()} active account(s) ({$modeText}). Cleared accounts from {$expiredUsersCount} expired user(s)."];
         return back()->withNotify($notify);
     }
 }
