@@ -186,6 +186,7 @@ Route::middleware('admin')->group(function () {
         Route::get('index', 'index')->name('index');
         Route::post('store/{id?}', 'store')->name('store');
         Route::post('status/{id}', 'status')->name('status');
+        Route::post('delete/{id}', 'delete')->name('delete');
         Route::get('add-info/{id}', 'info')->name('info');
         Route::post('info-store/{id}', 'infoStore')->name('info.store');
     });
@@ -199,6 +200,7 @@ Route::middleware('admin')->group(function () {
         Route::post('modify-expiry/{id}', 'modifyExpiry')->name('modify.expiry');
         Route::get('details/{id}', 'details')->name('detail');
         Route::post('status/{id}', 'status')->name('status');
+        Route::post('delete/{id}', 'delete')->name('delete');
     });
 
     // Plans

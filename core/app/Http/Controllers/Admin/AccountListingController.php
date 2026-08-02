@@ -8,6 +8,7 @@ use App\Models\AccountListing;
 use App\Http\Controllers\Controller;
 use App\Models\SocialMedia;
 use App\Models\Plan;
+use App\Models\User;
 
 class AccountListingController extends Controller
 {
@@ -202,6 +203,30 @@ class AccountListingController extends Controller
 
         $statusText = $account->status == Status::LISTING_ACTIVE ? 'enabled' : 'disabled';
         $notify[] = ['success', "Account {$statusText} successfully. Assigned users re-balanced."];
+        return back()->withNotify($notify);
+    }
+
+    public function delete($id)
+    {
+        $account = AccountListing::findOrFail($id);
+
+        $accId = $account->id;
+        $affectedUsers = User::whereJsonContains('account_ids', (int) $accId)
+            ->orWhereJsonContains('account_ids', (string) $accId)
+            ->get();
+
+        foreach ($affectedUsers as $user) {
+            $currentAccountIds = (array) ($user->account_ids ?? []);
+            $updatedAccountIds = array_diff($currentAccountIds, [(int) $accId, (string) $accId]);
+            $user->account_ids = array_values($updatedAccountIds);
+            $user->timestamps = false;
+            $user->save();
+            $user->timestamps = true;
+        }
+
+        $account->delete();
+
+        $notify[] = ['success', 'Account deleted successfully. Assigned users updated.'];
         return back()->withNotify($notify);
     }
 }

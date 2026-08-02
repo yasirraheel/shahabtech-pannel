@@ -73,4 +73,19 @@ class SocialMediaController extends Controller
     {
         return SocialMedia::changeStatus($id);
     }
+
+    public function delete($id)
+    {
+        $socialMedia = SocialMedia::withCount('accountListing')->findOrFail($id);
+
+        // Delete associated accounts
+        foreach ($socialMedia->accountListing as $account) {
+            $account->delete();
+        }
+
+        $socialMedia->delete();
+
+        $notify[] = ['success', 'Platform and all associated accounts deleted successfully'];
+        return back()->withNotify($notify);
+    }
 }

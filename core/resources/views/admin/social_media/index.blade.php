@@ -39,7 +39,7 @@
                                                     <i class="las la-key"></i> @lang('Manage Accounts')
                                                 </a>
                                                 @if ($socialMedia->status == Status::ENABLE)
-                                                    <button class="btn btn-outline--danger btn-sm confirmationBtn"
+                                                    <button class="btn btn-outline--warning btn-sm confirmationBtn"
                                                         data-question="@lang('Are you sure to disable this platform?')"
                                                         data-action="{{ route('admin.social.media.status', $socialMedia->id) }}">
                                                         <i class="las la-eye-slash"></i>@lang('Disable')
@@ -51,6 +51,11 @@
                                                         <i class="las la-eye"></i>@lang('Enable')
                                                     </button>
                                                 @endif
+                                                <button class="btn btn-outline--danger btn-sm confirmationBtn"
+                                                    data-question="@lang('Are you sure you want to delete this platform and ALL of its associated accounts?')"
+                                                    data-action="{{ route('admin.social.media.delete', $socialMedia->id) }}">
+                                                    <i class="las la-trash"></i>@lang('Delete')
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
