@@ -111,6 +111,7 @@ class SocialMediaController extends Controller
             return back()->withNotify($notify);
         }
 
+        $activeAccountIds = $activeAccounts->pluck('id')->toArray();
         $allPlatformAccountIds = AccountListing::where('social_media_id', $platform->id)->pluck('id')->toArray();
 
         // Fetch all active (non-banned) users
