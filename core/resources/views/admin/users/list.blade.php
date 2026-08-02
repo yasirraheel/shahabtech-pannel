@@ -19,14 +19,15 @@
                             <tbody>
                             @forelse($users as $user)
                             <tr>
-                                <td style="word-break: break-word;">
-                                    <span class="fw-bold text--dark">{{$user->fullname}}</span>
-                                    <br>
-                                    <span class="small">
-                                    <a href="{{ route('admin.users.detail', $user->id) }}"><span>@</span>{{ $user->username }}</a>
-                                    </span>
+                                <td class="text-start" style="text-align: left !important; word-break: break-word;">
+                                    <div class="text-start">
+                                        <span class="fw-bold text--dark d-block">{{$user->fullname}}</span>
+                                        <span class="small d-block">
+                                            <a href="{{ route('admin.users.detail', $user->id) }}"><span>@</span>{{ $user->username }}</a>
+                                        </span>
+                                    </div>
                                     @if($user->last_seen)
-                                        <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
+                                        <div class="mt-1 d-flex flex-wrap gap-1 align-items-center justify-content-start text-start">
                                             @if(\Carbon\Carbon::parse($user->last_seen)->diffInMinutes(now()) <= 3)
                                                 <span class="badge badge--success">Online</span>
                                             @else
@@ -40,7 +41,7 @@
                                             </span>
                                         </div>
                                         @if($user->last_seen_ip)
-                                            <div class="text-muted small mt-1" style="word-break: break-all;">
+                                            <div class="text-muted small mt-1 text-start" style="word-break: break-all; text-align: left !important;">
                                                 Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
                                             </div>
                                         @endif
@@ -48,7 +49,7 @@
                                             $assignedAccountsList = $user->assignedAccountListings();
                                         @endphp
                                         @if($assignedAccountsList->isNotEmpty())
-                                            <div class="mt-1">
+                                            <div class="mt-1 text-start" style="text-align: left !important;">
                                                 <span class="text-muted d-block small mb-1">
                                                     <i class="las la-layer-group"></i> <strong>Assigned Accounts:</strong>
                                                 </span>
