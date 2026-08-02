@@ -112,14 +112,13 @@ class SocialMediaController extends Controller
 
         $allPlatformAccountIds = AccountListing::where('social_media_id', $platform->id)->pluck('id')->toArray();
 
-        // Fetch all active (non-banned) users who have a valid subscription
-        $users = User::where('status', Status::USER_ACTIVE)
-            ->where('plan_id', '!=', 0)
-            ->where(function($q) {
-                $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
-            })
-            ->get();
+        // Fetch all active (non-banned) users
+        $users = User::where('status', '!=', Status::USER_BAN)->get();
+
+        if ($users->isEmpty()) {
+            $notify[] = ['error', "No active users found to load balance."];
+            return back()->withNotify($notify);
+        }
 
         $updatedUsersCount = 0;
         $mode = $request->mode;
