@@ -12,7 +12,6 @@
                                 <th>@lang('Email-Mobile')</th>
                                 <th class="text-center">@lang('Country')</th>
                                 <th>@lang('Joined / Expiry')</th>
-                                <th>@lang('Balance')</th>
                                 <th class="text-end">@lang('Action')</th>
                             </tr>
                             </thead>
@@ -96,12 +95,6 @@
                                             <span class="badge badge--dark">@lang('N/A')</span>
                                         @endif
                                     </div>
-                                </td>
-
-                                <td>
-                                    <span class="fw-bold text--dark">
-                                        {{ showAmount($user->balance) }}
-                                    </span>
                                 </td>
 
                                 <td class="text-end">
