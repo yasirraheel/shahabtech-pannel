@@ -114,20 +114,10 @@ function setSingleCookie(cookie, platformUrl, fallbackDomain) {
             dynamicUrl = u.origin + (cookie.path || '/');
         } catch(e) {}
 
-        let rawVal = cookie.value || '';
-        let cleanVal = rawVal;
-        try {
-            if (typeof rawVal === 'string' && rawVal.includes('%')) {
-                cleanVal = decodeURIComponent(rawVal);
-            }
-        } catch(e) {
-            cleanVal = rawVal;
-        }
-
         let cookieDetails = {
             url: dynamicUrl,
             name: cookie.name,
-            value: cleanVal,
+            value: cookie.value !== undefined && cookie.value !== null ? String(cookie.value) : '',
             domain: activeDomain,
             path: cookie.path || '/',
             secure: cookie.secure !== undefined ? cookie.secure : true,
