@@ -147,6 +147,11 @@
 
 
 @push('breadcrumb-plugins')
+    @if(request()->account_id)
+        <a href="{{ route('admin.users.all') }}" class="btn btn-outline--danger">
+            <i class="las la-times"></i> @lang('Clear Filter')
+        </a>
+    @endif
     <a href="{{ request()->fullUrlWithQuery(['sort' => request()->sort == 'last_seen' ? '' : 'last_seen']) }}" class="btn {{ request()->sort == 'last_seen' ? 'btn--primary' : 'btn-outline--primary' }}">
         <i class="las la-sort-amount-down"></i> @lang('Sort by Last Seen')
     </a>

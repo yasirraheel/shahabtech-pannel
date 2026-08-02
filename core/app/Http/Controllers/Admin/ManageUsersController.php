@@ -19,6 +19,12 @@ class ManageUsersController extends Controller
     public function allUsers()
     {
         $pageTitle = 'All Users';
+        if (request()->account_id) {
+            $account = \App\Models\AccountListing::find(request()->account_id);
+            if ($account) {
+                $pageTitle = 'Users Assigned to: ' . $account->title;
+            }
+        }
         $users = $this->userData();
         return view('admin.users.list', compact('pageTitle', 'users'));
     }
@@ -26,6 +32,12 @@ class ManageUsersController extends Controller
     public function activeUsers()
     {
         $pageTitle = 'Active Users';
+        if (request()->account_id) {
+            $account = \App\Models\AccountListing::find(request()->account_id);
+            if ($account) {
+                $pageTitle = 'Active Users Assigned to: ' . $account->title;
+            }
+        }
         $users = $this->userData('active');
         return view('admin.users.list', compact('pageTitle', 'users'));
     }
@@ -95,6 +107,14 @@ class ManageUsersController extends Controller
             $users = User::$scope();
         }else{
             $users = User::query();
+        }
+
+        if (request()->account_id) {
+            $accId = (int) request()->account_id;
+            $users = $users->where(function($q) use ($accId) {
+                $q->whereJsonContains('account_ids', $accId)
+                  ->orWhereJsonContains('account_ids', (string) $accId);
+            });
         }
         
         $users = $users->searchable(['username','email']);

@@ -45,9 +45,9 @@
                                         <td> {{ __(@$accountListing->category->name) }} </td>
                                         <td> {{ __(@$accountListing->plan->name) }} </td>
                                         <td>
-                                            <span class="badge badge--info" style="font-size: 11px; padding: 4px 8px;" title="@lang('Total Users Currently Assigned')">
+                                            <a href="{{ route('admin.users.all') }}?account_id={{ $accountListing->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
                                                 <i class="las la-users"></i> {{ $accountListing->assignedUsersCount() }} @lang('Users')
-                                            </span>
+                                            </a>
                                         </td>
                                         <td> @php echo $accountListing->statusBadge; @endphp </td>
                                         <td>

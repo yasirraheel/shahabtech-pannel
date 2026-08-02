@@ -32,6 +32,7 @@
                                 <tr>
                                     <th>@lang('Account Title')</th>
                                     <th>@lang('Plan')</th>
+                                    <th>@lang('Assigned Users')</th>
                                     <th>@lang('Has Cookies')</th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
@@ -42,6 +43,11 @@
                                     <tr>
                                         <td><strong>{{ $account->title }}</strong></td>
                                         <td>{{ @$account->plan->name ?? '—' }}</td>
+                                        <td>
+                                            <a href="{{ route('admin.users.all') }}?account_id={{ $account->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
+                                                <i class="las la-users"></i> {{ $account->assignedUsersCount() }} @lang('Users')
+                                            </a>
+                                        </td>
                                         <td>
                                             @if($account->account_info)
                                                 <span class="badge badge--success"><i class="las la-check"></i> Yes</span>
