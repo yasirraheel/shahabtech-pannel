@@ -4,23 +4,22 @@
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-body p-0">
-                    <div class="table-responsive" style="overflow-x: auto;">
-                        <table class="table table--light style--two mb-0" style="table-layout: fixed; width: 100%;">
+                    <div class="table-responsive">
+                        <table class="table table--light style--two mb-0">
                             <thead>
                             <tr>
-                                <th style="width: 28%;">@lang('User')</th>
-                                <th style="width: 22%;">@lang('Email-Mobile')</th>
-                                <th style="width: 6%; text-align: center;">@lang('Country')</th>
-                                <th style="width: 15%;">@lang('Joined At')</th>
-                                <th style="width: 12%;">@lang('Expiry')</th>
-                                <th style="width: 8%;">@lang('Balance')</th>
-                                <th style="width: 9%; text-align: right;">@lang('Action')</th>
+                                <th>@lang('User')</th>
+                                <th>@lang('Email-Mobile')</th>
+                                <th class="text-center">@lang('Country')</th>
+                                <th>@lang('Joined / Expiry')</th>
+                                <th>@lang('Balance')</th>
+                                <th class="text-end">@lang('Action')</th>
                             </tr>
                             </thead>
                             <tbody>
                             @forelse($users as $user)
                             <tr>
-                                <td style="white-space: normal; word-break: break-word;">
+                                <td style="word-break: break-word;">
                                     <span class="fw-bold text--dark">{{$user->fullname}}</span>
                                     <br>
                                     <span class="small">
@@ -29,20 +28,20 @@
                                     @if($user->last_seen)
                                         <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
                                             @if(\Carbon\Carbon::parse($user->last_seen)->diffInMinutes(now()) <= 3)
-                                                <span class="badge badge--success" style="font-size: 9px; padding: 2px 5px;">Online</span>
+                                                <span class="badge badge--success">Online</span>
                                             @else
-                                                <span class="badge badge--secondary" style="font-size: 9px; padding: 2px 5px;">Offline</span>
+                                                <span class="badge badge--secondary">Offline</span>
                                             @endif
-                                            <span class="badge badge--dark" style="font-size: 9px; padding: 2px 5px;" title="Last Seen">
+                                            <span class="badge badge--dark" title="Last Seen">
                                                 <i class="las la-clock"></i> {{ \Carbon\Carbon::parse($user->last_seen)->diffForHumans() }}
                                             </span>
-                                            <span class="badge badge--info" style="font-size: 9px; padding: 2px 5px;" title="Total Online Time">
+                                            <span class="badge badge--info" title="Total Online Time">
                                                 <i class="las la-stopwatch"></i> {{ $user->onlineTimeFormatted() }}
                                             </span>
                                         </div>
                                         @if($user->last_seen_ip)
-                                            <div class="text-muted small mt-1" style="font-size: 10px; word-break: break-all;">
-                                                IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
+                                            <div class="text-muted small mt-1" style="word-break: break-all;">
+                                                Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
                                             </div>
                                         @endif
                                         @php
@@ -50,11 +49,11 @@
                                         @endphp
                                         @if($assignedAccountsList->isNotEmpty())
                                             <div class="mt-1">
-                                                <span class="text-muted d-block" style="font-size: 9px; margin-bottom: 1px;">
+                                                <span class="text-muted d-block small mb-1">
                                                     <i class="las la-layer-group"></i> <strong>Assigned Accounts:</strong>
                                                 </span>
                                                 @foreach($assignedAccountsList as $accItem)
-                                                    <span class="badge badge--primary d-inline-block mb-1" style="font-size: 9px; padding: 2px 5px;">
+                                                    <span class="badge badge--primary d-inline-block mb-1">
                                                         {{ __(@$accItem->socialMedia->name) }} - {{ __($accItem->title) }}
                                                     </span>
                                                 @endforeach
@@ -63,55 +62,58 @@
                                     @endif
                                 </td>
 
-                                <td style="white-space: normal; word-break: break-all; font-size: 12px;">
+                                <td style="word-break: break-all;">
                                     <span class="d-block text--dark fw-semibold">{{ $user->email }}</span>
                                     <span class="text-muted small">{{ $user->mobileNumber }}</span>
                                 </td>
 
-                                <td style="text-align: center;">
-                                    <span class="fw-bold badge badge--light border text-dark" title="{{ @$user->country_name }}">{{ $user->country_code }}</span>
+                                <td class="text-center">
+                                    <span class="fw-bold" title="{{ @$user->country_name }}">{{ $user->country_code }}</span>
                                 </td>
 
-                                <td style="white-space: normal; font-size: 11px;">
-                                    <span class="d-block fw-semibold">{{ showDateTime($user->created_at, 'd M Y, h:i A') }}</span>
-                                    <span class="text-muted small">{{ diffForHumans($user->created_at) }}</span>
-                                </td>
-
-                                <td style="white-space: normal;">
-                                    @php
-                                        $expiry = $user->expires_at;
-                                        $isExpired = $expiry && $expiry->isPast();
-                                        $daysRemaining = $expiry ? \Carbon\Carbon::now()->startOfDay()->diffInDays($expiry->copy()->startOfDay(), false) : null;
-                                    @endphp
-                                    @if($expiry)
-                                        @if($isExpired)
-                                            <span class="badge badge--danger" style="font-size: 10px;">@lang('Expired')</span>
+                                <td>
+                                    <div>
+                                        <span class="text-muted small">@lang('Joined'):</span>
+                                        <span class="fw-semibold">{{ showDateTime($user->created_at, 'd M Y') }}</span>
+                                        <span class="text-muted small">({{ diffForHumans($user->created_at) }})</span>
+                                    </div>
+                                    <div class="mt-1">
+                                        <span class="text-muted small">@lang('Expiry'):</span>
+                                        @php
+                                            $expiry = $user->expires_at;
+                                            $isExpired = $expiry && $expiry->isPast();
+                                            $daysRemaining = $expiry ? \Carbon\Carbon::now()->startOfDay()->diffInDays($expiry->copy()->startOfDay(), false) : null;
+                                        @endphp
+                                        @if($expiry)
+                                            @if($isExpired)
+                                                <span class="badge badge--danger">@lang('Expired')</span>
+                                            @else
+                                                <span class="badge badge--success">{{ ceil($daysRemaining) }} @lang('Days')</span>
+                                            @endif
+                                            <span class="small text-muted">({{ showDateTime($expiry, 'd M Y') }})</span>
                                         @else
-                                            <span class="badge badge--success" style="font-size: 10px;">{{ ceil($daysRemaining) }} @lang('Days')</span>
+                                            <span class="badge badge--dark">@lang('N/A')</span>
                                         @endif
-                                        <div class="small text-muted mt-1" style="font-size: 10px;">{{ showDateTime($expiry, 'd M Y') }}</div>
-                                    @else
-                                        <span class="badge badge--dark" style="font-size: 10px;">@lang('N/A')</span>
-                                    @endif
+                                    </div>
                                 </td>
 
-                                <td style="white-space: nowrap; font-size: 12px;">
+                                <td>
                                     <span class="fw-bold text--dark">
                                         {{ showAmount($user->balance) }}
                                     </span>
                                 </td>
 
-                                <td style="text-align: right; white-space: nowrap;">
-                                    <div class="d-flex flex-column gap-1 align-items-end">
-                                        <a href="{{ route('admin.users.detail', $user->id) }}" class="btn btn-xs btn-outline--primary py-1 px-2" style="font-size: 11px;">
+                                <td class="text-end">
+                                    <div class="button--group">
+                                        <a href="{{ route('admin.users.detail', $user->id) }}" class="btn btn-sm btn-outline--primary">
                                             <i class="las la-desktop"></i> @lang('Details')
                                         </a>
                                         @if (request()->routeIs('admin.users.kyc.pending'))
-                                        <a href="{{ route('admin.users.kyc.details', $user->id) }}" target="_blank" class="btn btn-xs btn-outline--dark py-1 px-2" style="font-size: 11px;">
+                                        <a href="{{ route('admin.users.kyc.details', $user->id) }}" target="_blank" class="btn btn-sm btn-outline--dark">
                                             <i class="las la-user-check"></i>@lang('KYC')
                                         </a>
                                         @endif
-                                        <button class="btn btn-xs btn-outline--danger confirmationBtn py-1 px-2" style="font-size: 11px;" data-action="{{ route('admin.users.delete', $user->id) }}" data-question="@lang('Are you sure you want to delete this user?')">
+                                        <button class="btn btn-sm btn-outline--danger confirmationBtn" data-action="{{ route('admin.users.delete', $user->id) }}" data-question="@lang('Are you sure you want to delete this user?')">
                                             <i class="las la-trash"></i> @lang('Delete')
                                         </button>
                                     </div>
@@ -127,7 +129,7 @@
                     </div>
                 </div>
                 @if ($users->hasPages())
-                    <div class="card-footer py-3">
+                    <div class="card-footer py-4">
                         {{ paginateLinks($users) }}
                     </div>
                 @endif
