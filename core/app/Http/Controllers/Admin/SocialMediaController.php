@@ -94,9 +94,10 @@ class SocialMediaController extends Controller
 
     public function loadBalance(Request $request, $id)
     {
-        $request->validate([
-            'mode' => 'required|in:override_manual,keep_manual',
-        ]);
+        $mode = $request->input('mode', 'override_manual');
+        if (!in_array($mode, ['override_manual', 'keep_manual'])) {
+            $mode = 'override_manual';
+        }
 
         $platform = SocialMedia::findOrFail($id);
         
