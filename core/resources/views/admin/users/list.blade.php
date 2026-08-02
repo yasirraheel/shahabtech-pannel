@@ -75,10 +75,10 @@
                                     <div>
                                         <span class="text-muted small">@lang('Joined'):</span>
                                         <span class="fw-semibold">{{ showDateTime($user->created_at, 'd M Y') }}</span>
-                                        <span class="text-muted small">({{ diffForHumans($user->created_at) }})</span>
+                                        <div class="text-muted small">{{ diffForHumans($user->created_at) }}</div>
                                     </div>
-                                    <div class="mt-1">
-                                        <span class="text-muted small">@lang('Expiry'):</span>
+                                    <div class="mt-2">
+                                        <span class="text-muted small d-block mb-1">@lang('Expiry'):</span>
                                         @php
                                             $expiry = $user->expires_at;
                                             $isExpired = $expiry && $expiry->isPast();
@@ -90,7 +90,7 @@
                                             @else
                                                 <span class="badge badge--success">{{ ceil($daysRemaining) }} @lang('Days')</span>
                                             @endif
-                                            <span class="small text-muted">({{ showDateTime($expiry, 'd M Y') }})</span>
+                                            <div class="small text-muted mt-1">{{ showDateTime($expiry, 'd M Y') }}</div>
                                         @else
                                             <span class="badge badge--dark">@lang('N/A')</span>
                                         @endif
@@ -104,16 +104,16 @@
                                 </td>
 
                                 <td class="text-end">
-                                    <div class="button--group">
-                                        <a href="{{ route('admin.users.detail', $user->id) }}" class="btn btn-sm btn-outline--primary">
+                                    <div class="d-flex flex-column gap-1 align-items-end" style="min-width: 90px;">
+                                        <a href="{{ route('admin.users.detail', $user->id) }}" class="btn btn-sm btn-outline--primary w-100 text-center">
                                             <i class="las la-desktop"></i> @lang('Details')
                                         </a>
                                         @if (request()->routeIs('admin.users.kyc.pending'))
-                                        <a href="{{ route('admin.users.kyc.details', $user->id) }}" target="_blank" class="btn btn-sm btn-outline--dark">
+                                        <a href="{{ route('admin.users.kyc.details', $user->id) }}" target="_blank" class="btn btn-sm btn-outline--dark w-100 text-center">
                                             <i class="las la-user-check"></i>@lang('KYC')
                                         </a>
                                         @endif
-                                        <button class="btn btn-sm btn-outline--danger confirmationBtn" data-action="{{ route('admin.users.delete', $user->id) }}" data-question="@lang('Are you sure you want to delete this user?')">
+                                        <button class="btn btn-sm btn-outline--danger confirmationBtn w-100 text-center" data-action="{{ route('admin.users.delete', $user->id) }}" data-question="@lang('Are you sure you want to delete this user?')">
                                             <i class="las la-trash"></i> @lang('Delete')
                                         </button>
                                     </div>
