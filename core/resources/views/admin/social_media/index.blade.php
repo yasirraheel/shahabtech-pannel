@@ -187,7 +187,8 @@
             var id = $(this).data('id');
             var name = $(this).data('name');
             modal.find('#loadBalancePlatformName').text(name);
-            modal.find('#loadBalanceForm').attr('action', "{{ route('admin.social.media.load.balance', '') }}/" + id);
+            var actionUrl = "{{ route('admin.social.media.load.balance', ':id') }}".replace(':id', id);
+            modal.find('#loadBalanceForm').attr('action', actionUrl);
             modal.modal('show');
         });
     })(jQuery);

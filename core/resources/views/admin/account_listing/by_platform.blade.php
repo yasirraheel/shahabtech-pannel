@@ -213,7 +213,8 @@
             var id = $(this).data('id');
             var title = $(this).data('title');
             modal.find('#duplicateTitle').val(title);
-            modal.find('#duplicateForm').attr('action', "{{ route('admin.account.listing.duplicate', '') }}/" + id);
+            var actionUrl = "{{ route('admin.account.listing.duplicate', ':id') }}".replace(':id', id);
+            modal.find('#duplicateForm').attr('action', actionUrl);
             modal.modal('show');
         });
     })(jQuery);
