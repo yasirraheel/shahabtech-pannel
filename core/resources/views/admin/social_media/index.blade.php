@@ -38,6 +38,11 @@
                                                 <a class="btn btn-sm btn-outline--info" href="{{ route('admin.account.listing.by.platform', $socialMedia->id) }}">
                                                     <i class="las la-key"></i> @lang('Manage Accounts')
                                                 </a>
+                                                <button class="btn btn-outline--success btn-sm loadBalanceBtn"
+                                                    data-id="{{ $socialMedia->id }}"
+                                                    data-name="{{ $socialMedia->name }}">
+                                                    <i class="las la-balance-scale"></i>@lang('Load Balance')
+                                                </button>
                                                 @if ($socialMedia->status == Status::ENABLE)
                                                     <button class="btn btn-outline--warning btn-sm confirmationBtn"
                                                         data-question="@lang('Are you sure to disable this platform?')"
@@ -73,6 +78,51 @@
                         {{ paginateLinks($socialsMedia) }}
                     </div>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- Load Balance Modal --}}
+    <div class="modal fade" id="loadBalanceModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@lang('Automatic Load Balance') - <span id="loadBalancePlatformName"></span></h5>
+                    <button class="close" data-bs-dismiss="modal" type="button" aria-label="Close">
+                        <i class="las la-times"></i>
+                    </button>
+                </div>
+                <form action="" method="POST" id="loadBalanceForm">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            @lang('Select how you want to auto load-balance active accounts for this platform among all active, non-banned users with a valid subscription:')
+                        </p>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="mode" id="modeOverride" value="override_manual" checked>
+                            <label class="form-check-label fw-bold" for="modeOverride">
+                                @lang('1. Force Auto Load Balance (Override Manual Assignments)')
+                            </label>
+                            <small class="text-muted d-block ms-4">
+                                @lang('Re-balances ALL eligible users evenly across active accounts for this platform. Any existing manual account assignments will be replaced.')
+                            </small>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="mode" id="modeKeep" value="keep_manual">
+                            <label class="form-check-label fw-bold" for="modeKeep">
+                                @lang('2. Smart Load Balance (Keep Manual Assignments Intact)')
+                            </label>
+                            <small class="text-muted d-block ms-4">
+                                @lang('Preserves existing manual account assignments for users who have them, and auto load-balances only remaining unassigned users.')
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn--primary w-100 h-45" type="submit">@lang('Execute Load Balance')</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -126,4 +176,20 @@
     <button class="btn btn-sm btn-outline--primary cuModalBtn" data-modal_title="@lang('Add New Platform')">
         <i class="las la-plus"></i>@lang('Add Platform')
     </button>
+@endpush
+
+@push('script')
+<script>
+    (function($){
+        "use strict";
+        $('.loadBalanceBtn').on('click', function () {
+            var modal = $('#loadBalanceModal');
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            modal.find('#loadBalancePlatformName').text(name);
+            modal.find('#loadBalanceForm').attr('action', "{{ route('admin.social.media.load.balance', '') }}/" + id);
+            modal.modal('show');
+        });
+    })(jQuery);
+</script>
 @endpush

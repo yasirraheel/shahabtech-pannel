@@ -187,6 +187,7 @@ Route::middleware('admin')->group(function () {
         Route::post('store/{id?}', 'store')->name('store');
         Route::post('status/{id}', 'status')->name('status');
         Route::post('delete/{id}', 'delete')->name('delete');
+        Route::post('load-balance/{id}', 'loadBalance')->name('load.balance');
         Route::get('add-info/{id}', 'info')->name('info');
         Route::post('info-store/{id}', 'infoStore')->name('info.store');
     });
