@@ -39,26 +39,30 @@
                                                 <i class="las la-stopwatch"></i> {{ $user->onlineTimeFormatted() }}
                                             </span>
                                         </div>
-                                        @if($user->last_seen_ip)
-                                            <div class="text-muted small mt-1 text-start" style="word-break: break-all; text-align: left !important;">
-                                                Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
-                                            </div>
-                                        @endif
-                                        @php
-                                            $assignedAccountsList = $user->assignedAccountListings();
-                                        @endphp
-                                        @if($assignedAccountsList->isNotEmpty())
-                                            <div class="mt-1 text-start" style="text-align: left !important;">
-                                                <span class="text-muted d-block small mb-1">
-                                                    <i class="las la-layer-group"></i> <strong>Assigned Accounts:</strong>
+                                    @else
+                                        <div class="mt-1 text-start">
+                                            <span class="badge badge--secondary">Never Logged In</span>
+                                        </div>
+                                    @endif
+                                    @if($user->last_seen_ip)
+                                        <div class="text-muted small mt-1 text-start" style="word-break: break-all; text-align: left !important;">
+                                            Active IP: <a href="{{route('admin.report.login.ipHistory',[$user->last_seen_ip])}}">{{ $user->last_seen_ip }}</a>
+                                        </div>
+                                    @endif
+                                    @php
+                                        $assignedAccountsList = $user->assignedAccountListings();
+                                    @endphp
+                                    @if($assignedAccountsList->isNotEmpty())
+                                        <div class="mt-1 text-start" style="text-align: left !important;">
+                                            <span class="text-muted d-block small mb-1">
+                                                <i class="las la-layer-group"></i> <strong>Assigned Accounts:</strong>
+                                            </span>
+                                            @foreach($assignedAccountsList as $accItem)
+                                                <span class="badge badge--primary d-inline-block mb-1">
+                                                    {{ __(@$accItem->socialMedia->name) }} - {{ __($accItem->title) }}
                                                 </span>
-                                                @foreach($assignedAccountsList as $accItem)
-                                                    <span class="badge badge--primary d-inline-block mb-1">
-                                                        {{ __(@$accItem->socialMedia->name) }} - {{ __($accItem->title) }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @endif
+                                            @endforeach
+                                        </div>
                                     @endif
                                 </td>
 
