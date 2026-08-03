@@ -26,7 +26,7 @@ class UserController extends Controller
         $pageTitle = 'Dashboard';
         $user      = auth()->user()->load('plan');
 
-        $isAdmin = auth()->guard('admin')->check() || session()->get('is_admin_testing') === true;
+        $isAdmin = auth()->guard('admin')->check() || session()->get('is_admin_testing') === true || (bool) $user->is_tester;
 
         $adminAccounts = null;
         if ($isAdmin) {

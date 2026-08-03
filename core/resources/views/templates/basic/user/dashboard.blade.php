@@ -152,7 +152,7 @@
                             <div class="col-12">
                                 @if(@$isAdmin && !empty($adminAccounts) && $adminAccounts->isNotEmpty())
                                     <div class="mb-3 text-warning">
-                                        <small><i class="las la-shield-alt"></i> <strong>Admin Test Mode:</strong> Showing all active accounts with their original titles for instant testing.</small>
+                                        <small><i class="las la-vial"></i> <strong>Tester Mode:</strong> Showing all active accounts with their original titles for testing.</small>
                                     </div>
                                     @foreach ($adminAccounts as $acc)
                                         @php

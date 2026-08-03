@@ -226,14 +226,18 @@
 
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>@lang('Account Type')</label>
-                                    <div class="d-flex align-items-center mt-2">
-                                        <span class="me-3">@lang('Standard')</span>
+                                    <label>@lang('User Role / Testing Mode')</label>
+                                    <div class="d-flex align-items-center mt-2 flex-wrap gap-4">
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox" id="is_trial" name="is_trial" @if($user->is_trial) checked @endif>
-                                            <label class="form-check-label" for="is_trial">@lang('Trial Period')</label>
+                                            <label class="form-check-label fw-bold" for="is_trial">@lang('Trial Period')</label>
+                                        </div>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="is_tester" name="is_tester" @if($user->is_tester) checked @endif>
+                                            <label class="form-check-label fw-bold text--warning" for="is_tester"><i class="las la-vial me-1"></i> @lang('Tester Account')</label>
                                         </div>
                                     </div>
+                                    <small class="text-muted d-block mt-1">@lang('Tester accounts can see and test all active platform accounts on their frontend dashboard.')</small>
                                 </div>
                             </div>
 

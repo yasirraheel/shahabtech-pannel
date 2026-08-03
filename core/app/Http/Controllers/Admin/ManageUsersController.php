@@ -432,6 +432,7 @@ class ManageUsersController extends Controller
         $user->account_ids = array_values(array_unique($assignedAccountIds));
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
+        $user->is_tester = $request->has('is_tester') ? 1 : 0;
         
         if ($user->is_trial && $request->trial_start_type && $request->trial_duration && $request->trial_unit) {
             $minutes = $request->trial_duration;
