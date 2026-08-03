@@ -150,60 +150,99 @@
                         
                         <div class="row mt-3">
                             <div class="col-12">
-                                @forelse ($platforms as $platform)
-                                    <div class="product-item">
-                                        <div class="product-item__wrapper">
-                                            <div class="product-item__thumb">
-                                                <div style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-                                                    <i class="las la-globe" style="font-size: 3.5rem; color: var(--base-color, #6c63ff);"></i>
+                                @if(@$isAdmin && !empty($adminAccounts) && $adminAccounts->isNotEmpty())
+                                    <div class="mb-3 text-warning">
+                                        <small><i class="las la-shield-alt"></i> <strong>Admin Test Mode:</strong> Showing all active accounts with their original titles for instant testing.</small>
+                                    </div>
+                                    @foreach ($adminAccounts as $acc)
+                                        @php
+                                            $platformObj = $acc->socialMedia;
+                                            $instructions = $platformObj->instructions ?: $acc->instructions;
+                                        @endphp
+                                        <div class="product-item">
+                                            <div class="product-item__wrapper">
+                                                <div class="product-item__thumb">
+                                                    <div style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                                        <i class="las la-globe" style="font-size: 3.5rem; color: var(--base-color, #6c63ff);"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="product-item__content">
+                                                    <h4 class="product-item__title d-flex align-items-center mb-0">
+                                                        <span class="text--base">{{ __($platformObj->name) }} <small class="text-white ms-2">({{ __($acc->title) }})</small></span>
+                                                    </h4>
+                                                    @if($instructions)
+                                                        <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
+                                                            <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                                                            {{ $instructions }}
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             </div>
-                                            <div class="product-item__content">
-                                                <h4 class="product-item__title d-flex align-items-center mb-0">
-                                                    <span class="text--base">{{ __($platform->name) }}</span>
-                                                </h4>
-                                                @php
-                                                    $account = null;
-                                                    if (auth()->user()->plan_id) {
-                                                        $account = $platform->accountListing()->where('plan_id', auth()->user()->plan_id)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
-                                                    } elseif (!empty(auth()->user()->account_ids)) {
-                                                        $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
-                                                    }
-                                                    $instructions = $platform->instructions ?: ($account ? $account->instructions : null);
-                                                @endphp
-                                                @if($instructions)
-                                                    <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
-                                                        <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
-                                                        {{ $instructions }}
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-center flex-wrap flex-shrink-0">
-                                            <div class="product-item__button">
-                                                @if($isExpired)
-                                                    <button type="button" class="btn btn--secondary text-nowrap" disabled style="opacity: 0.6; cursor: not-allowed;">
-                                                        <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
-                                                    </button>
-                                                @else
-                                                    <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $platform->id }}">
+                                            <div class="d-flex align-items-center flex-wrap flex-shrink-0">
+                                                <div class="product-item__button">
+                                                    <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $acc->social_media_id }}" data-account-id="{{ $acc->id }}">
                                                         <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                                     </button>
-                                                @endif
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                @empty
-                                    <div class="text-center py-5">
-                                        <div class="card custom--card">
-                                            <div class="card-body py-5">
-                                                <i class="las la-folder-open mb-3" style="font-size: 3rem; color: #888;"></i>
-                                                <h5 class="text-muted">@lang('You currently do not have access to any platforms.')</h5>
-                                                <p class="text-muted">@lang('Please purchase a plan to unlock premium platforms.')</p>
+                                    @endforeach
+                                @else
+                                    @forelse ($platforms as $platform)
+                                        <div class="product-item">
+                                            <div class="product-item__wrapper">
+                                                <div class="product-item__thumb">
+                                                    <div style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                                        <i class="las la-globe" style="font-size: 3.5rem; color: var(--base-color, #6c63ff);"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="product-item__content">
+                                                    <h4 class="product-item__title d-flex align-items-center mb-0">
+                                                        <span class="text--base">{{ __($platform->name) }}</span>
+                                                    </h4>
+                                                    @php
+                                                        $account = null;
+                                                        if (auth()->user()->plan_id) {
+                                                            $account = $platform->accountListing()->where('plan_id', auth()->user()->plan_id)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                        } elseif (!empty(auth()->user()->account_ids)) {
+                                                            $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                        }
+                                                        $instructions = $platform->instructions ?: ($account ? $account->instructions : null);
+                                                    @endphp
+                                                    @if($instructions)
+                                                        <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
+                                                            <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                                                            {{ $instructions }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center flex-wrap flex-shrink-0">
+                                                <div class="product-item__button">
+                                                    @if($isExpired)
+                                                        <button type="button" class="btn btn--secondary text-nowrap" disabled style="opacity: 0.6; cursor: not-allowed;">
+                                                            <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
+                                                        </button>
+                                                    @else
+                                                        <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $platform->id }}">
+                                                            <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
+                                                        </button>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                @endforelse
+                                    @empty
+                                        <div class="text-center py-5">
+                                            <div class="card custom--card">
+                                                <div class="card-body py-5">
+                                                    <i class="las la-folder-open mb-3" style="font-size: 3rem; color: #888;"></i>
+                                                    <h5 class="text-muted">@lang('You currently do not have access to any platforms.')</h5>
+                                                    <p class="text-muted">@lang('Please purchase a plan to unlock premium platforms.')</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforelse
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -223,6 +262,7 @@
                 let btnText = btn.find('.btn-text');
                 let originalText = btnText.text();
                 let platformId = btn.data('platform-id');
+                let accountId = btn.data('account-id');
                 
                 // Check if extension is installed by looking for the meta tag injected by content.js
                 if ($('meta[name="shahabtech-extension-installed"]').length === 0 && $('meta[name="extension-installed"]').length === 0) {
@@ -233,8 +273,13 @@
                 btn.prop('disabled', true);
                 btnText.text('Loading...');
 
+                let ajaxUrl = '{{ url("api/extension/cookies") }}/' + platformId;
+                if (accountId) {
+                    ajaxUrl += '/' + accountId;
+                }
+
                 $.ajax({
-                    url: '{{ url("api/extension/cookies") }}/' + platformId,
+                    url: ajaxUrl,
                     type: 'GET',
                     success: function(response) {
                         if (response.success) {
