@@ -1,59 +1,19 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const manifestVersion = chrome.runtime.getManifest().version;
-    const SNOOZE_MS = 6 * 60 * 60 * 1000; // 6 Hours in Milliseconds
-
     const ui = {
         loading: document.getElementById('loading-screen'),
         login: document.getElementById('login-screen'),
-        update: document.getElementById('update-screen'),
         dashboard: document.getElementById('dashboard-screen'),
         actionError: document.getElementById('action-error'),
         displayName: document.getElementById('display-name'),
         displayPlan: document.getElementById('display-plan'),
         platformsContainer: document.getElementById('platforms-container'),
-        versionChip: document.getElementById('version-chip'),
-        updateMsg: document.getElementById('update-msg'),
-        updateDownloadBtn: document.getElementById('update-download-btn'),
-        softUpdateDialog: document.getElementById('soft-update-dialog'),
-        softUpdateText: document.getElementById('soft-update-text'),
-        softUpdateBtn: document.getElementById('soft-update-btn'),
-        softSnoozeBtn: document.getElementById('soft-snooze-btn'),
     };
 
-    if (ui.versionChip) {
-        ui.versionChip.textContent = `v${manifestVersion}`;
-    }
-
     const API_URL = 'https://panel.shahabtech.com/api/extension';
-    let currentTabUrl = '';
-    let currentTabId = null;
-
-    // Get active tab details
-    try {
-        const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (activeTab) {
-            currentTabUrl = activeTab.url || '';
-            currentTabId = activeTab.id;
-        }
-    } catch(e) {}
-
-    function isOutdated(installed, required) {
-        if (!required) return false;
-        const p1 = installed.split('.').map(Number);
-        const p2 = required.split('.').map(Number);
-        for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-            const n1 = p1[i] || 0;
-            const n2 = p2[i] || 0;
-            if (n1 < n2) return true;
-            if (n1 > n2) return false;
-        }
-        return false;
-    }
 
     function showScreen(screen) {
         ui.loading.style.display = 'none';
         ui.login.style.display = 'none';
-        ui.update.style.display = 'none';
         ui.dashboard.style.display = 'none';
         if (ui[screen]) ui[screen].style.display = 'block';
     }
@@ -64,83 +24,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => ui.actionError.style.display = 'none', 4000);
     }
 
-    async function evaluateVersionUpdate(data) {
-        if (!data || !data.required_version) return false;
-
-        const isVerOutdated = isOutdated(manifestVersion, data.required_version);
-        if (!isVerOutdated) return false;
-
-        const isStrictForce = !!data.force_update;
-        const downloadUrl = data.download_url || 'https://panel.shahabtech.com/user/dashboard';
-
-        if (isStrictForce) {
-            triggerStrictUpdateScreen(data.required_version, downloadUrl);
-            return true;
-        } else {
-            const res = await new Promise(resolve => chrome.storage.local.get(['wemate_last_snooze_time'], resolve));
-            const lastSnooze = res ? (res.wemate_last_snooze_time || 0) : 0;
-            const now = Date.now();
-
-            if (now - lastSnooze > SNOOZE_MS) {
-                showSoftUpdateDialog(data.required_version, downloadUrl);
-            }
-            return false;
-        }
-    }
-
-    function triggerStrictUpdateScreen(requiredVer, downloadUrl) {
-        ui.updateMsg.textContent = `Your extension (v${manifestVersion}) is outdated. Admin has enabled Strict Force Update. Version ${requiredVer} or higher is required to continue accessing platforms.`;
-        if (downloadUrl && ui.updateDownloadBtn) {
-            ui.updateDownloadBtn.href = downloadUrl;
-        }
-        showScreen('update');
-    }
-
-    function showSoftUpdateDialog(requiredVer, downloadUrl) {
-        if (!ui.softUpdateDialog) return;
-        ui.softUpdateText.textContent = `Extension v${requiredVer} is available. You are currently on v${manifestVersion}. Would you like to update now?`;
-        if (downloadUrl && ui.softUpdateBtn) {
-            ui.softUpdateBtn.href = downloadUrl;
-        }
-        ui.softUpdateDialog.style.display = 'block';
-
-        if (ui.softSnoozeBtn) {
-            ui.softSnoozeBtn.onclick = () => {
-                chrome.storage.local.set({ wemate_last_snooze_time: Date.now() });
-                ui.softUpdateDialog.style.display = 'none';
-            };
-        }
-    }
-
-    async function checkVersion() {
-        try {
-            const res = await fetch(`${API_URL}/version`, {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const isBlocked = await evaluateVersionUpdate(data);
-                if (isBlocked) return false;
-            }
-        } catch (e) {}
-        return true;
-    }
-
+    // Auto-check authentication via browser session cookie
     async function checkAuth() {
-        const isVerValid = await checkVersion();
-        if (!isVerValid) return;
-
         try {
             const res = await fetch(`${API_URL}/me`, {
                 method: 'GET',
                 credentials: 'include',
-                headers: { 
-                    'Accept': 'application/json',
-                    'X-Ext-Version': manifestVersion 
-                }
+                headers: { 'Accept': 'application/json' }
             });
-
+            
             if (res.status === 401 || res.status === 403 || !res.ok) {
                 chrome.runtime.sendMessage({ type: 'WIPE_COOKIES' });
                 showScreen('login');
@@ -155,13 +47,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const data = await res.json();
-            
-            const isBlocked = await evaluateVersionUpdate(data);
-            if (isBlocked) return;
-
             if (data.success && data.user) {
                 ui.displayName.textContent = data.user.name;
-                ui.displayPlan.textContent = data.user.plan ? `Plan: ${data.user.plan.name}` : 'Plan: Direct Access';
+                ui.displayPlan.textContent = data.user.plan ? `Plan: ${data.user.plan.name}` : 'Plan: None';
                 loadPlatforms();
                 showScreen('dashboard');
             } else {
@@ -180,10 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(`${API_URL}/platforms`, {
                 method: 'GET',
                 credentials: 'include',
-                headers: { 
-                    'Accept': 'application/json',
-                    'X-Ext-Version': manifestVersion 
-                }
+                headers: { 'Accept': 'application/json' }
             });
 
             if (!res.ok) throw new Error('Failed to load platforms');
@@ -207,38 +92,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         platforms.forEach(p => {
             const card = document.createElement('div');
             card.className = 'platform-card';
-
-            // Check if user is currently viewing this platform's domain
-            let isCurrentTab = false;
-            if (currentTabUrl) {
-                try {
-                    const u = new URL(currentTabUrl);
-                    const domainClean = p.domain ? p.domain.replace(/^\./, '').toLowerCase() : '';
-                    if (domainClean && (u.hostname.toLowerCase() === domainClean || u.hostname.toLowerCase().endsWith('.' + domainClean))) {
-                        isCurrentTab = true;
-                    }
-                } catch(e) {}
-            }
-
-            const btnText = isCurrentTab ? '⚡ Inject & Reload' : 'Access';
-            const btnClass = isCurrentTab ? 'btn btn-success' : 'btn btn-primary';
-
             card.innerHTML = `
                 <div class="platform-info">
                     <span class="platform-name">${p.name}</span>
                     <span class="platform-domain">${p.domain}</span>
                 </div>
-                <button class="${btnClass}" style="width:auto; padding: 6px 12px; font-size:11px;">${btnText}</button>
+                <button class="btn btn-primary" style="width:auto; padding: 6px 12px; font-size:11px;">Access</button>
             `;
             
             const btn = card.querySelector('button');
-            btn.addEventListener('click', () => injectCookies(p.id, btn, isCurrentTab));
+            btn.addEventListener('click', () => injectCookies(p.id, btn));
             
             ui.platformsContainer.appendChild(card);
         });
     }
 
-    async function injectCookies(platformId, btnElement, isCurrentTab) {
+    async function injectCookies(platformId, btnElement) {
         const originalText = btnElement.textContent;
         btnElement.innerHTML = '<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div>';
         btnElement.disabled = true;
@@ -247,10 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(`${API_URL}/cookies/${platformId}`, {
                 method: 'GET',
                 credentials: 'include',
-                headers: { 
-                    'Accept': 'application/json',
-                    'X-Ext-Version': manifestVersion 
-                }
+                headers: { 'Accept': 'application/json' }
             });
             const data = await res.json();
 
@@ -258,18 +124,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(data.message || 'Failed to fetch access data');
             }
 
-            // Send to background script with current tabId if matching
+            // Send to background script
             chrome.runtime.sendMessage({
                 type: 'INJECT_COOKIES',
                 platform: data.platform,
-                cookies: data.cookies,
-                targetTabId: isCurrentTab ? currentTabId : null
+                cookies: data.cookies
             }, (response) => {
                 if (response && response.success) {
-                    btnElement.textContent = isCurrentTab ? 'Reloading...' : 'Opened!';
-                    btnElement.style.background = '#00e676';
-                    btnElement.style.borderColor = '#00e676';
-                    btnElement.style.color = '#000000';
+                    btnElement.textContent = 'Opened!';
+                    btnElement.style.background = '#10b981'; // Green
+                    btnElement.style.borderColor = '#10b981';
                 } else {
                     throw new Error(response ? response.error : 'Injection failed');
                 }
@@ -279,7 +143,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btnElement.disabled = false;
                     btnElement.style.background = '';
                     btnElement.style.borderColor = '';
-                    btnElement.style.color = '';
                 }, 3000);
             });
         } catch (err) {

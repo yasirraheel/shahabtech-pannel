@@ -18,18 +18,6 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
     }
 
     if (matchedPlatform) {
-        // --- 0. Auto-Inject LocalStorage Data if present ---
-        if (matchedPlatform.localStorageData && typeof matchedPlatform.localStorageData === 'object') {
-            try {
-                for (let [k, v] of Object.entries(matchedPlatform.localStorageData)) {
-                    const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v);
-                    if (window.localStorage.getItem(k) !== valStr) {
-                        window.localStorage.setItem(k, valStr);
-                    }
-                }
-            } catch(e) {}
-        }
-
         // --- 1. Prevent top-level navigation to unauthorized paths or logout URLs ---
         if (window.top === window) {
             const currentUrl = window.location.href.toLowerCase();
@@ -88,84 +76,61 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
         `;
         document.documentElement.appendChild(style);
 
+        // --- 3. Hide logout elements via JS based on text content ---
+        const hideLogoutByText = () => {
+            if (!document.body) return;
+            const walkers = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walkers.nextNode()) {
+                const text = (node.nodeValue || '').toLowerCase();
+                if (text.includes('sign out') || text.includes('log out') || text.includes('logout') || text.includes('signout')) {
+                    // Hide the closest clickable parent (button, a, or the parent element)
+                    const parent = node.parentElement;
+                    if (parent) {
+                        const clickable = parent.closest('button, a, [role="button"], [role="menuitem"], li, .btn, div');
+                        if (clickable) {
+                            clickable.style.setProperty('display', 'none', 'important');
+                        } else {
+                            parent.style.setProperty('display', 'none', 'important');
+                        }
+                    }
+                }
+            }
 
-            // Dynamic ChatGPT Chat History Isolation (Smooth CSS-driven multi-chat isolation)
+            // Also forcefully disable Gemini footer
+            const footerRows = document.querySelectorAll('.mavatar-footer-row, .mavatar-footer-left');
+            footerRows.forEach(row => {
+                row.style.setProperty('cursor', 'not-allowed', 'important');
+                row.querySelectorAll('a').forEach(link => {
+                    link.removeAttribute('href');
+                    link.style.setProperty('pointer-events', 'none', 'important');
+                    link.style.setProperty('cursor', 'not-allowed', 'important');
+                });
+                row.querySelectorAll('button, [role="button"]').forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.setProperty('pointer-events', 'none', 'important');
+                    btn.style.setProperty('cursor', 'not-allowed', 'important');
+                });
+            });
+
+            // Dynamic ChatGPT Chat History Isolation (Show owned chats, hide unowned chats)
             if (currentHost.includes('chatgpt.com') || currentHost.includes('openai.com')) {
                 let ownedChats = [];
-                let styleTag = document.getElementById('wemate-chat-filter-style');
 
-                const HIDE_ALL_CHATS_CSS = `
-                    nav li:has(a[href*="/c/"]),
-                    nav li:has(a[href*="/g/"]),
-                    nav div:has(> a[href*="/c/"]),
-                    nav div:has(> a[href*="/g/"]),
-                    nav a[href*="/c/"],
-                    nav a[href*="/g/"] {
-                        display: none !important;
-                    }
-                `;
-
-                if (!styleTag) {
-                    styleTag = document.createElement('style');
-                    styleTag.id = 'wemate-chat-filter-style';
-                    styleTag.textContent = HIDE_ALL_CHATS_CSS;
-                    (document.head || document.documentElement).appendChild(styleTag);
-                }
-
-                const updateStyleRules = () => {
-                    if (!styleTag) return;
-
-                    const containerSelectors = [];
-                    const anchorSelectors = [];
-
-                    if (Array.isArray(ownedChats)) {
-                        ownedChats.forEach(id => {
-                            if (id && typeof id === 'string') {
-                                containerSelectors.push(`nav li:has(a[href*="/c/${id}"])`);
-                                containerSelectors.push(`nav li:has(a[href*="/g/${id}"])`);
-                                containerSelectors.push(`nav div:has(> a[href*="/c/${id}"])`);
-                                containerSelectors.push(`nav div:has(> a[href*="/g/${id}"])`);
-
-                                anchorSelectors.push(`nav a[href*="/c/${id}"]`);
-                                anchorSelectors.push(`nav a[href*="/g/${id}"]`);
-                            }
-                        });
-                    }
-
-                    let css = HIDE_ALL_CHATS_CSS;
-
-                    if (containerSelectors.length > 0) {
-                        css += `
-                            ${containerSelectors.join(',\n')} {
-                                display: block !important;
-                                visibility: visible !important;
-                                opacity: 1 !important;
-                                pointer-events: auto !important;
-                            }
-                        `;
-                    }
-
-                    if (anchorSelectors.length > 0) {
-                        css += `
-                            ${anchorSelectors.join(',\n')} {
-                                display: flex !important;
-                                visibility: visible !important;
-                                opacity: 1 !important;
-                                pointer-events: auto !important;
-                            }
-                        `;
-                    }
-
-                    styleTag.textContent = css;
-                };
+                try {
+                    chrome.storage.local.get(['wemate_owned_chats'], (res) => {
+                        if (res && Array.isArray(res.wemate_owned_chats)) {
+                            ownedChats = res.wemate_owned_chats;
+                        }
+                    });
+                } catch(e) {}
 
                 const captureCurrentChat = () => {
-                    const match = window.location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/) || window.location.href.match(/\/c\/([a-zA-Z0-9-]+)/);
+                    const match = window.location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/);
                     if (match && match[1]) {
                         const chatId = match[1];
                         if (!ownedChats.includes(chatId)) {
                             ownedChats.push(chatId);
-                            updateStyleRules();
                             try {
                                 chrome.storage.local.set({ wemate_owned_chats: ownedChats });
                             } catch(e) {}
@@ -173,44 +138,44 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     }
                 };
 
-                const loadOwnedChats = () => {
-                    try {
-                        chrome.storage.local.get(['wemate_owned_chats'], (res) => {
-                            if (res && Array.isArray(res.wemate_owned_chats)) {
-                                ownedChats = res.wemate_owned_chats;
+                const filterChatGPTChats = () => {
+                    captureCurrentChat();
+
+                    const chatLinks = document.querySelectorAll('a[href*="/c/"], [data-testid="history-item"]');
+                    chatLinks.forEach(el => {
+                        const href = el.getAttribute('href') || el.querySelector('a')?.getAttribute('href') || '';
+                        const match = href.match(/\/c\/([a-zA-Z0-9-]+)/);
+                        if (match && match[1]) {
+                            const chatId = match[1];
+                            const container = el.closest('li') || el;
+                            if (ownedChats.includes(chatId)) {
+                                el.style.setProperty('display', 'flex', 'important');
+                                el.style.setProperty('visibility', 'visible', 'important');
+                                el.style.setProperty('opacity', '1', 'important');
+                                el.style.setProperty('height', 'auto', 'important');
+                                el.style.setProperty('pointer-events', 'auto', 'important');
+                                if (container && container !== el) {
+                                    container.style.setProperty('display', 'block', 'important');
+                                    container.style.setProperty('visibility', 'visible', 'important');
+                                }
+                            } else {
+                                el.style.setProperty('display', 'none', 'important');
+                                el.style.setProperty('visibility', 'hidden', 'important');
+                                el.style.setProperty('opacity', '0', 'important');
+                                el.style.setProperty('height', '0', 'important');
+                                el.style.setProperty('pointer-events', 'none', 'important');
+                                if (container && container !== el) {
+                                    container.style.setProperty('display', 'none', 'important');
+                                }
                             }
-                            captureCurrentChat();
-                            updateStyleRules();
-                        });
-                    } catch(e) {}
-                };
-
-                loadOwnedChats();
-
-                // Listen for chrome storage changes (e.g. across tabs/windows)
-                try {
-                    chrome.storage.onChanged.addListener((changes, area) => {
-                        if (area === 'local' && changes.wemate_owned_chats) {
-                            ownedChats = changes.wemate_owned_chats.newValue || [];
-                            updateStyleRules();
                         }
                     });
-                } catch(e) {}
+                };
 
-                // Intercept SPA navigation (pushState, replaceState, popstate)
-                const origPushState = history.pushState;
-                const origReplaceState = history.replaceState;
-                history.pushState = function() {
-                    origPushState.apply(this, arguments);
-                    captureCurrentChat();
-                };
-                history.replaceState = function() {
-                    origReplaceState.apply(this, arguments);
-                    captureCurrentChat();
-                };
-                window.addEventListener('popstate', captureCurrentChat);
-                window.addEventListener('click', () => setTimeout(captureCurrentChat, 300));
+                filterChatGPTChats();
+                setInterval(filterChatGPTChats, 800);
             }
+        };
 
         // --- DOM Destroyer for Cookie Editor Extensions ---
         const destroyCookieEditors = () => {
@@ -313,19 +278,25 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
         };
 
         const runProtections = () => {
+            hideLogoutByText();
             destroyCookieEditors();
             hideOtherProjects();
             trackNewProjects();
         };
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', runProtections);
+        // Run initially, on mutations, and periodically just in case (for SPAs)
+        if (document.body) runProtections();
+        else document.addEventListener('DOMContentLoaded', runProtections);
+        
+        const observer = new MutationObserver(runProtections);
+        if (document.body) {
+            observer.observe(document.body, { childList: true, subtree: true, characterData: true });
         } else {
-            runProtections();
+            document.addEventListener('DOMContentLoaded', () => {
+                observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+            });
         }
-
-        // Debounced light check for SPA route updates
-        window.addEventListener('click', () => setTimeout(runProtections, 500));
+        setInterval(runProtections, 1000);
 
         // --- 4. Prevent clicks on things that say "logout" ---
         document.addEventListener('click', (e) => {

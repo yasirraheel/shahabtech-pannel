@@ -10,49 +10,36 @@
       background: #0d1117;
       color: #f0f6fc;
       width: 320px;
-      min-height: 260px;
+      min-height: 250px;
     }
     .header {
-      padding: 12px 16px;
+      padding: 14px 16px;
       background: #161b22;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex; align-items: center; justify-content: space-between;
     }
     .brand-wrap { display: flex; align-items: center; gap: 10px; }
     .brand-logo {
-      width: 32px; height: 32px; border-radius: 50%;
+      width: 34px; height: 34px; border-radius: 50%;
       background: #0d6efd; display: flex; align-items: center; justify-content: center;
-      font-size: 16px; overflow: hidden; flex-shrink: 0;
+      font-size: 18px; overflow: hidden; flex-shrink: 0;
       box-shadow: 0 0 10px rgba(13, 110, 253, 0.4);
     }
     .brand-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
     .brand-text-wrap { display: flex; flex-direction: column; }
-    .brand-name { font-size: 14px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px; }
+    .brand-name { font-size: 15px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px; }
     .brand-sub { font-size: 10px; color: #00e676; font-weight: 600; margin-top: 1px; }
-
-    .version-chip {
-      background: rgba(13, 110, 253, 0.15);
-      border: 1px solid rgba(13, 110, 253, 0.35);
-      color: #60a5fa;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 12px;
-      letter-spacing: 0.5px;
-    }
-
     .content { padding: 14px 16px; }
     
     .btn {
-      width: 100%; padding: 10px; border-radius: 8px; border: none;
-      font-size: 12px; font-weight: 600; cursor: pointer;
+      width: 100%; padding: 11px; border-radius: 8px; border: none;
+      font-size: 13px; font-weight: 600; cursor: pointer;
       transition: all 0.15s; font-family: inherit;
       display: flex; justify-content: center; align-items: center; gap: 6px;
-      text-decoration: none;
     }
     .btn-primary {
       background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-      color: #fff; border: 1px solid rgba(13, 110, 253, 0.4);
+      color: #fff; border: 1px solid rgba(13, 110, 253, 0.4); text-decoration: none;
       box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
     }
     .btn-primary:hover {
@@ -60,23 +47,13 @@
       color: #ffffff;
       box-shadow: 0 4px 14px rgba(0, 230, 118, 0.35);
     }
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.06);
-      color: #c9d1d9; border: 1px solid rgba(255, 255, 255, 0.12);
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 6px 10px; font-size: 11px; width: auto;
     }
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
-    }
-    .btn-warning {
-      background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-      color: #ffffff; border: 1px solid #f97316;
-      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
-    }
-    .btn-warning:hover {
-      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-    }
-
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
     .error {
       background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3);
       border-radius: 8px; padding: 9px 11px; font-size: 12px;
@@ -86,7 +63,7 @@
     .user-info-card {
       display: flex; justify-content: space-between; align-items: center;
       background: #161b22; border: 1px solid rgba(13, 110, 253, 0.25);
-      border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;
+      border-radius: 10px; padding: 12px; margin-bottom: 16px;
     }
     .user-info-text { display: flex; flex-direction: column; gap: 2px; }
     .user-name { font-size: 13px; font-weight: 700; color: #ffffff; }
@@ -109,10 +86,10 @@
       border-radius: 50%; animation: spin 0.6s linear infinite;
     }
     
-    .not-connected-header { text-align: center; padding: 15px 0 10px; }
-    .lock-emoji { font-size: 34px; margin-bottom: 8px; }
-    .not-connected-header h3 { font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 6px; }
-    .not-connected-header p { font-size: 12px; color: #8b949e; line-height: 1.4; padding: 0 10px; margin-bottom: 14px;}
+    .not-connected-header { text-align: center; padding: 20px 0 10px; }
+    .lock-emoji { font-size: 36px; margin-bottom: 10px; }
+    .not-connected-header h3 { font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 6px; }
+    .not-connected-header p { font-size: 12px; color: #8b949e; line-height: 1.5; padding: 0 10px; margin-bottom: 15px;}
     
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
@@ -126,7 +103,6 @@
         <span class="brand-sub">Premium Access</span>
       </div>
     </div>
-    <span class="version-chip" id="version-chip">v1.9.6</span>
   </div>
 
   <!-- Loading State -->
@@ -139,21 +115,8 @@
     <div class="not-connected-header">
       <div class="lock-emoji">🔐</div>
       <h3>Not Connected</h3>
-      <p>Please log into your WeMate Panel account to access platforms.</p>
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <a href="https://panel.shahabtech.com/user/login" target="_blank" class="btn btn-primary">Login to WeMate Panel</a>
-        <a href="https://panel.shahabtech.com/user/dashboard" target="_blank" class="btn btn-secondary">Open Dashboard</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Force Update Required Screen -->
-  <div id="update-screen" class="content" style="display:none;">
-    <div class="not-connected-header">
-      <div class="lock-emoji">🚨</div>
-      <h3 style="color:#f97316;">Update Required</h3>
-      <p id="update-msg">Your extension is outdated. Please update to the latest version to continue accessing platforms.</p>
-      <a id="update-download-btn" href="https://panel.shahabtech.com/user/dashboard" target="_blank" class="btn btn-warning">⬇️ Download Extension Update</a>
+      <p>Please log into your WeMate Panel to access your platforms.</p>
+      <a href="https://panel.shahabtech.com/user/dashboard" target="_blank" class="btn btn-primary">Open WeMate Dashboard</a>
     </div>
   </div>
 
@@ -161,24 +124,11 @@
   <div id="dashboard-screen" class="content" style="display:none;">
     <div id="action-error" class="error" style="display:none"></div>
     
-    <!-- Soft 6-Hour Update Reminder Dialog -->
-    <div id="soft-update-dialog" style="display:none; background:#161b22; border:1px solid rgba(249, 115, 22, 0.4); border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:12px; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);">
-      <div style="font-weight:700; color:#f97316; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-        <span>🔔 Extension Update Available</span>
-      </div>
-      <p id="soft-update-text" style="color:#8b949e; font-size:11px; margin-bottom:8px; line-height:1.4;">An update is available for your extension. Would you like to update now?</p>
-      <div style="display:flex; gap:8px;">
-        <a id="soft-update-btn" href="#" target="_blank" class="btn btn-warning" style="padding:6px 10px; font-size:11px; width:auto; flex:1;">Update Now</a>
-        <button id="soft-snooze-btn" class="btn btn-secondary" style="padding:6px 10px; font-size:11px; width:auto; flex:1;">Snooze (6h)</button>
-      </div>
-    </div>
-
     <div class="user-info-card">
       <div class="user-info-text">
         <span class="user-name" id="display-name">Loading...</span>
         <span class="user-plan" id="display-plan">Plan: Loading...</span>
       </div>
-      <a href="https://panel.shahabtech.com/user/dashboard" target="_blank" class="btn btn-secondary" style="width:auto; padding: 5px 10px; font-size:11px;">Dashboard ↗</a>
     </div>
     
     <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Available Platforms</div>

@@ -6,54 +6,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.type === 'INJECT_COOKIES') {
-        handleCookieInjection(request.platform, request.cookies, request.targetTabId)
+        handleCookieInjection(request.platform, request.cookies)
             .then(() => sendResponse({ success: true }))
             .catch((err) => sendResponse({ success: false, error: err.message }));
         return true; // Keep message channel open for async
-    }
-
-    if (request.type === 'REINJECT_PLATFORM_COOKIES') {
-        reinjectDomainCookies(request.domain, sender.tab ? sender.tab.id : null);
-        sendResponse({ success: true });
-        return true;
     }
 });
 
 const API_URL = 'https://panel.shahabtech.com/api/extension';
 
-// Set up periodic alarm to refresh cookie TTL and prevent expiration
+// Set up periodic alarm to check subscription status
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create('cookieTTLAlarm', { periodInMinutes: 2 });
+    chrome.alarms.create('checkAuthAlarm', { periodInMinutes: 5 });
+    chrome.alarms.create('cookieTTLAlarm', { periodInMinutes: 1 });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'cookieTTLAlarm') {
+    if (alarm.name === 'checkAuthAlarm') {
+        verifyAuthAndWipeIfInvalid();
+    } else if (alarm.name === 'cookieTTLAlarm') {
         refreshCookieTTL();
     }
 });
 
-// Watch cookie changes to prevent unauthorized cookie deletion or expiration
-let isReinjectingCookies = false;
-chrome.cookies.onChanged.addListener((changeInfo) => {
-    if (changeInfo.removed && changeInfo.cause === 'explicit' && !isReinjectingCookies) {
-        const domain = (changeInfo.cookie.domain || '').replace(/^\./, '');
-        chrome.storage.local.get(['injectedDomains'], (result) => {
-            let domains = result.injectedDomains || [];
-            let matched = domains.find(d => {
-                let dStr = typeof d === 'string' ? d : d.domain;
-                return dStr && (domain === dStr || domain.endsWith('.' + dStr) || dStr.endsWith('.' + domain));
-            });
-            if (matched && matched.savedCookies) {
-                isReinjectingCookies = true;
-                autoInjectCookies(null, matched).then(() => {
-                    setTimeout(() => { isReinjectingCookies = false; }, 2000);
-                }).catch(() => {
-                    isReinjectingCookies = false;
-                });
-            }
-        });
-    }
-});
+// Do NOT check immediately on startup to avoid racing with INJECT_COOKIES
+// verifyAuthAndWipeIfInvalid();
 
 async function verifyAuthAndWipeIfInvalid() {
     try {
@@ -71,10 +48,12 @@ async function verifyAuthAndWipeIfInvalid() {
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 const data = await res.json();
-                if (!data.success || !data.user) {
+                // We only wipe if the API explicitly says success:false
+                if (!data.success || !data.user || !data.user.plan) {
                     shouldWipe = true;
                 }
             }
+            // If it returned HTML, do NOT wipe (could be Cloudflare challenge or transient server issue)
         }
 
         if (shouldWipe) {
@@ -95,101 +74,31 @@ function wipeAllInjectedCookies() {
             await clearCookiesForDomain("https://" + domainStr, domainStr);
             await clearCookiesForDomain("http://" + domainStr, domainStr);
         }
+        // Clear saved domains
         chrome.storage.local.set({ injectedDomains: [] });
         console.log("WeMate: Wiped cookies for expired/unauthorized session.");
     });
 }
 
-const ONE_YEAR_SEC = 365 * 24 * 60 * 60;
-
-function setSingleCookie(cookie, platformUrl, fallbackDomain) {
-    return new Promise((resolve) => {
-        let activeDomain = cookie.domain || fallbackDomain;
-        let cleanDomainForUrl = activeDomain ? activeDomain.replace(/^\./, '') : '';
-        
-        let baseUrl = platformUrl || ("https://" + (cleanDomainForUrl || fallbackDomain));
-        let dynamicUrl = baseUrl;
-        try {
-            let u = new URL(baseUrl);
-            dynamicUrl = u.origin + (cookie.path || '/');
-        } catch(e) {}
-
-        let cookieDetails = {
-            url: dynamicUrl,
-            name: cookie.name,
-            value: cookie.value !== undefined && cookie.value !== null ? String(cookie.value) : '',
-            domain: activeDomain,
-            path: cookie.path || '/',
-            secure: cookie.secure !== undefined ? cookie.secure : true,
-            httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false,
-            expirationDate: (Date.now() / 1000) + ONE_YEAR_SEC // 1 Year Persistent
-        };
-
-        if (cookie.sameSite) {
-            const s = String(cookie.sameSite).toLowerCase();
-            if (s === 'no_restriction' || s === 'none') {
-                cookieDetails.sameSite = 'no_restriction';
-                cookieDetails.secure = true;
-            } else if (s === 'lax') {
-                cookieDetails.sameSite = 'lax';
-            } else if (s === 'strict') {
-                cookieDetails.sameSite = 'strict';
-            }
-        }
-
-        if (cookie.name.startsWith('__Host-') || cookie.hostOnly === true) {
-            delete cookieDetails.domain;
-            if (cookie.name.startsWith('__Host-')) {
-                cookieDetails.path = '/';
-                cookieDetails.secure = true;
-            }
-        } else if (cookie.name.startsWith('__Secure-')) {
-            cookieDetails.secure = true;
-        }
-
-        delete cookieDetails.hostOnly;
-        delete cookieDetails.session;
-        delete cookieDetails.storeId;
-
-        chrome.cookies.set(cookieDetails, (setCookie) => {
-            if (chrome.runtime.lastError) {
-                delete cookieDetails.domain;
-                chrome.cookies.set(cookieDetails, () => resolve());
-            } else {
-                resolve();
-            }
-        });
-    });
-}
-
-async function handleCookieInjection(platform, cookiesDataInput, targetTabId) {
+async function handleCookieInjection(platform, cookiesToInject) {
     try {
-        if (!platform || !cookiesDataInput) throw new Error('Invalid platform or cookies data.');
+        if (!platform || !cookiesToInject) throw new Error('Invalid platform or cookies data.');
         
-        let parsedData = cookiesDataInput;
-        if (typeof parsedData === 'string') {
-            try { parsedData = JSON.parse(parsedData); } catch(e) {}
+        if (typeof cookiesToInject === 'string') {
+            try { cookiesToInject = JSON.parse(cookiesToInject); } catch(e) {}
+        }
+        if (!Array.isArray(cookiesToInject) || cookiesToInject.length === 0) {
+            throw new Error('No valid cookies found for this account.');
         }
 
-        let cookiesToInject = [];
-        let localStorageData = null;
+        const targetUrl = new URL(platform.url).origin;
 
-        if (Array.isArray(parsedData)) {
-            cookiesToInject = parsedData;
-        } else if (parsedData && typeof parsedData === 'object') {
-            cookiesToInject = parsedData.cookies || [];
-            localStorageData = parsedData.localStorage || parsedData.local_storage || null;
-        }
-
-        if (!Array.isArray(cookiesToInject) || (cookiesToInject.length === 0 && !localStorageData)) {
-            throw new Error('No valid cookies or localStorage found for this account.');
-        }
-
-        // Save domain, cookies & localStorage for continuous auto-reinjection and locking
+        // Save domain for future auto-wipes and protection locking
         chrome.storage.local.get(['injectedDomains'], (result) => {
             let domains = result.injectedDomains || [];
-            let domainToSave = platform.domain.replace(/^\./, '');
+            let domainToSave = platform.domain.replace(/^\./, ''); // remove leading dot if any
             
+            // Remove existing entry for this domain to update it
             domains = domains.filter(d => {
                 const dStr = typeof d === 'string' ? d : d.domain;
                 return dStr !== domainToSave;
@@ -198,22 +107,57 @@ async function handleCookieInjection(platform, cookiesDataInput, targetTabId) {
             domains.push({
                 domain: domainToSave,
                 url: platform.url,
-                savedCookies: cookiesToInject,
-                localStorageData: localStorageData
+                savedCookies: cookiesToInject // Save raw cookies for auto-injection
             });
             chrome.storage.local.set({ injectedDomains: domains });
         });
 
-        // Inject cookies with persistent 1-Year expiration and URL alignment
+        // Commented out to prevent wiping other platform sessions that share the same base domain (e.g. google.com)
+        // await clearCookiesForDomain(targetUrl, platform.domain);
+
+        // Inject new cookies
         for (const cookie of cookiesToInject) {
-            await setSingleCookie(cookie, platform.url, platform.domain);
+            let activeDomain = cookie.domain || platform.domain;
+            let cleanDomainForUrl = activeDomain.replace(/^\./, '');
+            let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+
+            let cookieDetails = {
+                url: dynamicUrl,
+                name: cookie.name,
+                value: cookie.value || '',
+                domain: activeDomain,
+                path: cookie.path || '/',
+                secure: cookie.secure !== undefined ? cookie.secure : true,
+                httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false
+            };
+            
+            if (cookie.expirationDate) cookieDetails.expirationDate = cookie.expirationDate;
+            else if (cookie.expires) cookieDetails.expirationDate = new Date(cookie.expires).getTime() / 1000;
+            else cookieDetails.expirationDate = (Date.now() / 1000) + (365 * 24 * 60 * 60); 
+
+            // Handle strict cookie prefixes
+            if (cookie.name.startsWith('__Host-')) {
+                delete cookieDetails.domain;
+                cookieDetails.path = '/';
+                cookieDetails.secure = true;
+            } else if (cookie.name.startsWith('__Secure-')) {
+                cookieDetails.secure = true;
+            }
+
+            delete cookieDetails.hostOnly;
+            delete cookieDetails.session;
+
+            await new Promise((resolve) => {
+                chrome.cookies.set(cookieDetails, (setCookie) => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('Failed to set cookie', cookieDetails.name, chrome.runtime.lastError.message);
+                    }
+                    resolve();
+                });
+            });
         }
 
-        if (targetTabId) {
-            chrome.tabs.reload(targetTabId);
-        } else {
-            chrome.tabs.create({ url: platform.url });
-        }
+        chrome.tabs.create({ url: platform.url });
     } catch (error) {
         throw error;
     }
@@ -231,6 +175,9 @@ function clearCookiesForDomain(url, domainStr) {
                 const cleanDomain = cookie.domain.replace(/^\./, '');
                 const cookieUrl = "http" + (cookie.secure ? "s" : "") + "://" + cleanDomain + cookie.path;
                 chrome.cookies.remove({ url: cookieUrl, name: cookie.name }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('Failed to remove cookie', cookie.name, chrome.runtime.lastError);
+                    }
                     pending--;
                     if (pending === 0) resolve();
                 });
@@ -244,20 +191,51 @@ function refreshCookieTTL() {
         let domains = result.injectedDomains || [];
         if (domains.length === 0) return;
 
+        // Set expiration to 10 minutes from now
+        let newExpirationDate = (Date.now() / 1000) + (10 * 60);
+
         domains.forEach(item => {
             let domainStr = typeof item === 'string' ? item : item.domain;
-            let platformUrl = item.url || ("https://" + domainStr);
             chrome.cookies.getAll({ domain: domainStr }, (cookies) => {
                 if (!cookies) return;
                 cookies.forEach(cookie => {
-                    setSingleCookie(cookie, platformUrl, domainStr);
+                    if (cookie.session) return; // Skip session cookies
+                    
+                    let cleanDomainForUrl = cookie.domain.replace(/^\./, '');
+                    let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+
+                    let cookieDetails = {
+                        url: dynamicUrl,
+                        name: cookie.name,
+                        value: cookie.value || '',
+                        domain: cookie.domain,
+                        path: cookie.path || '/',
+                        secure: cookie.secure !== undefined ? cookie.secure : true,
+                        httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false,
+                        expirationDate: newExpirationDate
+                    };
+
+                    // Handle strict cookie prefixes
+                    if (cookie.name.startsWith('__Host-')) {
+                        delete cookieDetails.domain;
+                        cookieDetails.path = '/';
+                        cookieDetails.secure = true;
+                    } else if (cookie.name.startsWith('__Secure-')) {
+                        cookieDetails.secure = true;
+                    }
+
+                    chrome.cookies.set(cookieDetails, () => {
+                        if (chrome.runtime.lastError) {
+                            // Ignore specific errors silently to avoid console spam
+                        }
+                    });
                 });
             });
         });
     });
 }
 
-// Auto-Reinjection mechanism for ChatGPT, Google Flow, HeyGen, and all platforms
+// Auto-Reinjection mechanism (like Bunnyflow)
 const autoInjectedTabs = new Map();
 
 function shouldAutoInject(url, domains) {
@@ -275,33 +253,44 @@ function shouldAutoInject(url, domains) {
     return null;
 }
 
-function reinjectDomainCookies(targetDomainStr, tabId) {
-    chrome.storage.local.get(['injectedDomains'], (result) => {
-        let domains = result.injectedDomains || [];
-        let matched = domains.find(d => {
-            let dStr = typeof d === 'string' ? d : d.domain;
-            return dStr && (dStr.includes(targetDomainStr) || targetDomainStr.includes(dStr));
-        });
-        if (matched) {
-            autoInjectCookies(tabId, matched);
-        }
-    });
-}
-
-async function autoInjectCookies(tabId, matchedDomainObj) {
+function autoInjectCookies(tabId, matchedDomainObj) {
     if (!matchedDomainObj || !matchedDomainObj.savedCookies) return;
     
-    if (tabId) {
-        const last = autoInjectedTabs.get(tabId);
-        const now = Date.now();
-        if (last && (now - last) < 2000) return;
-        autoInjectedTabs.set(tabId, now);
-    }
+    // Prevent spamming injections on the same tab
+    const last = autoInjectedTabs.get(tabId);
+    const now = Date.now();
+    if (last && (now - last) < 2000) return;
+    autoInjectedTabs.set(tabId, now);
 
     let cookiesToInject = matchedDomainObj.savedCookies;
-    let platformUrl = matchedDomainObj.url || ("https://" + matchedDomainObj.domain);
+    
     for (const cookie of cookiesToInject) {
-        await setSingleCookie(cookie, platformUrl, matchedDomainObj.domain);
+        let activeDomain = cookie.domain || matchedDomainObj.domain;
+        let cleanDomainForUrl = activeDomain.replace(/^\./, '');
+        let dynamicUrl = "http" + (cookie.secure !== false ? "s" : "") + "://" + cleanDomainForUrl + (cookie.path || '/');
+
+        let cookieDetails = {
+            url: dynamicUrl,
+            name: cookie.name,
+            value: cookie.value || '',
+            domain: activeDomain,
+            path: cookie.path || '/',
+            secure: cookie.secure !== undefined ? cookie.secure : true,
+            httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : false
+        };
+        
+        // Always set a fresh 10 minute expiration if we are auto-injecting
+        cookieDetails.expirationDate = (Date.now() / 1000) + (10 * 60);
+
+        if (cookie.name.startsWith('__Host-')) {
+            delete cookieDetails.domain;
+            cookieDetails.path = '/';
+            cookieDetails.secure = true;
+        } else if (cookie.name.startsWith('__Secure-')) {
+            cookieDetails.secure = true;
+        }
+
+        chrome.cookies.set(cookieDetails, () => {});
     }
 }
 

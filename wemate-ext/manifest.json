@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WeMate",
-  "version": "1.9.9",
+  "version": "2.0.0",
   "description": "Access your premium accounts through WeMate.",
   "permissions": [
     "cookies",
@@ -37,13 +37,13 @@
       "matches": ["<all_urls>"],
       "js": ["protector.js", "watchdog.js"],
       "run_at": "document_start",
-      "all_frames": false
+      "all_frames": true
     },
     {
       "matches": ["<all_urls>"],
       "js": ["hijack.js"],
       "run_at": "document_start",
-      "all_frames": false,
+      "all_frames": true,
       "world": "MAIN"
     }
   ],
