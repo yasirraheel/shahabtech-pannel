@@ -105,6 +105,7 @@ class LoginController extends Controller
 
     public function authenticated(Request $request, $user)
     {
+        session()->forget('is_admin_testing');
         // Logout other devices
         \Illuminate\Support\Facades\Auth::logoutOtherDevices($request->password);
 

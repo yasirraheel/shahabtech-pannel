@@ -76,7 +76,7 @@ class ExtensionController extends Controller
     public function getCookies(Request $request, $platformId, $accountId = null)
     {
         $user = $request->user();
-        $isAdmin = auth()->guard('admin')->check() || $user->id == 1 || str_contains(strtolower($user->email), 'shahabtech.com') || str_contains(strtolower($user->username), 'admin');
+        $isAdmin = auth()->guard('admin')->check() || session()->get('is_admin_testing') === true;
 
         if (!$isAdmin && !$user->plan_id && empty($user->account_ids)) {
             return response()->json(['success' => false, 'message' => 'No active plan or accounts'], 403);

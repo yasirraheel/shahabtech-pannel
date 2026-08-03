@@ -26,7 +26,7 @@ class UserController extends Controller
         $pageTitle = 'Dashboard';
         $user      = auth()->user()->load('plan');
 
-        $isAdmin = auth()->guard('admin')->check() || $user->id == 1 || str_contains(strtolower($user->email), 'shahabtech.com') || str_contains(strtolower($user->username), 'admin');
+        $isAdmin = auth()->guard('admin')->check() || session()->get('is_admin_testing') === true;
 
         $adminAccounts = null;
         if ($isAdmin) {

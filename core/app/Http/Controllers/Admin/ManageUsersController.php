@@ -547,7 +547,11 @@ class ManageUsersController extends Controller
     }
 
     public function login($id){
+        $adminId = auth()->guard('admin')->id();
         Auth::loginUsingId($id);
+        if ($adminId) {
+            session(['is_admin_testing' => true, 'admin_id' => $adminId]);
+        }
         return to_route('user.home');
     }
 
