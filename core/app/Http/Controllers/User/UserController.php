@@ -26,9 +26,15 @@ class UserController extends Controller
         $pageTitle = 'Dashboard';
         $user      = auth()->user()->load('plan');
 
-        // Platforms the user can access via their plan or specific account
+        $isAdmin = auth()->guard('admin')->check() || $user->id == 1;
+
+        // Platforms the user can access via their plan, specific accounts, or admin mode
         $platforms = [];
-        if ($user->plan_id) {
+        if ($isAdmin) {
+            $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) {
+                $q->where('status', \App\Constants\Status::LISTING_ACTIVE);
+            })->get();
+        } elseif ($user->plan_id) {
             $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) use ($user) {
                 $q->where('plan_id', $user->plan_id)
                   ->where('status', \App\Constants\Status::LISTING_ACTIVE);
@@ -43,7 +49,7 @@ class UserController extends Controller
         $totalDeposit     = Deposit::where('user_id', $user->id)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
         $totalWithdrawals = Withdrawal::where('user_id', $user->id)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
 
-        return view('Template::user.dashboard', compact('pageTitle', 'user', 'platforms', 'totalDeposit', 'totalWithdrawals'));
+        return view('Template::user.dashboard', compact('pageTitle', 'user', 'platforms', 'totalDeposit', 'totalWithdrawals', 'isAdmin'));
     }
 
     public function subscribePlan(Request $request, $id)
