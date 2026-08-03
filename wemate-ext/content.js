@@ -31,7 +31,19 @@ window.addEventListener('ShahabTechInject', (event) => {
     }
 });
 
-// Also let the web page know the extension is installed
+// Also let the web page know the extension is installed and its exact version
+const extVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) ? chrome.runtime.getManifest().version : '2.0.0';
+
+const metaVersion = document.createElement('meta');
+metaVersion.name = 'extension-version';
+metaVersion.content = extVersion;
+document.head.appendChild(metaVersion);
+
+const metaVersion2 = document.createElement('meta');
+metaVersion2.name = 'wemate-extension-version';
+metaVersion2.content = extVersion;
+document.head.appendChild(metaVersion2);
+
 const meta = document.createElement('meta');
 meta.name = 'shahabtech-extension-installed';
 meta.content = 'true';

@@ -231,7 +231,9 @@
                                            $('meta[name="extension-installed"]').length > 0 ||
                                            $('meta[name="wemate-extension-installed"]').length > 0;
                     
-                    var installedVer = $('meta[name="extension-version"]').attr('content') || '1.0.0';
+                    var installedVer = $('meta[name="extension-version"]').attr('content') || 
+                                       $('meta[name="wemate-extension-version"]').attr('content') || 
+                                       '1.0.0';
 
                     if (!extInstalledMeta || isOutdated(installedVer, requiredVer)) {
                         var modal = $('#panelExtensionUpdateModal');

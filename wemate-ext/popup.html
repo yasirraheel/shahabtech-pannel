@@ -29,6 +29,36 @@
     .brand-text-wrap { display: flex; flex-direction: column; }
     .brand-name { font-size: 15px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px; }
     .brand-sub { font-size: 10px; color: #00e676; font-weight: 600; margin-top: 1px; }
+    .version-badge {
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(13, 110, 253, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(13, 110, 253, 0.3);
+      padding: 1px 5px;
+      border-radius: 4px;
+      line-height: 1.2;
+    }
+    .nav-dash-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 9px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 11px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .nav-dash-btn:hover {
+      background: #0d6efd;
+      border-color: #0d6efd;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+    }
     .content { padding: 14px 16px; }
     
     .btn {
@@ -99,10 +129,17 @@
     <div class="brand-wrap">
       <div class="brand-logo"><img src="icon48.png" alt="Logo" onerror="this.style.display='none'"/></div>
       <div class="brand-text-wrap">
-        <span class="brand-name">WeMate</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="brand-name">WeMate</span>
+          <span class="version-badge" id="version-tag">v2.0.0</span>
+        </div>
         <span class="brand-sub">Premium Access</span>
       </div>
     </div>
+    <a href="https://panel.shahabtech.com/user/dashboard" target="_blank" class="nav-dash-btn" id="nav-dash-link" title="Open WeMate Dashboard">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <span>Dashboard</span>
+    </a>
   </div>
 
   <!-- Loading State -->

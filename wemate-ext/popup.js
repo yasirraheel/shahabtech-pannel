@@ -11,6 +11,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const API_URL = 'https://panel.shahabtech.com/api/extension';
 
+    // Set version tag dynamically from manifest
+    try {
+        if (chrome.runtime && chrome.runtime.getManifest) {
+            const manifest = chrome.runtime.getManifest();
+            const versionEl = document.getElementById('version-tag');
+            if (versionEl && manifest && manifest.version) {
+                versionEl.textContent = 'v' + manifest.version;
+            }
+        }
+    } catch (e) {}
+
+    // Dashboard navigation button listener
+    const dashLink = document.getElementById('nav-dash-link');
+    if (dashLink) {
+        dashLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.tabs.create({ url: 'https://panel.shahabtech.com/user/dashboard' });
+        });
+    }
+
     function showScreen(screen) {
         ui.loading.style.display = 'none';
         ui.login.style.display = 'none';
