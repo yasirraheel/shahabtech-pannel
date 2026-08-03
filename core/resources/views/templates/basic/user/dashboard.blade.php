@@ -151,71 +151,46 @@
                         <div class="row mt-3">
                             <div class="col-12">
                                 @forelse ($platforms as $platform)
-                                    @php
-                                        $accessibleAccounts = collect();
-                                        if (@$isAdmin) {
-                                            $accessibleAccounts = $platform->accountListing()->where('status', \App\Constants\Status::LISTING_ACTIVE)->get();
-                                        } else {
-                                            if (auth()->user()->plan_id) {
-                                                $planAccs = $platform->accountListing()->where('plan_id', auth()->user()->plan_id)->where('status', \App\Constants\Status::LISTING_ACTIVE)->get();
-                                                $accessibleAccounts = $accessibleAccounts->merge($planAccs);
-                                            }
-                                            if (!empty(auth()->user()->account_ids)) {
-                                                $specificAccs = $platform->accountListing()->whereIn('id', (array) auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->get();
-                                                $accessibleAccounts = $accessibleAccounts->merge($specificAccs);
-                                            }
-                                            $accessibleAccounts = $accessibleAccounts->unique('id');
-                                        }
-                                        $instructions = $platform->instructions ?: ($accessibleAccounts->first() ? $accessibleAccounts->first()->instructions : null);
-                                    @endphp
-                                    
-                                    <div class="product-item mb-4" style="background: #181928; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px;">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div style="width: 50px; height: 50px; background: rgba(108, 99, 255, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
-                                                <i class="las la-globe" style="font-size: 2rem; color: var(--base-color, #6c63ff);"></i>
+                                    <div class="product-item">
+                                        <div class="product-item__wrapper">
+                                            <div class="product-item__thumb">
+                                                <div style="width: 80px; height: 80px; background: rgba(108, 99, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                                    <i class="las la-globe" style="font-size: 3.5rem; color: var(--base-color, #6c63ff);"></i>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 class="product-item__title mb-1" style="font-size: 1.25rem;">
-                                                    <span class="text--base fw-bold">{{ __($platform->name) }}</span>
+                                            <div class="product-item__content">
+                                                <h4 class="product-item__title d-flex align-items-center mb-0">
+                                                    <span class="text--base">{{ __($platform->name) }}</span>
                                                 </h4>
+                                                @php
+                                                    $account = null;
+                                                    if (auth()->user()->plan_id) {
+                                                        $account = $platform->accountListing()->where('plan_id', auth()->user()->plan_id)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                    } elseif (!empty(auth()->user()->account_ids)) {
+                                                        $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
+                                                    }
+                                                    $instructions = $platform->instructions ?: ($account ? $account->instructions : null);
+                                                @endphp
                                                 @if($instructions)
-                                                    <div style="font-size: 0.85rem; color: #b3b3b3;">
-                                                        <strong style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions'):</strong> {{ $instructions }}
+                                                    <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
+                                                        <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
+                                                        {{ $instructions }}
                                                     </div>
                                                 @endif
                                             </div>
                                         </div>
-
-                                        <div class="row gy-3 mt-1">
-                                            @forelse($accessibleAccounts as $acc)
-                                                <div class="col-md-6 col-lg-4">
-                                                    <div class="p-3 rounded d-flex align-items-center justify-content-between" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);">
-                                                        <div>
-                                                            <div class="fw-bold text-white" style="font-size: 0.95rem;">
-                                                                <i class="las la-user-shield text--primary me-1"></i> {{ __($acc->title) }}
-                                                            </div>
-                                                            @if($acc->plan)
-                                                                <small class="text-muted" style="font-size: 0.75rem;">{{ __($acc->plan->name) }}</small>
-                                                            @endif
-                                                        </div>
-                                                        <div>
-                                                            @if($isExpired && !@$isAdmin)
-                                                                <button type="button" class="btn btn-sm btn--secondary text-nowrap" disabled style="opacity: 0.6; cursor: not-allowed; padding: 6px 12px; font-size: 12px;">
-                                                                    <i class="las la-ban me-1"></i> @lang('Expired')
-                                                                </button>
-                                                            @else
-                                                                <button type="button" class="btn btn-sm btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $platform->id }}" data-account-id="{{ $acc->id }}" style="padding: 6px 12px; font-size: 12px;">
-                                                                    <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Access')</span>
-                                                                </button>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @empty
-                                                <div class="col-12">
-                                                    <div class="text-muted small p-2"><i class="las la-exclamation-circle"></i> @lang('No active accounts currently available for this platform.')</div>
-                                                </div>
-                                            @endforelse
+                                        <div class="d-flex align-items-center flex-wrap flex-shrink-0">
+                                            <div class="product-item__button">
+                                                @if($isExpired)
+                                                    <button type="button" class="btn btn--secondary text-nowrap" disabled style="opacity: 0.6; cursor: not-allowed;">
+                                                        <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
+                                                    </button>
+                                                @else
+                                                    <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $platform->id }}">
+                                                        <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 @empty
@@ -248,7 +223,6 @@
                 let btnText = btn.find('.btn-text');
                 let originalText = btnText.text();
                 let platformId = btn.data('platform-id');
-                let accountId = btn.data('account-id');
                 
                 // Check if extension is installed by looking for the meta tag injected by content.js
                 if ($('meta[name="shahabtech-extension-installed"]').length === 0 && $('meta[name="extension-installed"]').length === 0) {
@@ -259,13 +233,8 @@
                 btn.prop('disabled', true);
                 btnText.text('Loading...');
 
-                let ajaxUrl = '{{ url("api/extension/cookies") }}/' + platformId;
-                if (accountId) {
-                    ajaxUrl += '/' + accountId;
-                }
-
                 $.ajax({
-                    url: ajaxUrl,
+                    url: '{{ url("api/extension/cookies") }}/' + platformId,
                     type: 'GET',
                     success: function(response) {
                         if (response.success) {

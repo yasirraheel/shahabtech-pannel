@@ -73,36 +73,28 @@ class ExtensionController extends Controller
      * Get cookies for a specific platform (by social_media_id)
      * The extension calls this when user clicks "Access" on a platform
      */
-    public function getCookies(Request $request, $platformId, $accountId = null)
+    public function getCookies(Request $request, $platformId)
     {
         $user = $request->user();
-        $isAdmin = auth()->guard('admin')->check() || $user->id == 1;
 
-        if (!$isAdmin && !$user->plan_id && empty($user->account_ids)) {
+        if (!$user->plan_id && empty($user->account_ids)) {
             return response()->json(['success' => false, 'message' => 'No active plan or accounts'], 403);
         }
         
         $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
         $isExpired = now()->greaterThanOrEqualTo($expiryDate);
-        if (!$isAdmin && $isExpired) {
+        if ($isExpired) {
             return response()->json(['success' => false, 'message' => 'Your subscription is expired. Please contact administrator.'], 403);
         }
 
-        $query = AccountListing::where('status', Status::LISTING_ACTIVE)->with('socialMedia');
+        $query = AccountListing::where('social_media_id', $platformId)
+            ->where('status', Status::LISTING_ACTIVE)
+            ->with('socialMedia');
 
-        $targetAccountId = $accountId ?: $request->account_id;
-
-        if ($targetAccountId) {
-            $query->where('id', $targetAccountId);
+        if ($user->plan_id) {
+            $query->where('plan_id', $user->plan_id);
         } else {
-            $query->where('social_media_id', $platformId);
-            if (!$isAdmin) {
-                if ($user->plan_id) {
-                    $query->where('plan_id', $user->plan_id);
-                } else {
-                    $query->whereIn('id', $user->account_ids ?? []);
-                }
-            }
+            $query->whereIn('id', $user->account_ids ?? []);
         }
 
         $account = $query->first();

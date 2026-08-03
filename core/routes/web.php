@@ -18,7 +18,7 @@ Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->group(
     Route::middleware('auth')->group(function () {
         Route::get('me', 'ExtensionController@me')->name('me');
         Route::get('platforms', 'ExtensionController@platforms')->name('platforms');
-        Route::get('cookies/{platformId}/{accountId?}', 'ExtensionController@getCookies')->name('cookies');
+        Route::get('cookies/{platformId}', 'ExtensionController@getCookies')->name('cookies');
     });
 });
 
