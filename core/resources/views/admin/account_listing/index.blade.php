@@ -37,7 +37,10 @@
                                 @forelse($accountListings as $accountListing)
                                     <tr>
                                         <td>
-                                            <p class="m-0">{{ strLimit($accountListing->title, 50) }}</p>
+                                            <p class="m-0 fw-bold">{{ strLimit($accountListing->title, 50) }}</p>
+                                            <small class="text-muted d-block mt-1" style="font-size: 11px;">
+                                                <i class="las la-clock"></i> {{ diffForHumans($accountListing->updated_at) }}
+                                            </small>
                                         </td>
                                         <td>
                                             {{ __(@$accountListing->socialMedia->name) }}

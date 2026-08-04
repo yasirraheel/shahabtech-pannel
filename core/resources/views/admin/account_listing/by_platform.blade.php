@@ -41,7 +41,12 @@
                             <tbody>
                                 @forelse($accountListings as $account)
                                     <tr>
-                                        <td><strong>{{ $account->title }}</strong></td>
+                                        <td>
+                                            <strong class="d-block">{{ $account->title }}</strong>
+                                            <small class="text-muted d-block mt-1" style="font-size: 11px;">
+                                                <i class="las la-clock"></i> {{ diffForHumans($account->updated_at) }}
+                                            </small>
+                                        </td>
                                         <td>{{ @$account->plan->name ?? '—' }}</td>
                                         <td>
                                             <a href="{{ route('admin.users.all') }}?account_id={{ $account->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
