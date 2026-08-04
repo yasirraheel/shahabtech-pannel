@@ -13,10 +13,12 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_trial')->default(0)->after('expires_at');
-            $table->integer('pending_trial_minutes')->nullable()->after('is_trial');
-        });
+        if (!Schema::hasColumn('users', 'is_trial')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->boolean('is_trial')->default(0)->after('expires_at');
+                $table->integer('pending_trial_minutes')->nullable()->after('is_trial');
+            });
+        }
     }
 
     /**
