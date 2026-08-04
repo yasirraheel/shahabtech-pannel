@@ -13,7 +13,34 @@ class AccountListing extends Model
 
     protected $casts = [
         'account_info' => 'object',
+        'cookie_checked_at' => 'datetime',
+        'cookie_status' => 'integer',
     ];
+
+    public function cookieStatusBadge(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $html = '';
+                $checkedTime = $this->cookie_checked_at ? diffForHumans($this->cookie_checked_at) : null;
+                
+                if ($this->cookie_status === 1) {
+                    $html = '<span class="badge badge--success" title="Checked: ' . ($checkedTime ?: 'recently') . '"><i class="las la-check-circle"></i> ' . trans('Valid') . '</span>';
+                } elseif ($this->cookie_status === 0) {
+                    $err = $this->cookie_check_error ? 'Error: ' . e($this->cookie_check_error) : 'Expired/Invalid';
+                    $html = '<span class="badge badge--danger" title="' . $err . '"><i class="las la-times-circle"></i> ' . trans('Invalid') . '</span>';
+                } else {
+                    $html = '<span class="badge badge--secondary"><i class="las la-question-circle"></i> ' . trans('Unchecked') . '</span>';
+                }
+                
+                if ($checkedTime) {
+                    $html .= '<small class="text-muted d-block mt-1" style="font-size: 10px;">' . $checkedTime . '</small>';
+                }
+                
+                return $html;
+            }
+        );
+    }
 
     public function user()
     {

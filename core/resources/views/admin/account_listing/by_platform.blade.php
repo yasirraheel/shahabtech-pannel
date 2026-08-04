@@ -34,6 +34,7 @@
                                     <th>@lang('Plan')</th>
                                     <th>@lang('Assigned Users')</th>
                                     <th>@lang('Has Cookies')</th>
+                                    <th>@lang('Cookie Health')</th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
                                 </tr>
@@ -60,9 +61,13 @@
                                                 <span class="badge badge--danger"><i class="las la-times"></i> No</span>
                                             @endif
                                         </td>
+                                        <td>@php echo $account->cookieStatusBadge; @endphp</td>
                                         <td>@php echo $account->statusBadge; @endphp</td>
                                         <td>
                                             <div class="d-flex justify-content-end flex-wrap gap-1">
+                                                <a href="{{ route('admin.account.listing.check.cookie', $account->id) }}" class="btn btn-outline--dark btn-sm" title="@lang('Check Cookie Health Now')">
+                                                    <i class="las la-cookie"></i>@lang('Check Cookie')
+                                                </a>
                                                 <button class="btn btn-outline--primary editBtn cuModalBtn btn-sm"
                                                     data-modal_title="@lang('Edit Account')"
                                                     data-resource="{{ $account }}">

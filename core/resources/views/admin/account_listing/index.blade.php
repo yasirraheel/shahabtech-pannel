@@ -29,6 +29,7 @@
                                     <th> @lang('Category') </th>
                                     <th> @lang('Plan') </th>
                                     <th> @lang('Assigned Users') </th>
+                                    <th>@lang('Cookie Health')</th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
                                 </tr>
@@ -52,9 +53,13 @@
                                                 <i class="las la-users"></i> {{ $accountListing->assignedUsersCount() }} @lang('Users')
                                             </a>
                                         </td>
+                                        <td> @php echo $accountListing->cookieStatusBadge; @endphp </td>
                                         <td> @php echo $accountListing->statusBadge; @endphp </td>
                                         <td>
                                             <div class="d-flex justify-content-end flex-wrap gap-1">
+                                                <a href="{{ route('admin.account.listing.check.cookie', $accountListing->id) }}" class="btn btn-outline--dark btn-sm" title="@lang('Check Cookie Health Now')">
+                                                    <i class="las la-cookie"></i>@lang('Check Cookie')
+                                                </a>
                                                 <button class="btn btn-outline--primary editBtn cuModalBtn btn-sm" data-modal_title="@lang('Update Account')" data-resource="{{ $accountListing }}">
                                                     <i class="las la-pen"></i>@lang('Edit')
                                                 </button>

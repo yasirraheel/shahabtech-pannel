@@ -165,4 +165,140 @@ class CronController extends Controller
             }
         }
     }
+
+    /**
+     * Cron Job: Check Cookie Health for 1 account per scheduled run
+     * Rate-limited to check 1 account per run to avoid Google / platform IP bans.
+     */
+    public function cookieCheck()
+    {
+        // Select exactly 1 active account that was unchecked or has the oldest check timestamp
+        $account = AccountListing::where('status', Status::LISTING_ACTIVE)
+            ->whereHas('socialMedia', function ($q) {
+                $q->active();
+            })
+            ->with('socialMedia')
+            ->orderByRaw('cookie_checked_at IS NULL DESC, cookie_checked_at ASC')
+            ->first();
+
+        if (!$account) {
+            if (request()->target == 'all' || request()->alias) {
+                $notify[] = ['info', 'No active accounts available for cookie check.'];
+                return back()->withNotify($notify);
+            }
+            return response()->json(['success' => false, 'message' => 'No active accounts available.']);
+        }
+
+        $result = $this->verifyAccountCookieHealth($account);
+
+        $account->cookie_status = $result['valid'] ? 1 : 0;
+        $account->cookie_check_error = $result['error'] ?: null;
+        $account->cookie_checked_at = now();
+        $account->save();
+
+        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')');
+
+        if (request()->target == 'all' || request()->alias || request()->ajax()) {
+            $notifyType = $result['valid'] ? 'success' : 'error';
+            $notify[] = [$notifyType, $msg];
+            return back()->withNotify($notify);
+        }
+
+        return response()->json([
+            'success' => $result['valid'],
+            'message' => $msg,
+            'account_id' => $account->id,
+            'title' => $account->title,
+            'error' => $result['error']
+        ]);
+    }
+
+    /**
+     * Helper to verify cookie health for an AccountListing
+     */
+    public function verifyAccountCookieHealth($account)
+    {
+        $rawInfo = $account->account_info;
+        if (is_string($rawInfo)) {
+            $rawInfo = json_decode($rawInfo, true);
+        }
+
+        if (empty($rawInfo)) {
+            return ['valid' => false, 'error' => 'No cookie data configured'];
+        }
+
+        // Convert array/object of cookies into standard header string
+        $cookieHeaderParts = [];
+        $nowTs = time();
+
+        if (is_array($rawInfo)) {
+            foreach ($rawInfo as $item) {
+                $item = (array) $item;
+                $name = $item['name'] ?? $item['key'] ?? null;
+                $val  = $item['value'] ?? $item['val'] ?? null;
+                $exp  = $item['expirationDate'] ?? $item['expires'] ?? null;
+
+                if ($name && $val !== null) {
+                    // Check local cookie expiration if available
+                    if ($exp && is_numeric($exp) && $exp < $nowTs) {
+                        if (in_array(strtolower($name), ['__secure-1psid', '__secure-3psid', 'sid', 'hsid', 'ssid', 'osid', 'sessionid', 'auth_token'])) {
+                            return ['valid' => false, 'error' => "Cookie '$name' has expired locally"];
+                        }
+                    }
+                    $cookieHeaderParts[] = "$name=$val";
+                }
+            }
+        }
+
+        if (empty($cookieHeaderParts)) {
+            return ['valid' => false, 'error' => 'Invalid cookie structure'];
+        }
+
+        $cookieHeaderString = implode('; ', $cookieHeaderParts);
+
+        // Target URL for checking cookie validity
+        $targetUrl = 'https://labs.google/fx/api/user/session';
+        if ($account->socialMedia && $account->socialMedia->url) {
+            $targetUrl = $account->socialMedia->url;
+            if (str_contains(strtolower($account->socialMedia->name), 'google') || str_contains(strtolower($account->title), 'flow')) {
+                $targetUrl = 'https://labs.google/fx/api/user/session';
+            }
+        }
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $targetUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Cookie: ' . $cookieHeaderString,
+            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language: en-US,en;q=0.9',
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlErr) {
+            return ['valid' => false, 'error' => 'Network error: ' . $curlErr];
+        }
+
+        // Check if redirected to Google Sign-In or login page
+        if (str_contains($effectiveUrl, 'accounts.google.com') || str_contains($effectiveUrl, 'ServiceLogin') || str_contains($effectiveUrl, 'signin') || str_contains($effectiveUrl, 'login')) {
+            return ['valid' => false, 'error' => 'Session expired (Redirected to Google Sign-In)'];
+        }
+
+        if ($httpCode >= 400) {
+            return ['valid' => false, 'error' => "HTTP Error Code $httpCode"];
+        }
+
+        return ['valid' => true, 'error' => null];
+    }
 }

@@ -283,4 +283,24 @@ class AccountListingController extends Controller
         $notify[] = ['success', 'Account duplicated successfully'];
         return back()->withNotify($notify);
     }
+
+    public function checkCookie($id)
+    {
+        $account = AccountListing::with('socialMedia')->findOrFail($id);
+        $cronController = new \App\Http\Controllers\CronController();
+        $result = $cronController->verifyAccountCookieHealth($account);
+
+        $account->cookie_status = $result['valid'] ? 1 : 0;
+        $account->cookie_check_error = $result['error'] ?: null;
+        $account->cookie_checked_at = now();
+        $account->save();
+
+        if ($result['valid']) {
+            $notify[] = ['success', "Cookie for '{$account->title}' is valid!"];
+        } else {
+            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error']];
+        }
+
+        return back()->withNotify($notify);
+    }
 }

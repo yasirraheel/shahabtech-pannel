@@ -11,6 +11,7 @@ Route::get('/login', function () {
     return redirect()->route('user.login')->withNotify($notify);
 })->name('login');
 Route::get('cron', 'CronController@cron')->name('cron');
+Route::get('cron/cookie-check', 'CronController@cookieCheck')->name('cron.cookie.check');
 
 // Extension API Routes (Session-based via normal auth)
 Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->group(function () {

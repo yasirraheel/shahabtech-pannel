@@ -210,6 +210,7 @@ Route::middleware('admin')->group(function () {
         Route::post('status/{id}', 'status')->name('status');
         Route::post('delete/{id}', 'delete')->name('delete');
         Route::post('duplicate/{id}', 'duplicate')->name('duplicate');
+        Route::get('check-cookie/{id}', 'checkCookie')->name('check.cookie');
     });
 
     // Plans
