@@ -257,11 +257,11 @@ class CronController extends Controller
         $cookieHeaderString = implode('; ', $cookieHeaderParts);
 
         // Target URL for checking cookie validity
-        $targetUrl = 'https://labs.google/fx/api/user/session';
+        $targetUrl = 'https://labs.google/fx/';
         if ($account->socialMedia && $account->socialMedia->url) {
             $targetUrl = $account->socialMedia->url;
             if (str_contains(strtolower($account->socialMedia->name), 'google') || str_contains(strtolower($account->title), 'flow')) {
-                $targetUrl = 'https://labs.google/fx/api/user/session';
+                $targetUrl = 'https://labs.google/fx/';
             }
         }
 
