@@ -35,6 +35,13 @@ class AccountListingController extends Controller
 
         $selectedPlatforms = session('admin_account_filter_platforms', []);
 
+        if ($request->has('sort')) {
+            $sortVal = in_array($request->sort, ['last_updated', 'created_at', 'title_asc']) ? $request->sort : 'last_updated';
+            session(['admin_account_sort' => $sortVal]);
+        }
+
+        $currentSort = session('admin_account_sort', 'last_updated');
+
         $query = AccountListing::searchable(['title'])
             ->with('socialMedia', 'plan', 'category');
 
@@ -42,7 +49,15 @@ class AccountListingController extends Controller
             $query->whereIn('social_media_id', $selectedPlatforms);
         }
 
-        $accountListings = $query->latest()->paginate(getPaginate());
+        if ($currentSort === 'last_updated') {
+            $query->orderBy('updated_at', 'desc');
+        } elseif ($currentSort === 'title_asc') {
+            $query->orderBy('title', 'asc');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
+        $accountListings = $query->paginate(getPaginate());
 
         $plans = Plan::active()->get();
         $socialMedias = SocialMedia::active()->get();
@@ -54,13 +69,29 @@ class AccountListingController extends Controller
     // Accounts for a specific platform
     public function byPlatform(Request $request, $platformId)
     {
-        $platform        = SocialMedia::findOrFail($platformId);
-        $pageTitle       = 'Accounts: ' . $platform->name;
-        $accountListings = AccountListing::where('social_media_id', $platformId)
+        $platform  = SocialMedia::findOrFail($platformId);
+        $pageTitle = 'Accounts: ' . $platform->name;
+
+        if ($request->has('sort')) {
+            $sortVal = in_array($request->sort, ['last_updated', 'created_at', 'title_asc']) ? $request->sort : 'last_updated';
+            session(['admin_account_sort' => $sortVal]);
+        }
+
+        $currentSort = session('admin_account_sort', 'last_updated');
+
+        $query = AccountListing::where('social_media_id', $platformId)
             ->searchable(['title'])
-            ->with('plan')
-            ->latest()
-            ->paginate(getPaginate());
+            ->with('plan');
+
+        if ($currentSort === 'last_updated') {
+            $query->orderBy('updated_at', 'desc');
+        } elseif ($currentSort === 'title_asc') {
+            $query->orderBy('title', 'asc');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
+        $accountListings = $query->paginate(getPaginate());
         $plans = Plan::active()->get();
         $categories = \App\Models\Category::active()->get();
         return view('admin.account_listing.by_platform', compact('pageTitle', 'accountListings', 'platform', 'plans', 'categories'));

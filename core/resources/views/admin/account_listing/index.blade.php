@@ -211,7 +211,35 @@
             <a href="{{ route('admin.account.listing.index', ['reset_filter' => 1]) }}" class="btn btn-outline--danger" title="@lang('Clear Filter')">
                 <i class="las la-times"></i> @lang('Clear')
             </a>
-        @endif
+        <div class="dropdown d-inline-block">
+            <button class="btn btn-outline--secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="las la-sort-amount-down me-1"></i>
+                @if(session('admin_account_sort', 'last_updated') === 'last_updated')
+                    @lang('Sort: Update Time')
+                @elseif(session('admin_account_sort') === 'title_asc')
+                    @lang('Sort: Title (A-Z)')
+                @else
+                    @lang('Sort: Newest')
+                @endif
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sortDropdown">
+                <li>
+                    <a class="dropdown-item @if(session('admin_account_sort', 'last_updated') === 'last_updated') active @endif" href="{{ request()->fullUrlWithQuery(['sort' => 'last_updated']) }}">
+                        <i class="las la-clock me-1"></i> @lang('Sort by Update Time')
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item @if(session('admin_account_sort') === 'created_at') active @endif" href="{{ request()->fullUrlWithQuery(['sort' => 'created_at']) }}">
+                        <i class="las la-calendar me-1"></i> @lang('Sort by Newest (ID)')
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item @if(session('admin_account_sort') === 'title_asc') active @endif" href="{{ request()->fullUrlWithQuery(['sort' => 'title_asc']) }}">
+                        <i class="las la-sort-alpha-down me-1"></i> @lang('Sort by Title (A-Z)')
+                    </a>
+                </li>
+            </ul>
+        </div>
         <x-search-form placeholder="Search Title" />
         <button class="btn btn-outline--primary cuModalBtn" data-modal_title="@lang('Add Account')">
             <i class="las la-plus"></i>@lang('Add New')
