@@ -211,6 +211,7 @@
             <a href="{{ route('admin.account.listing.index', ['reset_filter' => 1]) }}" class="btn btn-outline--danger" title="@lang('Clear Filter')">
                 <i class="las la-times"></i> @lang('Clear')
             </a>
+        @endif
         <div class="dropdown d-inline-block">
             <button class="btn btn-outline--secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="las la-sort-amount-down me-1"></i>
