@@ -215,6 +215,7 @@ class CronController extends Controller
 
     /**
      * Helper to verify cookie health for an AccountListing
+     * Performs a 100% live HTTP scan request without relying on local expiration timestamps.
      */
     public function verifyAccountCookieHealth($account)
     {
@@ -228,21 +229,16 @@ class CronController extends Controller
         }
 
         // Convert array/object of cookies into standard header string
+        // We DO NOT check local expiration dates; we scan live.
         $cookieHeaderParts = [];
-        $nowTs = time();
 
         if (is_array($rawInfo)) {
             foreach ($rawInfo as $item) {
                 $item = (array) $item;
                 $name = $item['name'] ?? $item['key'] ?? null;
                 $val  = $item['value'] ?? $item['val'] ?? null;
-                $exp  = $item['expirationDate'] ?? $item['expires'] ?? null;
 
                 if ($name && $val !== null) {
-                    // Check if ANY cookie has expired locally
-                    if ($exp && is_numeric($exp) && $exp < $nowTs) {
-                        return ['valid' => false, 'error' => "Cookie '$name' expired on " . date('Y-m-d H:i', $exp)];
-                    }
                     $cookieHeaderParts[] = "$name=$val";
                 }
             }
@@ -254,14 +250,15 @@ class CronController extends Controller
 
         $cookieHeaderString = implode('; ', $cookieHeaderParts);
 
-        // Determine verification target URLs based on social media platform
         $platformName = strtolower($account->socialMedia->name ?? '');
         $accountTitle = strtolower($account->title ?? '');
-        $isGooglePlatform = str_contains($platformName, 'google') || str_contains($accountTitle, 'flow');
+        $isGoogleFlow = str_contains($platformName, 'google') || str_contains($accountTitle, 'flow');
 
-        $targetUrl = 'https://myaccount.google.com/';
-        if (!$isGooglePlatform && $account->socialMedia && $account->socialMedia->url) {
-            $targetUrl = $account->socialMedia->url;
+        if ($isGoogleFlow) {
+            // For Google Flow, test NextAuth session API endpoint live
+            $targetUrl = 'https://labs.google/fx/api/auth/session';
+        } else {
+            $targetUrl = $account->socialMedia->url ?? 'https://labs.google/fx/api/auth/session';
         }
 
         $ch = curl_init();
@@ -275,7 +272,7 @@ class CronController extends Controller
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Cookie: ' . $cookieHeaderString,
             'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept: application/json, text/html, */*',
             'Accept-Language: en-US,en;q=0.9',
         ]);
 
@@ -289,14 +286,22 @@ class CronController extends Controller
             return ['valid' => false, 'error' => 'Network error: ' . $curlErr];
         }
 
-        // Check if redirected to Google Sign-In or login page
-        if (str_contains($effectiveUrl, 'accounts.google.com') || str_contains($effectiveUrl, 'ServiceLogin') || str_contains($effectiveUrl, 'signin') || str_contains($effectiveUrl, 'login')) {
-            return ['valid' => false, 'error' => 'Session expired (Redirected to Google Sign-In)'];
+        if ($isGoogleFlow) {
+            // Google Flow session API returning {} (empty JSON object or null user) means unauthenticated / expired
+            $json = json_decode($response, true);
+            if (empty($json) || !isset($json['user']) || empty($json['user'])) {
+                return ['valid' => false, 'error' => 'Session expired (Unauthenticated on Google Flow API)'];
+            }
+            return ['valid' => true, 'error' => null];
         }
 
-        // Check response content for login page indicators
-        if (str_contains($response, 'Sign in - Google Accounts') || str_contains($response, 'identifierInterface') || str_contains($response, 'ServiceLogin')) {
-            return ['valid' => false, 'error' => 'Session expired (Sign-In page detected)'];
+        // For other platforms, check HTTP status & redirect URL
+        if (str_contains($effectiveUrl, 'accounts.google.com') || str_contains($effectiveUrl, 'ServiceLogin') || str_contains($effectiveUrl, 'signin') || str_contains($effectiveUrl, 'login')) {
+            return ['valid' => false, 'error' => 'Session expired (Redirected to login page)'];
+        }
+
+        if (str_contains($response, 'Sign in') || str_contains($response, 'ServiceLogin') || str_contains($response, 'identifierInterface')) {
+            return ['valid' => false, 'error' => 'Session expired (Login form detected)'];
         }
 
         if ($httpCode >= 400) {
