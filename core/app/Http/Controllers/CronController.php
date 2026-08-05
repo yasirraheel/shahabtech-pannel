@@ -292,6 +292,15 @@ class CronController extends Controller
             if (empty($json) || !isset($json['user']) || empty($json['user'])) {
                 return ['valid' => false, 'error' => 'Session expired (Unauthenticated on Google Flow API)'];
             }
+
+            // Inspect the live session expiration timestamp returned by Google NextAuth API
+            if (isset($json['expires'])) {
+                $sessionExpiryTs = strtotime($json['expires']);
+                if ($sessionExpiryTs && $sessionExpiryTs < time()) {
+                    return ['valid' => false, 'error' => 'Google Session Expired (' . date('Y-m-d H:i', $sessionExpiryTs) . ' UTC)'];
+                }
+            }
+
             return ['valid' => true, 'error' => null];
         }
 
