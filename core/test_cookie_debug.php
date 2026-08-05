@@ -3,36 +3,29 @@ require 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$account = App\Models\AccountListing::where('title', 'like', '%FlowCreation-Ai%')->first();
-echo "ID: " . $account->id . " | TITLE: " . $account->title . "\n";
+$accounts = App\Models\AccountListing::where('status', 1)->get();
+echo "TESTING ALL ACTIVE ACCOUNTS WITH GOOGLE SESSION EXPIRY CHECK:\n\n";
 
-$rawInfo = $account->account_info;
-if (is_string($rawInfo)) $rawInfo = json_decode($rawInfo, true);
-
-$parts = [];
-if (is_array($rawInfo)) {
-    foreach ($rawInfo as $item) {
-        $item = (array)$item;
-        if (isset($item['name'], $item['value'])) {
-            $parts[] = $item['name'] . '=' . $item['value'];
+foreach ($accounts as $account) {
+    echo "========================================\n";
+    echo "ID: " . $account->id . " | TITLE: " . $account->title . "\n";
+    
+    $rawInfo = $account->account_info;
+    if (is_string($rawInfo)) $rawInfo = json_decode($rawInfo, true);
+    
+    $parts = [];
+    if (is_array($rawInfo)) {
+        foreach ($rawInfo as $item) {
+            $item = (array)$item;
+            if (isset($item['name'], $item['value'])) {
+                $parts[] = $item['name'] . '=' . $item['value'];
+            }
         }
     }
-}
-$cookieHeader = implode('; ', $parts);
+    $cookieHeader = implode('; ', $parts);
 
-$urls = [
-    'https://labs.google/fx/api/auth/session',
-    'https://labs.google/fx/api/trpc/project.listProjects?batch=1&input=%7B%7D',
-    'https://labs.google/fx/api/trpc/user.getUserProfile?batch=1&input=%7B%7D',
-    'https://labs.google/fx/api/trpc/flow.getUserQuota?batch=1&input=%7B%7D',
-    'https://labs.google/fx/api/trpc/project.getProjects?batch=1&input=%7B%7D',
-    'https://labs.google/fx/api/trpc/user.getProjectList?batch=1&input=%7B%7D'
-];
-
-foreach ($urls as $url) {
-    echo "\nTesting: $url\n";
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_URL, 'https://labs.google/fx/api/auth/session');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 8);
@@ -43,8 +36,18 @@ foreach ($urls as $url) {
         'Accept: application/json, text/html, */*'
     ]);
     $resp = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    echo "HTTP $code | RESP: " . substr(trim($resp), 0, 300) . "\n";
+    $json = json_decode($resp, true);
+    if (empty($json) || !isset($json['user']) || empty($json['user'])) {
+        echo "RESULT: INVALID (No active session user object)\n";
+    } else {
+        $expStr = $json['expires'] ?? null;
+        $expTs = $expStr ? strtotime($expStr) : null;
+        if ($expTs && $expTs < time()) {
+            echo "RESULT: INVALID (Google Session Expired at $expStr, Current: " . date('Y-m-d H:i:s') . " UTC)\n";
+        } else {
+            echo "RESULT: VALID (Active until $expStr)\n";
+        }
+    }
 }
