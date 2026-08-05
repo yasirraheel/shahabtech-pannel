@@ -239,11 +239,9 @@ class CronController extends Controller
                 $exp  = $item['expirationDate'] ?? $item['expires'] ?? null;
 
                 if ($name && $val !== null) {
-                    // Check local cookie expiration if available
+                    // Check if ANY cookie has expired locally
                     if ($exp && is_numeric($exp) && $exp < $nowTs) {
-                        if (in_array(strtolower($name), ['__secure-1psid', '__secure-3psid', 'sid', 'hsid', 'ssid', 'osid', 'sessionid', 'auth_token'])) {
-                            return ['valid' => false, 'error' => "Cookie '$name' has expired locally"];
-                        }
+                        return ['valid' => false, 'error' => "Cookie '$name' expired on " . date('Y-m-d H:i', $exp)];
                     }
                     $cookieHeaderParts[] = "$name=$val";
                 }
@@ -256,21 +254,22 @@ class CronController extends Controller
 
         $cookieHeaderString = implode('; ', $cookieHeaderParts);
 
-        // Target URL for checking cookie validity
-        $targetUrl = 'https://labs.google/fx/';
-        if ($account->socialMedia && $account->socialMedia->url) {
+        // Determine verification target URLs based on social media platform
+        $platformName = strtolower($account->socialMedia->name ?? '');
+        $accountTitle = strtolower($account->title ?? '');
+        $isGooglePlatform = str_contains($platformName, 'google') || str_contains($accountTitle, 'flow');
+
+        $targetUrl = 'https://myaccount.google.com/';
+        if (!$isGooglePlatform && $account->socialMedia && $account->socialMedia->url) {
             $targetUrl = $account->socialMedia->url;
-            if (str_contains(strtolower($account->socialMedia->name), 'google') || str_contains(strtolower($account->title), 'flow')) {
-                $targetUrl = 'https://labs.google/fx/';
-            }
         }
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $targetUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -293,6 +292,11 @@ class CronController extends Controller
         // Check if redirected to Google Sign-In or login page
         if (str_contains($effectiveUrl, 'accounts.google.com') || str_contains($effectiveUrl, 'ServiceLogin') || str_contains($effectiveUrl, 'signin') || str_contains($effectiveUrl, 'login')) {
             return ['valid' => false, 'error' => 'Session expired (Redirected to Google Sign-In)'];
+        }
+
+        // Check response content for login page indicators
+        if (str_contains($response, 'Sign in - Google Accounts') || str_contains($response, 'identifierInterface') || str_contains($response, 'ServiceLogin')) {
+            return ['valid' => false, 'error' => 'Session expired (Sign-In page detected)'];
         }
 
         if ($httpCode >= 400) {
