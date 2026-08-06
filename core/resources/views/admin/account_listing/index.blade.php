@@ -213,6 +213,8 @@
                 <i class="las la-sort-amount-down me-1"></i>
                 @if(session('admin_account_sort', 'last_updated') === 'last_updated')
                     @lang('Sort: Update Time')
+                @elseif(session('admin_account_sort') === 'cookie_health')
+                    @lang('Sort: Cookie Health')
                 @elseif(session('admin_account_sort') === 'title_asc')
                     @lang('Sort: Title (A-Z)')
                 @else
@@ -223,6 +225,11 @@
                 <li>
                     <a class="dropdown-item @if(session('admin_account_sort', 'last_updated') === 'last_updated') active @endif" href="{{ request()->fullUrlWithQuery(['sort' => 'last_updated']) }}">
                         <i class="las la-clock me-1"></i> @lang('Sort by Update Time')
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item @if(session('admin_account_sort') === 'cookie_health') active @endif" href="{{ request()->fullUrlWithQuery(['sort' => 'cookie_health']) }}">
+                        <i class="las la-heartbeat me-1 text--danger"></i> @lang('Sort by Cookie Health')
                     </a>
                 </li>
                 <li>

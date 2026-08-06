@@ -36,7 +36,7 @@ class AccountListingController extends Controller
         $selectedPlatforms = session('admin_account_filter_platforms', []);
 
         if ($request->has('sort')) {
-            $sortVal = in_array($request->sort, ['last_updated', 'created_at', 'title_asc']) ? $request->sort : 'last_updated';
+            $sortVal = in_array($request->sort, ['last_updated', 'created_at', 'title_asc', 'cookie_health']) ? $request->sort : 'last_updated';
             session(['admin_account_sort' => $sortVal]);
         }
 
@@ -51,6 +51,8 @@ class AccountListingController extends Controller
 
         if ($currentSort === 'last_updated') {
             $query->orderBy('updated_at', 'desc');
+        } elseif ($currentSort === 'cookie_health') {
+            $query->orderByRaw('cookie_status IS NULL ASC, cookie_status ASC, updated_at DESC');
         } elseif ($currentSort === 'title_asc') {
             $query->orderBy('title', 'asc');
         } else {
@@ -73,7 +75,7 @@ class AccountListingController extends Controller
         $pageTitle = 'Accounts: ' . $platform->name;
 
         if ($request->has('sort')) {
-            $sortVal = in_array($request->sort, ['last_updated', 'created_at', 'title_asc']) ? $request->sort : 'last_updated';
+            $sortVal = in_array($request->sort, ['last_updated', 'created_at', 'title_asc', 'cookie_health']) ? $request->sort : 'last_updated';
             session(['admin_account_sort' => $sortVal]);
         }
 
@@ -85,6 +87,8 @@ class AccountListingController extends Controller
 
         if ($currentSort === 'last_updated') {
             $query->orderBy('updated_at', 'desc');
+        } elseif ($currentSort === 'cookie_health') {
+            $query->orderByRaw('cookie_status IS NULL ASC, cookie_status ASC, updated_at DESC');
         } elseif ($currentSort === 'title_asc') {
             $query->orderBy('title', 'asc');
         } else {
