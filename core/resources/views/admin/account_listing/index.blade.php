@@ -34,13 +34,11 @@
                                 @forelse($accountListings as $accountListing)
                                     <tr>
                                         <td>
+                                            <p class="m-0 fw-bold mb-1">{{ strLimit($accountListing->title, 50) }}</p>
                                             <div class="d-flex align-items-center flex-wrap gap-2">
-                                                <p class="m-0 fw-bold">{{ strLimit($accountListing->title, 50) }}</p>
                                                 <a href="{{ route('admin.users.all') }}?account_id={{ $accountListing->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
                                                     <i class="las la-users"></i> {{ $accountListing->assignedUsersCount() }} @lang('Users')
                                                 </a>
-                                            </div>
-                                            <div class="mt-1">
                                                 @php echo $accountListing->cookieStatusBadge; @endphp
                                             </div>
                                         </td>
