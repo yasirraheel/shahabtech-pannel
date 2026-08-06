@@ -15,7 +15,7 @@ try {
 
     $requestData = new Request([
         'contacts' => '923006859611',
-        'message' => ['message_body' => 'DIRECT DEBUG DISPATCH TEST'],
+        'message' => ['message_body' => 'DIRECT DEBUG DISPATCH TEST AFTER FIX'],
         'schedule_at' => null,
         'method' => 'node',
         'gateway_id' => 8,
@@ -33,6 +33,9 @@ try {
     );
 
     echo "RESULT FROM storeDispatchLogs: " . json_encode($result) . "\n";
+
+    $lastLog = \DB::table('dispatch_logs')->orderBy('id', 'desc')->first();
+    echo "LAST LOG IN DB: " . json_encode($lastLog) . "\n";
 } catch (\Throwable $e) {
     echo "ERROR IN storeDispatchLogs: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";
 }
