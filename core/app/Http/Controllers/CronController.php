@@ -172,14 +172,10 @@ class CronController extends Controller
      */
     public function cookieCheck()
     {
-        // Fetch all active accounts that haven't been checked in the last 50 seconds (or unchecked)
+        // Fetch ALL active accounts across active platforms to check whenever the cron schedule triggers
         $accounts = AccountListing::where('status', Status::LISTING_ACTIVE)
             ->whereHas('socialMedia', function ($q) {
                 $q->active();
-            })
-            ->where(function($q) {
-                $q->whereNull('cookie_checked_at')
-                  ->orWhere('cookie_checked_at', '<=', now()->subSeconds(50));
             })
             ->with('socialMedia')
             ->get();
