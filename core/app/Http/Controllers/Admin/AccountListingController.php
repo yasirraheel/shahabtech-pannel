@@ -298,9 +298,76 @@ class AccountListingController extends Controller
         if ($result['valid']) {
             $notify[] = ['success', "Cookie for '{$account->title}' is valid!"];
         } else {
-            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error']];
+            $reassignedCount = self::rebalanceAffectedUsersForExpiredAccount($account);
+            $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} affected users re-assigned to valid working accounts)" : "";
+            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error'] . $reassignedText];
         }
 
         return back()->withNotify($notify);
+    }
+
+    /**
+     * Smart Auto Re-Balancing for Affected Users when an Account Cookie is Expired/Invalid.
+     * Preserves unaffected users and their valid accounts completely.
+     */
+    public static function rebalanceAffectedUsersForExpiredAccount(AccountListing $expiredAccount)
+    {
+        $accId = $expiredAccount->id;
+        $platformId = $expiredAccount->social_media_id;
+
+        // Find users who have this expired account assigned
+        $affectedUsers = User::whereJsonContains('account_ids', (int) $accId)
+            ->orWhereJsonContains('account_ids', (string) $accId)
+            ->get();
+
+        if ($affectedUsers->isEmpty()) {
+            return 0;
+        }
+
+        // Find candidate VALID working accounts for the same platform
+        $validAlternatives = AccountListing::where('status', Status::LISTING_ACTIVE)
+            ->where('cookie_status', '!=', 0)
+            ->where('social_media_id', $platformId)
+            ->where('id', '!=', $accId)
+            ->get();
+
+        $reassignedCount = 0;
+
+        foreach ($affectedUsers as $user) {
+            $currentAccountIds = (array) ($user->account_ids ?? []);
+            
+            // Remove the expired account ID
+            $updatedAccountIds = array_values(array_diff($currentAccountIds, [(int) $accId, (string) $accId]));
+
+            // If valid working alternative accounts exist, pick the one with the lowest user load
+            if ($validAlternatives->isNotEmpty()) {
+                $bestAlternative = null;
+                $lowestCount = PHP_INT_MAX;
+
+                foreach ($validAlternatives as $alternative) {
+                    if (in_array($alternative->id, $updatedAccountIds) || in_array((string) $alternative->id, $updatedAccountIds)) {
+                        continue;
+                    }
+                    $userCount = $alternative->assignedUsersCount();
+                    if ($userCount < $lowestCount) {
+                        $lowestCount = $userCount;
+                        $bestAlternative = $alternative;
+                    }
+                }
+
+                if ($bestAlternative) {
+                    $updatedAccountIds[] = (int) $bestAlternative->id;
+                }
+            }
+
+            $user->account_ids = array_values(array_unique($updatedAccountIds));
+            $user->timestamps = false;
+            $user->save();
+            $user->timestamps = true;
+
+            $reassignedCount++;
+        }
+
+        return $reassignedCount;
     }
 }

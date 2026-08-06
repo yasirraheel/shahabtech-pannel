@@ -196,7 +196,14 @@ class CronController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')');
+        $reassignedCount = 0;
+        if (!$result['valid']) {
+            // Auto-trigger smart re-balancing for affected users
+            $reassignedCount = \App\Http\Controllers\Admin\AccountListingController::rebalanceAffectedUsersForExpiredAccount($account);
+        }
+
+        $reassignedMsg = $reassignedCount > 0 ? " ({$reassignedCount} affected users re-assigned to valid working accounts)" : "";
+        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')' . $reassignedMsg);
 
         if (request()->target == 'all' || request()->alias || request()->ajax()) {
             $notifyType = $result['valid'] ? 'success' : 'error';
@@ -209,7 +216,8 @@ class CronController extends Controller
             'message' => $msg,
             'account_id' => $account->id,
             'title' => $account->title,
-            'error' => $result['error']
+            'error' => $result['error'],
+            'reassigned_users_count' => $reassignedCount
         ]);
     }
 
