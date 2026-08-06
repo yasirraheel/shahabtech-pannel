@@ -5,21 +5,26 @@ $app = require $omnireachPath . '/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 $apiKey = "e637cd7e-c2bb-406f-ad30-8ae69178e1f6";
-$user = App\Models\User::where("api_key", $apiKey)->first();
 $admin = App\Models\Admin::where("api_key", $apiKey)->first();
 
-echo "USER: " . ($user ? $user->username . " (ID: {$user->id}, GatewayID: {$user->api_whatsapp_gateway_id})" : "NOT FOUND") . "\n";
 echo "ADMIN: " . ($admin ? $admin->username . " (ID: {$admin->id})" : "NOT FOUND") . "\n";
+echo "SITE SETTING api_whatsapp_gateway_id: " . site_settings('api_whatsapp_gateway_id') . "\n";
 
-// Check WhatsApp Gateways / Sessions in omnireach database
-$gateways = App\Models\Gateways::where('channel', 'whatsapp')->get();
+echo "\n--- GATEWAYS TABLE ---\n";
+$gateways = \DB::table('gateways')->get();
 foreach ($gateways as $g) {
-    echo "GATEWAY ID: {$g->id} | Name: {$g->name} | Type: {$g->type} | Status: {$g->status} | UserID: {$g->user_id}\n";
+    echo json_encode($g) . "\n";
 }
 
-// Check WhatsApp Node Gateway / Sessions if model exists
-$whatsappGateways = \DB::table('whatsapp_gateways')->get();
-echo "\n--- WHATSAPP GATEWAYS ---\n";
-foreach ($whatsappGateways as $wg) {
-    echo json_encode($wg) . "\n";
+echo "\n--- WHATSAPP SESSIONS / DEVICE TABLE ---\n";
+$tables = \DB::select('SHOW TABLES');
+foreach ($tables as $t) {
+    $tName = array_values((array)$t)[0];
+    if (str_contains($tName, 'whatsapp') || str_contains($tName, 'gateway') || str_contains($tName, 'device') || str_contains($tName, 'session')) {
+        echo "TABLE: $tName\n";
+        $rows = \DB::table($tName)->get();
+        foreach ($rows as $r) {
+            echo "  " . json_encode($r) . "\n";
+        }
+    }
 }
