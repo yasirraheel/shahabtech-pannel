@@ -4,8 +4,8 @@ require $omnireachPath . '/vendor/autoload.php';
 $app = require $omnireachPath . '/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$log = \App\Models\DispatchLog::find(294);
-echo "LOG 294 IN OMNIREACH:\n";
+$log = \App\Models\DispatchLog::orderBy('id', 'desc')->first();
+echo "LATEST DISPATCH LOG IN OMNIREACH:\n";
 echo "ID: " . ($log ? $log->id : 'NONE') . "\n";
 if ($log) {
     $t = is_object($log->type) ? $log->type->value : $log->type;
