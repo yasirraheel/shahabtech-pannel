@@ -172,96 +172,60 @@ class CronController extends Controller
      */
     public function cookieCheck()
     {
-        if (request()->target == 'all' || request()->all == 1) {
-            $accounts = AccountListing::where('status', Status::LISTING_ACTIVE)
-                ->whereHas('socialMedia', function ($q) {
-                    $q->active();
-                })
-                ->with('socialMedia')
-                ->get();
-
-            if ($accounts->isEmpty()) {
-                $notify[] = ['info', 'No active accounts available for cookie check.'];
-                return back()->withNotify($notify);
-            }
-
-            $checkedCount = 0;
-            $platformsToRebalance = [];
-
-            foreach ($accounts as $acc) {
-                $prevStatus = $acc->cookie_status;
-                $result = $this->verifyAccountCookieHealth($acc);
-                $newStatus = $result['valid'] ? 1 : 0;
-
-                $acc->cookie_status = $newStatus;
-                $acc->cookie_check_error = $result['error'] ?: null;
-                $acc->cookie_checked_at = now();
-                $acc->save();
-
-                if ($prevStatus !== $newStatus) {
-                    $platformsToRebalance[$acc->social_media_id] = true;
-                }
-                $checkedCount++;
-            }
-
-            foreach (array_keys($platformsToRebalance) as $pId) {
-                \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($pId, 'override_manual');
-            }
-
-            $notify[] = ['success', "Checked cookies for {$checkedCount} active accounts."];
-            return back()->withNotify($notify);
-        }
-
-        // Select exactly 1 active account that was unchecked or has the oldest check timestamp
-        $account = AccountListing::where('status', Status::LISTING_ACTIVE)
+        // Fetch all active accounts that haven't been checked in the last 50 seconds (or unchecked)
+        $accounts = AccountListing::where('status', Status::LISTING_ACTIVE)
             ->whereHas('socialMedia', function ($q) {
                 $q->active();
             })
+            ->where(function($q) {
+                $q->whereNull('cookie_checked_at')
+                  ->orWhere('cookie_checked_at', '<=', now()->subSeconds(50));
+            })
             ->with('socialMedia')
-            ->orderByRaw('cookie_checked_at IS NULL DESC, cookie_checked_at ASC')
-            ->first();
+            ->get();
 
-        if (!$account) {
-            return response()->json(['success' => false, 'message' => 'No active accounts available.']);
+        if ($accounts->isEmpty()) {
+            if (request()->target == 'all' || request()->alias || request()->ajax()) {
+                $notify[] = ['info', 'All accounts checked within the last 60 seconds.'];
+                return back()->withNotify($notify);
+            }
+            return response()->json(['success' => true, 'message' => 'All accounts checked within the last 60 seconds.']);
         }
 
-        $previousStatus = $account->cookie_status;
+        $checkedCount = 0;
+        $platformsToRebalance = [];
 
-        $result = $this->verifyAccountCookieHealth($account);
+        foreach ($accounts as $acc) {
+            $prevStatus = $acc->cookie_status;
+            $result = $this->verifyAccountCookieHealth($acc);
+            $newStatus = $result['valid'] ? 1 : 0;
 
-        $newStatus = $result['valid'] ? 1 : 0;
-        $account->cookie_status = $newStatus;
-        $account->cookie_check_error = $result['error'] ?: null;
-        $account->cookie_checked_at = now();
-        $account->save();
+            $acc->cookie_status = $newStatus;
+            $acc->cookie_check_error = $result['error'] ?: null;
+            $acc->cookie_checked_at = now();
+            $acc->save();
 
-        $reassignedCount = 0;
-        $statusChanged = ($previousStatus !== $newStatus);
-
-        if ($statusChanged) {
-            // Trigger load balancing ONLY if status changed (e.g. valid -> invalid or invalid -> valid)
-            $reassignedCount = \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
-            $reassignedMsg = " ({$reassignedCount} active user(s) load balanced on status change)";
-        } else {
-            $reassignedMsg = " (Status unchanged, load balancing skipped)";
+            if ($prevStatus !== $newStatus) {
+                $platformsToRebalance[$acc->social_media_id] = true;
+            }
+            $checkedCount++;
         }
 
-        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')') . $reassignedMsg;
+        foreach (array_keys($platformsToRebalance) as $pId) {
+            \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($pId, 'override_manual');
+        }
 
-        if (request()->alias || request()->ajax()) {
-            $notifyType = $result['valid'] ? 'success' : 'error';
-            $notify[] = [$notifyType, $msg];
+        $msg = "Checked cookies for {$checkedCount} active account(s).";
+
+        if (request()->target == 'all' || request()->alias || request()->ajax()) {
+            $notify[] = ['success', $msg];
             return back()->withNotify($notify);
         }
 
         return response()->json([
-            'success' => $result['valid'],
+            'success' => true,
             'message' => $msg,
-            'account_id' => $account->id,
-            'title' => $account->title,
-            'error' => $result['error'],
-            'status_changed' => $statusChanged,
-            'reassigned_users_count' => $reassignedCount
+            'checked_count' => $checkedCount
         ]);
     }
 
