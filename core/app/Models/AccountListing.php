@@ -74,8 +74,11 @@ class AccountListing extends Model
 
     public function assignedUsersCount()
     {
-        return User::whereJsonContains('account_ids', (int) $this->id)
-            ->orWhereJsonContains('account_ids', (string) $this->id)
+        return User::active()
+            ->where(function($q) {
+                $q->whereJsonContains('account_ids', (int) $this->id)
+                  ->orWhereJsonContains('account_ids', (string) $this->id);
+            })
             ->count();
     }
 
