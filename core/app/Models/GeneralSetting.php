@@ -12,6 +12,7 @@ class GeneralSetting extends Model
         'global_shortcodes' => 'object',
         'socialite_credentials' => 'object',
         'firebase_config' => 'object',
+        'admin_whatsapp' => 'array',
     ];
 
     protected $hidden = ['email_template','mail_config','sms_config','system_info'];

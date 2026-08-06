@@ -39,6 +39,8 @@ class GeneralSettingController extends Controller
             'banner_cta_text' => 'nullable|string|max:40',
             'banner_cta_link' => 'nullable|string',
             'banner_color' => 'nullable|string|in:primary,success,danger,warning,info,dark',
+            'admin_whatsapp' => 'nullable|array',
+            'admin_whatsapp.*' => 'nullable|string',
         ]);
 
         $timezones = timezone_identifiers_list();
@@ -60,6 +62,14 @@ class GeneralSettingController extends Controller
         if($request->banner_color) {
             $general->banner_color = $request->banner_color;
         }
+
+        if ($request->has('admin_whatsapp')) {
+            $whatsappNumbers = array_values(array_filter(array_map('trim', (array) $request->admin_whatsapp)));
+            $general->admin_whatsapp = $whatsappNumbers;
+        } else {
+            $general->admin_whatsapp = [];
+        }
+
         $general->save();
 
         $timezoneFile = config_path('timezone.php');

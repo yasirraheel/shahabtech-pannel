@@ -114,6 +114,36 @@
                             </div>
                         </div>
 
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="mb-0"><i class="lab la-whatsapp text--success me-1"></i> @lang('Admin WhatsApp Alert Settings')</h4>
+                            <button type="button" class="btn btn-sm btn-outline--primary addWaNumberBtn">
+                                <i class="las la-plus"></i> @lang('Add Number')
+                            </button>
+                        </div>
+                        <p class="text-muted small mb-3">
+                            @lang('Configure WhatsApp numbers (with country code, e.g. 923006859611 or 8801712345678) to receive instant alert notifications when any account cookie expires.')
+                        </p>
+                        <div class="row waNumberContainer mb-3">
+                            @php
+                                $waNumbers = (array) gs('admin_whatsapp');
+                                if (empty($waNumbers)) {
+                                    $waNumbers = [''];
+                                }
+                            @endphp
+                            @foreach($waNumbers as $index => $num)
+                                <div class="col-md-6 col-lg-4 mb-2 waNumberRow">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="lab la-whatsapp"></i></span>
+                                        <input type="text" name="admin_whatsapp[]" class="form-control" value="{{ $num }}" placeholder="@lang('e.g. 923006859611')">
+                                        <button type="button" class="btn btn-outline--danger removeWaNumberBtn">
+                                            <i class="las la-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                         <div class="form-group">
                             <button type="submit" class="btn btn--primary w-100 h-45">@lang('Submit')</button>
                         </div>
@@ -152,6 +182,29 @@
                 $(this).parents('.input-group').find('.colorPicker').spectrum({
                     color: clr,
                 });
+            });
+
+            $('.addWaNumberBtn').on('click', function () {
+                var html = `
+                    <div class="col-md-6 col-lg-4 mb-2 waNumberRow">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="lab la-whatsapp"></i></span>
+                            <input type="text" name="admin_whatsapp[]" class="form-control" placeholder="e.g. 923006859611">
+                            <button type="button" class="btn btn-outline--danger removeWaNumberBtn">
+                                <i class="las la-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                $('.waNumberContainer').append(html);
+            });
+
+            $(document).on('click', '.removeWaNumberBtn', function () {
+                if ($('.waNumberRow').length > 1) {
+                    $(this).closest('.waNumberRow').remove();
+                } else {
+                    $(this).closest('.waNumberRow').find('input').val('');
+                }
             });
         })(jQuery);
 

@@ -190,6 +190,7 @@ class CronController extends Controller
 
         $checkedCount = 0;
         $platformsToRebalance = [];
+        $expiredAccountsNotified = [];
 
         foreach ($accounts as $acc) {
             $prevStatus = $acc->cookie_status;
@@ -204,11 +205,23 @@ class CronController extends Controller
             if ($prevStatus !== $newStatus) {
                 $platformsToRebalance[$acc->social_media_id] = true;
             }
+
+            if ($newStatus === 0 && $prevStatus !== 0) {
+                $expiredAccountsNotified[] = [
+                    'account' => $acc,
+                    'error' => $result['error'] ?: 'Cookie verification failed'
+                ];
+            }
+
             $checkedCount++;
         }
 
         foreach (array_keys($platformsToRebalance) as $pId) {
             \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($pId, 'override_manual');
+        }
+
+        foreach ($expiredAccountsNotified as $item) {
+            \App\Lib\WhatsappNotification::sendCookieExpiryNotification($item['account'], $item['error']);
         }
 
         $msg = "Checked cookies for {$checkedCount} active account(s).";

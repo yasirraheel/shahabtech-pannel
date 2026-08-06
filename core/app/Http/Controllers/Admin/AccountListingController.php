@@ -253,6 +253,10 @@ class AccountListingController extends Controller
 
         $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
 
+        if (!$result['valid']) {
+            \App\Lib\WhatsappNotification::sendCookieExpiryNotification($account, $result['error'] ?: 'Cookie verification failed');
+        }
+
         $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
 
         if ($result['valid']) {
