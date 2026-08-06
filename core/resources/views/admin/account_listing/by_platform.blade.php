@@ -31,7 +31,6 @@
                             <thead>
                                 <tr>
                                     <th>@lang('Account Title')</th>
-                                    <th>@lang('Assigned Users')</th>
                                     <th>@lang('Has Cookies')</th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
@@ -41,18 +40,15 @@
                                 @forelse($accountListings as $account)
                                     <tr>
                                         <td>
-                                            <strong class="d-block">{{ $account->title }}</strong>
+                                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                                <strong class="d-block">{{ $account->title }}</strong>
+                                                <a href="{{ route('admin.users.all') }}?account_id={{ $account->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
+                                                    <i class="las la-users"></i> {{ $account->assignedUsersCount() }} @lang('Users')
+                                                </a>
+                                            </div>
                                             <div class="mt-1">
                                                 @php echo $account->cookieStatusBadge; @endphp
                                             </div>
-                                            <small class="text-muted d-block mt-1" style="font-size: 11px;">
-                                                <i class="las la-clock"></i> {{ diffForHumans($account->updated_at) }}
-                                            </small>
-                                        </td>
-                                        <td>
-                                            <a href="{{ route('admin.users.all') }}?account_id={{ $account->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
-                                                <i class="las la-users"></i> {{ $account->assignedUsersCount() }} @lang('Users')
-                                            </a>
                                         </td>
                                         <td>
                                             @if($account->account_info)
