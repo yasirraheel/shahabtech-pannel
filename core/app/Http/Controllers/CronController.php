@@ -196,8 +196,8 @@ class CronController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        // Auto trigger manual load balancer logic (keep_manual) for active non-expired subscribed users
-        $reassignedCount = \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
+        // Auto trigger manual load balancer logic (override_manual) for active non-expired subscribed users
+        $reassignedCount = \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
 
         $reassignedMsg = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
         $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')') . $reassignedMsg;
