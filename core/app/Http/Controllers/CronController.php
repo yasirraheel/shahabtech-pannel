@@ -196,14 +196,11 @@ class CronController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        $reassignedCount = 0;
-        if (!$result['valid']) {
-            // Auto-trigger targeted re-balancing ONLY for users assigned to this expired account
-            $reassignedCount = \App\Http\Controllers\Admin\AccountListingController::rebalanceAffectedUsersForExpiredAccount($account);
-        }
+        // Auto trigger manual load balancer logic (keep_manual) for active non-expired subscribed users
+        $reassignedCount = \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
 
-        $reassignedMsg = $reassignedCount > 0 ? " ({$reassignedCount} affected users re-assigned to valid working accounts)" : "";
-        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')' . $reassignedMsg);
+        $reassignedMsg = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
+        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')') . $reassignedMsg;
 
         if (request()->target == 'all' || request()->alias || request()->ajax()) {
             $notifyType = $result['valid'] ? 'success' : 'error';

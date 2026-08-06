@@ -100,16 +100,27 @@ class SocialMediaController extends Controller
         }
 
         $platform = SocialMedia::findOrFail($id);
-        
-        // Get all active accounts for this platform
+        $updatedUsersCount = self::executeLoadBalance($platform->id, $mode);
+
+        $modeText = $mode === 'override_manual' ? 'overriding manual assignments' : 'keeping manual assignments';
+        $notify[] = ['success', "Load balancing completed for {$platform->name}: {$updatedUsersCount} active unexpired user(s) load balanced ({$modeText})."];
+        return back()->withNotify($notify);
+    }
+
+    /**
+     * Reusable Static Load Balancer using strict subscription & validity conditions.
+     * Filter OUT expired/banned users, keep valid manual assignments for active users, and assign least-loaded active account.
+     */
+    public static function executeLoadBalance($platformId, $mode = 'keep_manual')
+    {
+        $platform = SocialMedia::find($platformId);
+        if (!$platform) return 0;
+
+        // Get all active & valid accounts for this platform (status = LISTING_ACTIVE and cookie_status != 0)
         $activeAccounts = AccountListing::where('social_media_id', $platform->id)
             ->where('status', Status::LISTING_ACTIVE)
+            ->where('cookie_status', '!=', 0)
             ->get();
-
-        if ($activeAccounts->isEmpty()) {
-            $notify[] = ['error', "Cannot load balance: No active accounts found for platform {$platform->name}."];
-            return back()->withNotify($notify);
-        }
 
         $activeAccountIds = $activeAccounts->pluck('id')->toArray();
         $allPlatformAccountIds = AccountListing::where('social_media_id', $platform->id)->pluck('id')->toArray();
@@ -117,7 +128,6 @@ class SocialMediaController extends Controller
         // Fetch all non-banned users
         $allUsers = User::where('status', '!=', Status::USER_BAN)->get();
 
-        // Separate active unexpired users from expired users
         $now = now();
         $validUsers = collect();
         $expiredUsersCount = 0;
@@ -126,7 +136,7 @@ class SocialMediaController extends Controller
             $isExpired = !$user->expires_at || $user->expires_at <= $now;
 
             if ($isExpired) {
-                // Strip all accounts belonging to this platform from expired user
+                // Strip all accounts belonging to this platform from expired/unsubscribed user
                 $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
                 $otherAccountIds = array_values(array_diff($currentAccountIds, $allPlatformAccountIds));
 
@@ -143,28 +153,45 @@ class SocialMediaController extends Controller
         }
 
         if ($validUsers->isEmpty()) {
-            $notify[] = ['warning', "No active, non-expired subscribed users found to load balance. Removed assignments from {$expiredUsersCount} expired user(s)."];
-            return back()->withNotify($notify);
+            return 0;
+        }
+
+        if ($activeAccounts->isEmpty()) {
+            // If NO valid active accounts exist, strip all assignments for this platform from valid users too
+            foreach ($validUsers as $user) {
+                $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
+                $otherAccountIds = array_values(array_diff($currentAccountIds, $allPlatformAccountIds));
+                if (count($currentAccountIds) !== count($otherAccountIds)) {
+                    $user->account_ids = $otherAccountIds;
+                    $user->timestamps = false;
+                    $user->save();
+                    $user->timestamps = true;
+                }
+            }
+            return 0;
         }
 
         $updatedUsersCount = 0;
 
-        // Initialize account user counts map for active accounts
+        // Initialize account user counts map for active valid accounts
         $accountUserCounts = [];
         foreach ($activeAccountIds as $accId) {
             $accountUserCounts[(int) $accId] = 0;
         }
 
         if ($mode === 'keep_manual') {
-            // Count valid users who will KEEP their existing manual assignment for this platform
+            // Count valid users who will KEEP their existing valid assignment for this platform
             foreach ($validUsers as $user) {
                 $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
                 $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
                 
                 if (!empty($userPlatformAccs)) {
-                    foreach ($userPlatformAccs as $existingAccId) {
-                        if (isset($accountUserCounts[$existingAccId])) {
-                            $accountUserCounts[$existingAccId]++;
+                    $validAssignedAccs = array_intersect($userPlatformAccs, $activeAccountIds);
+                    if (!empty($validAssignedAccs)) {
+                        foreach ($validAssignedAccs as $existingAccId) {
+                            if (isset($accountUserCounts[$existingAccId])) {
+                                $accountUserCounts[$existingAccId]++;
+                            }
                         }
                     }
                 }
@@ -174,16 +201,17 @@ class SocialMediaController extends Controller
         foreach ($validUsers as $user) {
             $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
             $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
-            
-            if ($mode === 'keep_manual' && !empty($userPlatformAccs)) {
-                // User already has an assignment for this platform, keep it!
+            $validAssignedAccs = array_intersect($userPlatformAccs, $activeAccountIds);
+
+            if ($mode === 'keep_manual' && !empty($validAssignedAccs)) {
+                // User already has a VALID working account for this platform, KEEP IT!
                 continue;
             }
 
-            // Strip out ALL previous assignments for this platform
+            // Strip out ALL previous invalid/expired assignments for this platform
             $otherAccountIds = array_diff($currentAccountIds, $allPlatformAccountIds);
 
-            // Pick the active account with the lowest current count
+            // Pick the active valid account with the lowest current count
             asort($accountUserCounts);
             $bestAccountId = key($accountUserCounts);
 
@@ -198,8 +226,6 @@ class SocialMediaController extends Controller
             $updatedUsersCount++;
         }
 
-        $modeText = $mode === 'override_manual' ? 'overriding manual assignments' : 'keeping manual assignments';
-        $notify[] = ['success', "Load balancing completed for {$platform->name}: {$updatedUsersCount} active unexpired user(s) load balanced across {$activeAccounts->count()} active account(s) ({$modeText}). Cleared accounts from {$expiredUsersCount} expired user(s)."];
-        return back()->withNotify($notify);
+        return $updatedUsersCount;
     }
 }

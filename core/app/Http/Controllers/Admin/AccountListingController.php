@@ -127,6 +127,9 @@ class AccountListingController extends Controller
         $account->status          = Status::LISTING_ACTIVE;
         $account->save();
 
+        // Trigger manual load balancer logic (keep_manual) for active non-expired subscribed users
+        SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
+
         $notify[] = ['success', $notifyMessage];
         return back()->withNotify($notify);
     }
@@ -184,11 +187,12 @@ class AccountListingController extends Controller
 
         if ($account->status == Status::LISTING_ACTIVE) {
             $account->status = Status::LISTING_INACTIVE;
-            self::rebalanceAffectedUsersForExpiredAccount($account);
         } else {
             $account->status = Status::LISTING_ACTIVE;
         }
         $account->save();
+
+        SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
 
         $statusText = $account->status == Status::LISTING_ACTIVE ? 'enabled' : 'disabled';
         $notify[] = ['success', "Account {$statusText} successfully."];
@@ -198,8 +202,10 @@ class AccountListingController extends Controller
     public function delete($id)
     {
         $account = AccountListing::findOrFail($id);
-        self::rebalanceAffectedUsersForExpiredAccount($account);
+        $platformId = $account->social_media_id;
         $account->delete();
+
+        SocialMediaController::executeLoadBalance($platformId, 'keep_manual');
 
         $notify[] = ['success', 'Account deleted successfully. Assigned users updated.'];
         return back()->withNotify($notify);
@@ -224,6 +230,8 @@ class AccountListingController extends Controller
         $duplicate->status          = Status::LISTING_ACTIVE;
         $duplicate->save();
 
+        SocialMediaController::executeLoadBalance($duplicate->social_media_id, 'keep_manual');
+
         $notify[] = ['success', 'Account duplicated successfully'];
         return back()->withNotify($notify);
     }
@@ -239,12 +247,9 @@ class AccountListingController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        $reassignedCount = 0;
-        if (!$result['valid']) {
-            $reassignedCount = self::rebalanceAffectedUsersForExpiredAccount($account);
-        }
+        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
 
-        $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} affected users re-assigned to valid working accounts)" : "";
+        $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
 
         if ($result['valid']) {
             $notify[] = ['success', "Cookie for '{$account->title}' is valid!"];
@@ -255,72 +260,8 @@ class AccountListingController extends Controller
         return back()->withNotify($notify);
     }
 
-    /**
-     * Smart Targeted Load Balancer for Affected Users when an Account Cookie is Expired/Invalid.
-     * Only affects users who currently have the expired account assigned.
-     * Preserves all other users and their valid platform assignments intact.
-     */
     public static function rebalanceAffectedUsersForExpiredAccount(AccountListing $expiredAccount)
     {
-        $accId = $expiredAccount->id;
-        $platformId = $expiredAccount->social_media_id;
-
-        // 1. Find ONLY the users who currently have this specific expired account assigned
-        $affectedUsers = User::whereJsonContains('account_ids', (int) $accId)
-            ->orWhereJsonContains('account_ids', (string) $accId)
-            ->get();
-
-        if ($affectedUsers->isEmpty()) {
-            return 0;
-        }
-
-        // 2. Find candidate VALID working accounts for the same platform
-        $validAlternatives = AccountListing::where('status', Status::LISTING_ACTIVE)
-            ->where('cookie_status', '!=', 0)
-            ->where('social_media_id', $platformId)
-            ->where('id', '!=', $accId)
-            ->get();
-
-        $reassignedCount = 0;
-
-        foreach ($affectedUsers as $user) {
-            $currentAccountIds = (array) ($user->account_ids ?? []);
-            
-            // Remove the expired account ID
-            $updatedAccountIds = array_values(array_diff($currentAccountIds, [(int) $accId, (string) $accId]));
-
-            // If valid working alternative accounts exist, pick the one with the lowest user load
-            if ($validAlternatives->isNotEmpty()) {
-                $bestAlternative = null;
-                $lowestCount = PHP_INT_MAX;
-
-                foreach ($validAlternatives as $alternative) {
-                    if (in_array($alternative->id, $updatedAccountIds) || in_array((string) $alternative->id, $updatedAccountIds)) {
-                        continue;
-                    }
-                    $userCount = User::whereJsonContains('account_ids', (int) $alternative->id)
-                        ->orWhereJsonContains('account_ids', (string) $alternative->id)
-                        ->count();
-
-                    if ($userCount < $lowestCount) {
-                        $lowestCount = $userCount;
-                        $bestAlternative = $alternative;
-                    }
-                }
-
-                if ($bestAlternative) {
-                    $updatedAccountIds[] = (int) $bestAlternative->id;
-                }
-            }
-
-            $user->account_ids = array_values(array_unique($updatedAccountIds));
-            $user->timestamps = false;
-            $user->save();
-            $user->timestamps = true;
-
-            $reassignedCount++;
-        }
-
-        return $reassignedCount;
+        return SocialMediaController::executeLoadBalance($expiredAccount->social_media_id, 'keep_manual');
     }
 }
