@@ -172,6 +172,41 @@ class CronController extends Controller
      */
     public function cookieCheck()
     {
+        if (request()->target == 'all' || request()->all == 1) {
+            $accounts = AccountListing::where('status', Status::LISTING_ACTIVE)
+                ->whereHas('socialMedia', function ($q) {
+                    $q->active();
+                })
+                ->with('socialMedia')
+                ->get();
+
+            if ($accounts->isEmpty()) {
+                $notify[] = ['info', 'No active accounts available for cookie check.'];
+                return back()->withNotify($notify);
+            }
+
+            $checkedCount = 0;
+            $platformsToRebalance = [];
+
+            foreach ($accounts as $acc) {
+                $result = $this->verifyAccountCookieHealth($acc);
+                $acc->cookie_status = $result['valid'] ? 1 : 0;
+                $acc->cookie_check_error = $result['error'] ?: null;
+                $acc->cookie_checked_at = now();
+                $acc->save();
+
+                $platformsToRebalance[$acc->social_media_id] = true;
+                $checkedCount++;
+            }
+
+            foreach (array_keys($platformsToRebalance) as $pId) {
+                \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($pId, 'override_manual');
+            }
+
+            $notify[] = ['success', "Checked cookies for {$checkedCount} active accounts and load-balanced users."];
+            return back()->withNotify($notify);
+        }
+
         // Select exactly 1 active account that was unchecked or has the oldest check timestamp
         $account = AccountListing::where('status', Status::LISTING_ACTIVE)
             ->whereHas('socialMedia', function ($q) {
@@ -182,10 +217,6 @@ class CronController extends Controller
             ->first();
 
         if (!$account) {
-            if (request()->target == 'all' || request()->alias) {
-                $notify[] = ['info', 'No active accounts available for cookie check.'];
-                return back()->withNotify($notify);
-            }
             return response()->json(['success' => false, 'message' => 'No active accounts available.']);
         }
 
@@ -202,7 +233,7 @@ class CronController extends Controller
         $reassignedMsg = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
         $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')') . $reassignedMsg;
 
-        if (request()->target == 'all' || request()->alias || request()->ajax()) {
+        if (request()->alias || request()->ajax()) {
             $notifyType = $result['valid'] ? 'success' : 'error';
             $notify[] = [$notifyType, $msg];
             return back()->withNotify($notify);

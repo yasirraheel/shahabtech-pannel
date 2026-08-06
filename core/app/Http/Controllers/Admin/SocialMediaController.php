@@ -213,9 +213,10 @@ class SocialMediaController extends Controller
             // Strip out ALL previous invalid/expired assignments for this platform
             $otherAccountIds = array_values(array_diff($currentAccountIds, $allPlatformAccountIdsInt));
 
-            // Pick the active valid account with the lowest current count
-            asort($accountUserCounts);
-            $bestAccountId = key($accountUserCounts);
+            // Pick active valid account with the lowest current count (with random tie-breaker)
+            $minCount = min($accountUserCounts);
+            $lowestCandidateIds = array_keys($accountUserCounts, $minCount);
+            $bestAccountId = $lowestCandidateIds[array_rand($lowestCandidateIds)];
 
             $otherAccountIds[] = (int) $bestAccountId;
             $accountUserCounts[$bestAccountId]++;
