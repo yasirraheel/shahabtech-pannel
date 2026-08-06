@@ -196,10 +196,14 @@ class CronController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        // Auto trigger even load redistribution across valid accounts of this platform
-        $reassignedCount = \App\Http\Controllers\Admin\AccountListingController::redistributePlatformUsers($account->social_media_id);
+        $reassignedCount = 0;
+        if (!$result['valid']) {
+            // Auto-trigger targeted re-balancing ONLY for users assigned to this expired account
+            $reassignedCount = \App\Http\Controllers\Admin\AccountListingController::rebalanceAffectedUsersForExpiredAccount($account);
+        }
 
-        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')') . " (Users load-balanced across valid accounts)";
+        $reassignedMsg = $reassignedCount > 0 ? " ({$reassignedCount} affected users re-assigned to valid working accounts)" : "";
+        $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')' . $reassignedMsg);
 
         if (request()->target == 'all' || request()->alias || request()->ajax()) {
             $notifyType = $result['valid'] ? 'success' : 'error';

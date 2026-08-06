@@ -127,9 +127,7 @@ class AccountListingController extends Controller
         $account->status          = Status::LISTING_ACTIVE;
         $account->save();
 
-        self::redistributePlatformUsers($account->social_media_id);
-
-        $notify[] = ['success', $notifyMessage . '. All users load-balanced across valid accounts.'];
+        $notify[] = ['success', $notifyMessage];
         return back()->withNotify($notify);
     }
 
@@ -186,27 +184,24 @@ class AccountListingController extends Controller
 
         if ($account->status == Status::LISTING_ACTIVE) {
             $account->status = Status::LISTING_INACTIVE;
+            self::rebalanceAffectedUsersForExpiredAccount($account);
         } else {
             $account->status = Status::LISTING_ACTIVE;
         }
         $account->save();
 
-        self::redistributePlatformUsers($account->social_media_id);
-
         $statusText = $account->status == Status::LISTING_ACTIVE ? 'enabled' : 'disabled';
-        $notify[] = ['success', "Account {$statusText} successfully. All users load-balanced across valid accounts."];
+        $notify[] = ['success', "Account {$statusText} successfully."];
         return back()->withNotify($notify);
     }
 
     public function delete($id)
     {
         $account = AccountListing::findOrFail($id);
-        $platformId = $account->social_media_id;
-
+        self::rebalanceAffectedUsersForExpiredAccount($account);
         $account->delete();
-        self::redistributePlatformUsers($platformId);
 
-        $notify[] = ['success', 'Account deleted successfully. Assigned users load-balanced.'];
+        $notify[] = ['success', 'Account deleted successfully. Assigned users updated.'];
         return back()->withNotify($notify);
     }
 
@@ -244,69 +239,88 @@ class AccountListingController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        // Auto trigger even load redistribution across valid accounts of this platform
-        self::redistributePlatformUsers($account->social_media_id);
+        $reassignedCount = 0;
+        if (!$result['valid']) {
+            $reassignedCount = self::rebalanceAffectedUsersForExpiredAccount($account);
+        }
+
+        $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} affected users re-assigned to valid working accounts)" : "";
 
         if ($result['valid']) {
-            $notify[] = ['success', "Cookie for '{$account->title}' is valid! Users load-balanced across valid accounts."];
+            $notify[] = ['success', "Cookie for '{$account->title}' is valid!"];
         } else {
-            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error'] . " (Users load-balanced across valid accounts)"];
+            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error'] . $reassignedText];
         }
 
         return back()->withNotify($notify);
     }
 
     /**
-     * Unified Even Load Balancing Engine for a specific platform.
-     * Evenly redistributes all active users across all valid accounts of that platform.
-     * Triggered on: Expired cookie, New account added, Cookie validated/fixed, or Account status toggled.
+     * Smart Targeted Load Balancer for Affected Users when an Account Cookie is Expired/Invalid.
+     * Only affects users who currently have the expired account assigned.
+     * Preserves all other users and their valid platform assignments intact.
      */
-    public static function redistributePlatformUsers($platformId)
+    public static function rebalanceAffectedUsersForExpiredAccount(AccountListing $expiredAccount)
     {
-        // 1. Fetch all active, working (valid or unchecked) accounts for this platform
-        $validAccounts = AccountListing::where('status', Status::LISTING_ACTIVE)
-            ->where('cookie_status', '!=', 0)
-            ->where('social_media_id', $platformId)
+        $accId = $expiredAccount->id;
+        $platformId = $expiredAccount->social_media_id;
+
+        // 1. Find ONLY the users who currently have this specific expired account assigned
+        $affectedUsers = User::whereJsonContains('account_ids', (int) $accId)
+            ->orWhereJsonContains('account_ids', (string) $accId)
             ->get();
 
-        // Fetch all account IDs belonging to this platform (valid + invalid)
-        $allPlatformAccountIdsInt = AccountListing::where('social_media_id', $platformId)->pluck('id')->map(fn($id) => (int)$id)->toArray();
-        $allPlatformAccountIdsStr = array_map('strval', $allPlatformAccountIdsInt);
-
-        // 2. Fetch all regular active users (excluding testers/admins who view all accounts)
-        $users = User::where('is_tester', 0)->get();
-
-        if ($users->isEmpty()) {
+        if ($affectedUsers->isEmpty()) {
             return 0;
         }
 
-        $validCount = $validAccounts->count();
-        $userIndex = 0;
-        $updatedUsersCount = 0;
+        // 2. Find candidate VALID working accounts for the same platform
+        $validAlternatives = AccountListing::where('status', Status::LISTING_ACTIVE)
+            ->where('cookie_status', '!=', 0)
+            ->where('social_media_id', $platformId)
+            ->where('id', '!=', $accId)
+            ->get();
 
-        foreach ($users as $user) {
+        $reassignedCount = 0;
+
+        foreach ($affectedUsers as $user) {
             $currentAccountIds = (array) ($user->account_ids ?? []);
+            
+            // Remove the expired account ID
+            $updatedAccountIds = array_values(array_diff($currentAccountIds, [(int) $accId, (string) $accId]));
 
-            // Remove all account IDs of this platform from user's account_ids
-            $cleanedAccountIds = array_values(array_filter($currentAccountIds, function ($accId) use ($allPlatformAccountIdsInt, $allPlatformAccountIdsStr) {
-                return !in_array((int)$accId, $allPlatformAccountIdsInt) && !in_array((string)$accId, $allPlatformAccountIdsStr);
-            }));
+            // If valid working alternative accounts exist, pick the one with the lowest user load
+            if ($validAlternatives->isNotEmpty()) {
+                $bestAlternative = null;
+                $lowestCount = PHP_INT_MAX;
 
-            // If valid accounts exist, assign 1 valid account in round-robin fashion for even distribution
-            if ($validCount > 0) {
-                $assignedAccount = $validAccounts[$userIndex % $validCount];
-                $cleanedAccountIds[] = (int) $assignedAccount->id;
-                $userIndex++;
+                foreach ($validAlternatives as $alternative) {
+                    if (in_array($alternative->id, $updatedAccountIds) || in_array((string) $alternative->id, $updatedAccountIds)) {
+                        continue;
+                    }
+                    $userCount = User::whereJsonContains('account_ids', (int) $alternative->id)
+                        ->orWhereJsonContains('account_ids', (string) $alternative->id)
+                        ->count();
+
+                    if ($userCount < $lowestCount) {
+                        $lowestCount = $userCount;
+                        $bestAlternative = $alternative;
+                    }
+                }
+
+                if ($bestAlternative) {
+                    $updatedAccountIds[] = (int) $bestAlternative->id;
+                }
             }
 
-            $user->account_ids = array_values(array_unique($cleanedAccountIds));
+            $user->account_ids = array_values(array_unique($updatedAccountIds));
             $user->timestamps = false;
             $user->save();
             $user->timestamps = true;
 
-            $updatedUsersCount++;
+            $reassignedCount++;
         }
 
-        return $updatedUsersCount;
+        return $reassignedCount;
     }
 }
