@@ -11,7 +11,7 @@ $res = \Illuminate\Support\Facades\Http::withHeaders([
     'contact' => [
         [
             'number' => '923006859611',
-            'message' => 'TEST WHATSAPP ALERT AFTER CONTACT SCOPE FIX'
+            'message' => 'TEST WHATSAPP ALERT AFTER OMNIREACH FIX'
         ]
     ]
 ]);
