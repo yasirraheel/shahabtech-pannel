@@ -7,5 +7,7 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $logs = App\Models\DispatchLog::orderBy('id', 'desc')->take(10)->get();
 echo "RECENT 10 DISPATCH LOGS IN OMNIREACH:\n";
 foreach ($logs as $l) {
-    echo "ID: {$l->id} | Type: {$l->type} | Status: " . (is_object($l->status) ? $l->status->value : $l->status) . " | GatewayID: {$l->gatewayable_id} | CreatedAt: {$l->created_at}\n";
+    $t = is_object($l->type) ? $l->type->value : $l->type;
+    $s = is_object($l->status) ? $l->status->value : $l->status;
+    echo "ID: {$l->id} | Type: {$t} | Status: {$s} | GatewayID: {$l->gatewayable_id} | CreatedAt: {$l->created_at}\n";
 }
