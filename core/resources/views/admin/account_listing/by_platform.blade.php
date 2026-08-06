@@ -33,7 +33,6 @@
                                     <th>@lang('Account Title')</th>
                                     <th>@lang('Assigned Users')</th>
                                     <th>@lang('Has Cookies')</th>
-                                    <th>@lang('Cookie Health')</th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
                                 </tr>
@@ -43,6 +42,9 @@
                                     <tr>
                                         <td>
                                             <strong class="d-block">{{ $account->title }}</strong>
+                                            <div class="mt-1">
+                                                @php echo $account->cookieStatusBadge; @endphp
+                                            </div>
                                             <small class="text-muted d-block mt-1" style="font-size: 11px;">
                                                 <i class="las la-clock"></i> {{ diffForHumans($account->updated_at) }}
                                             </small>
@@ -59,7 +61,6 @@
                                                 <span class="badge badge--danger"><i class="las la-times"></i> No</span>
                                             @endif
                                         </td>
-                                        <td>@php echo $account->cookieStatusBadge; @endphp</td>
                                         <td>@php echo $account->statusBadge; @endphp</td>
                                         <td>
                                             <div class="d-flex justify-content-end flex-wrap gap-1">

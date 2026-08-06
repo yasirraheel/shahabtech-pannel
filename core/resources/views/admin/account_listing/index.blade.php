@@ -27,7 +27,6 @@
                                     <th>@lang('Title')</th>
                                     <th>@lang('Social Media') </th>
                                     <th> @lang('Assigned Users') </th>
-                                    <th>@lang('Cookie Health')</th>
                                     <th>@lang('Status')</th>
                                     <th>@lang('Action')</th>
                                 </tr>
@@ -37,6 +36,9 @@
                                     <tr>
                                         <td>
                                             <p class="m-0 fw-bold">{{ strLimit($accountListing->title, 50) }}</p>
+                                            <div class="mt-1">
+                                                @php echo $accountListing->cookieStatusBadge; @endphp
+                                            </div>
                                             <small class="text-muted d-block mt-1" style="font-size: 11px;">
                                                 <i class="las la-clock"></i> {{ diffForHumans($accountListing->updated_at) }}
                                             </small>
@@ -49,7 +51,6 @@
                                                 <i class="las la-users"></i> {{ $accountListing->assignedUsersCount() }} @lang('Users')
                                             </a>
                                         </td>
-                                        <td> @php echo $accountListing->cookieStatusBadge; @endphp </td>
                                         <td> @php echo $accountListing->statusBadge; @endphp </td>
                                         <td>
                                             <div class="d-flex justify-content-end flex-wrap gap-1">
