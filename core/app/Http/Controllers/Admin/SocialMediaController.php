@@ -149,7 +149,7 @@ class SocialMediaController extends Controller
         }
 
         // 3. Fetch ONLY ACTIVE, NON-EXPIRED users (User::active())
-        $validUsers = User::active()->where('is_tester', 0)->get();
+        $validUsers = User::active()->get();
 
         if ($validUsers->isEmpty()) {
             return 0;
