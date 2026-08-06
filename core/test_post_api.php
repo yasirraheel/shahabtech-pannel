@@ -11,7 +11,7 @@ $res = \Illuminate\Support\Facades\Http::withHeaders([
     'contact' => [
         [
             'number' => '923006859611',
-            'message' => 'REALTIME SYNC TEST WHATSAPP MESSAGE TO ADMIN 923006859611'
+            'message' => 'INSTANT REALTIME WHATSAPP DISPATCH TEST TO 923006859611'
         ]
     ]
 ]);
