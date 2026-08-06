@@ -189,13 +189,18 @@ class CronController extends Controller
             $platformsToRebalance = [];
 
             foreach ($accounts as $acc) {
+                $prevStatus = $acc->cookie_status;
                 $result = $this->verifyAccountCookieHealth($acc);
-                $acc->cookie_status = $result['valid'] ? 1 : 0;
+                $newStatus = $result['valid'] ? 1 : 0;
+
+                $acc->cookie_status = $newStatus;
                 $acc->cookie_check_error = $result['error'] ?: null;
                 $acc->cookie_checked_at = now();
                 $acc->save();
 
-                $platformsToRebalance[$acc->social_media_id] = true;
+                if ($prevStatus !== $newStatus) {
+                    $platformsToRebalance[$acc->social_media_id] = true;
+                }
                 $checkedCount++;
             }
 
@@ -203,7 +208,7 @@ class CronController extends Controller
                 \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($pId, 'override_manual');
             }
 
-            $notify[] = ['success', "Checked cookies for {$checkedCount} active accounts and load-balanced users."];
+            $notify[] = ['success', "Checked cookies for {$checkedCount} active accounts."];
             return back()->withNotify($notify);
         }
 
@@ -220,17 +225,27 @@ class CronController extends Controller
             return response()->json(['success' => false, 'message' => 'No active accounts available.']);
         }
 
+        $previousStatus = $account->cookie_status;
+
         $result = $this->verifyAccountCookieHealth($account);
 
-        $account->cookie_status = $result['valid'] ? 1 : 0;
+        $newStatus = $result['valid'] ? 1 : 0;
+        $account->cookie_status = $newStatus;
         $account->cookie_check_error = $result['error'] ?: null;
         $account->cookie_checked_at = now();
         $account->save();
 
-        // Auto trigger manual load balancer logic (override_manual) for active non-expired subscribed users
-        $reassignedCount = \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
+        $reassignedCount = 0;
+        $statusChanged = ($previousStatus !== $newStatus);
 
-        $reassignedMsg = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
+        if ($statusChanged) {
+            // Trigger load balancing ONLY if status changed (e.g. valid -> invalid or invalid -> valid)
+            $reassignedCount = \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
+            $reassignedMsg = " ({$reassignedCount} active user(s) load balanced on status change)";
+        } else {
+            $reassignedMsg = " (Status unchanged, load balancing skipped)";
+        }
+
         $msg = "Checked account ID {$account->id} ({$account->title}): " . ($result['valid'] ? 'Cookie Valid' : 'Cookie Invalid (' . $result['error'] . ')') . $reassignedMsg;
 
         if (request()->alias || request()->ajax()) {
@@ -245,6 +260,7 @@ class CronController extends Controller
             'account_id' => $account->id,
             'title' => $account->title,
             'error' => $result['error'],
+            'status_changed' => $statusChanged,
             'reassigned_users_count' => $reassignedCount
         ]);
     }
