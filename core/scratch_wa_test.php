@@ -5,8 +5,7 @@ $data = [
     "contact" => [
         [
             "number" => "923006859611",
-            "message" => "Hello from Panel! Local test message to 923006859611.",
-            "gateway_identifier" => "3ZZ2UPim-YVwgoqdzD3h0Lr-KiIUPiEI"
+            "message" => "Hello from Panel! Test message to 923006859611."
         ]
     ]
 ];
