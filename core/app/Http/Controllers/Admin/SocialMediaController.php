@@ -109,14 +109,14 @@ class SocialMediaController extends Controller
 
     /**
      * Reusable Static Load Balancer using strict subscription & validity conditions.
-     * Filter OUT expired/banned users, keep valid manual assignments for active users, and assign least-loaded active account.
+     * Filter OUT expired/banned users and distribute active unexpired users EVENLY across active valid accounts.
      */
-    public static function executeLoadBalance($platformId, $mode = 'keep_manual')
+    public static function executeLoadBalance($platformId, $mode = 'override_manual')
     {
         $platform = SocialMedia::find($platformId);
         if (!$platform) return 0;
 
-        // Get all active & valid accounts for this platform (status = LISTING_ACTIVE and cookie_status != 0)
+        // 1. Fetch all active & valid accounts for this platform (status = LISTING_ACTIVE and cookie_status != 0)
         $activeAccounts = AccountListing::where('social_media_id', $platform->id)
             ->where('status', Status::LISTING_ACTIVE)
             ->where('cookie_status', '!=', 0)
@@ -124,33 +124,32 @@ class SocialMediaController extends Controller
 
         $activeAccountIds = $activeAccounts->pluck('id')->toArray();
         $allPlatformAccountIds = AccountListing::where('social_media_id', $platform->id)->pluck('id')->toArray();
+        $allPlatformAccountIdsInt = array_map('intval', $allPlatformAccountIds);
+        $allPlatformAccountIdsStr = array_map('strval', $allPlatformAccountIds);
 
-        // Fetch all non-banned users
-        $allUsers = User::where('status', '!=', Status::USER_BAN)->get();
+        // 2. STRIP all accounts belonging to this platform from EXPIRED, INACTIVE, and BANNED users
+        $expiredUsers = User::where(function($q) {
+            $q->whereNull('expires_at')
+              ->orWhere('expires_at', '<=', now())
+              ->orWhere('status', '!=', Status::USER_ACTIVE);
+        })->where('is_tester', 0)->get();
 
-        $now = now();
-        $validUsers = collect();
-        $expiredUsersCount = 0;
+        foreach ($expiredUsers as $expiredUser) {
+            $currentAccountIds = (array) ($expiredUser->account_ids ?? []);
+            $cleanedAccountIds = array_values(array_filter($currentAccountIds, function ($accId) use ($allPlatformAccountIdsInt, $allPlatformAccountIdsStr) {
+                return !in_array((int)$accId, $allPlatformAccountIdsInt) && !in_array((string)$accId, $allPlatformAccountIdsStr);
+            }));
 
-        foreach ($allUsers as $user) {
-            $isExpired = !$user->expires_at || $user->expires_at <= $now;
-
-            if ($isExpired) {
-                // Strip all accounts belonging to this platform from expired/unsubscribed user
-                $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
-                $otherAccountIds = array_values(array_diff($currentAccountIds, $allPlatformAccountIds));
-
-                if (count($currentAccountIds) !== count($otherAccountIds)) {
-                    $user->account_ids = $otherAccountIds;
-                    $user->timestamps = false;
-                    $user->save();
-                    $user->timestamps = true;
-                    $expiredUsersCount++;
-                }
-            } else {
-                $validUsers->push($user);
+            if (count($currentAccountIds) !== count($cleanedAccountIds)) {
+                $expiredUser->account_ids = $cleanedAccountIds;
+                $expiredUser->timestamps = false;
+                $expiredUser->save();
+                $expiredUser->timestamps = true;
             }
         }
+
+        // 3. Fetch ONLY ACTIVE, NON-EXPIRED users (User::active())
+        $validUsers = User::active()->where('is_tester', 0)->get();
 
         if ($validUsers->isEmpty()) {
             return 0;
@@ -159,10 +158,13 @@ class SocialMediaController extends Controller
         if ($activeAccounts->isEmpty()) {
             // If NO valid active accounts exist, strip all assignments for this platform from valid users too
             foreach ($validUsers as $user) {
-                $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
-                $otherAccountIds = array_values(array_diff($currentAccountIds, $allPlatformAccountIds));
-                if (count($currentAccountIds) !== count($otherAccountIds)) {
-                    $user->account_ids = $otherAccountIds;
+                $currentAccountIds = (array) ($user->account_ids ?? []);
+                $cleanedAccountIds = array_values(array_filter($currentAccountIds, function ($accId) use ($allPlatformAccountIdsInt, $allPlatformAccountIdsStr) {
+                    return !in_array((int)$accId, $allPlatformAccountIdsInt) && !in_array((string)$accId, $allPlatformAccountIdsStr);
+                }));
+
+                if (count($currentAccountIds) !== count($cleanedAccountIds)) {
+                    $user->account_ids = $cleanedAccountIds;
                     $user->timestamps = false;
                     $user->save();
                     $user->timestamps = true;
@@ -183,7 +185,7 @@ class SocialMediaController extends Controller
             // Count valid users who will KEEP their existing valid assignment for this platform
             foreach ($validUsers as $user) {
                 $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
-                $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
+                $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIdsInt);
                 
                 if (!empty($userPlatformAccs)) {
                     $validAssignedAccs = array_intersect($userPlatformAccs, $activeAccountIds);
@@ -200,7 +202,7 @@ class SocialMediaController extends Controller
 
         foreach ($validUsers as $user) {
             $currentAccountIds = array_map('intval', (array) ($user->account_ids ?? []));
-            $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIds);
+            $userPlatformAccs = array_intersect($currentAccountIds, $allPlatformAccountIdsInt);
             $validAssignedAccs = array_intersect($userPlatformAccs, $activeAccountIds);
 
             if ($mode === 'keep_manual' && !empty($validAssignedAccs)) {
@@ -209,13 +211,13 @@ class SocialMediaController extends Controller
             }
 
             // Strip out ALL previous invalid/expired assignments for this platform
-            $otherAccountIds = array_diff($currentAccountIds, $allPlatformAccountIds);
+            $otherAccountIds = array_values(array_diff($currentAccountIds, $allPlatformAccountIdsInt));
 
             // Pick the active valid account with the lowest current count
             asort($accountUserCounts);
             $bestAccountId = key($accountUserCounts);
 
-            $otherAccountIds[] = $bestAccountId;
+            $otherAccountIds[] = (int) $bestAccountId;
             $accountUserCounts[$bestAccountId]++;
 
             $user->account_ids = array_values(array_unique($otherAccountIds));

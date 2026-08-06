@@ -127,8 +127,8 @@ class AccountListingController extends Controller
         $account->status          = Status::LISTING_ACTIVE;
         $account->save();
 
-        // Trigger manual load balancer logic (keep_manual) for active non-expired subscribed users
-        SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
+        // Trigger manual load balancer logic (override_manual) for active non-expired subscribed users
+        SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
 
         $notify[] = ['success', $notifyMessage];
         return back()->withNotify($notify);
@@ -192,7 +192,7 @@ class AccountListingController extends Controller
         }
         $account->save();
 
-        SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
+        SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
 
         $statusText = $account->status == Status::LISTING_ACTIVE ? 'enabled' : 'disabled';
         $notify[] = ['success', "Account {$statusText} successfully."];
@@ -205,7 +205,7 @@ class AccountListingController extends Controller
         $platformId = $account->social_media_id;
         $account->delete();
 
-        SocialMediaController::executeLoadBalance($platformId, 'keep_manual');
+        SocialMediaController::executeLoadBalance($platformId, 'override_manual');
 
         $notify[] = ['success', 'Account deleted successfully. Assigned users updated.'];
         return back()->withNotify($notify);
@@ -230,7 +230,7 @@ class AccountListingController extends Controller
         $duplicate->status          = Status::LISTING_ACTIVE;
         $duplicate->save();
 
-        SocialMediaController::executeLoadBalance($duplicate->social_media_id, 'keep_manual');
+        SocialMediaController::executeLoadBalance($duplicate->social_media_id, 'override_manual');
 
         $notify[] = ['success', 'Account duplicated successfully'];
         return back()->withNotify($notify);
@@ -247,7 +247,7 @@ class AccountListingController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
+        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
 
         $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
 
@@ -262,6 +262,6 @@ class AccountListingController extends Controller
 
     public static function rebalanceAffectedUsersForExpiredAccount(AccountListing $expiredAccount)
     {
-        return SocialMediaController::executeLoadBalance($expiredAccount->social_media_id, 'keep_manual');
+        return SocialMediaController::executeLoadBalance($expiredAccount->social_media_id, 'override_manual');
     }
 }
