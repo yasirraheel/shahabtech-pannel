@@ -31,7 +31,6 @@
                             <thead>
                                 <tr>
                                     <th>@lang('Account Title')</th>
-                                    <th>@lang('Plan')</th>
                                     <th>@lang('Assigned Users')</th>
                                     <th>@lang('Has Cookies')</th>
                                     <th>@lang('Cookie Health')</th>
@@ -48,7 +47,6 @@
                                                 <i class="las la-clock"></i> {{ diffForHumans($account->updated_at) }}
                                             </small>
                                         </td>
-                                        <td>{{ @$account->plan->name ?? '—' }}</td>
                                         <td>
                                             <a href="{{ route('admin.users.all') }}?account_id={{ $account->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
                                                 <i class="las la-users"></i> {{ $account->assignedUsersCount() }} @lang('Users')

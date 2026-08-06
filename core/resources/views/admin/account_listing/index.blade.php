@@ -26,8 +26,6 @@
                                 <tr>
                                     <th>@lang('Title')</th>
                                     <th>@lang('Social Media') </th>
-                                    <th> @lang('Category') </th>
-                                    <th> @lang('Plan') </th>
                                     <th> @lang('Assigned Users') </th>
                                     <th>@lang('Cookie Health')</th>
                                     <th>@lang('Status')</th>
@@ -46,8 +44,6 @@
                                         <td>
                                             {{ __(@$accountListing->socialMedia->name) }}
                                         </td>
-                                        <td> {{ __(@$accountListing->category->name) }} </td>
-                                        <td> {{ __(@$accountListing->plan->name) }} </td>
                                         <td>
                                             <a href="{{ route('admin.users.all') }}?account_id={{ $accountListing->id }}" class="badge badge--info" style="font-size: 11px; padding: 4px 8px; text-decoration: none;" title="@lang('Click to view assigned users')">
                                                 <i class="las la-users"></i> {{ $accountListing->assignedUsersCount() }} @lang('Users')
