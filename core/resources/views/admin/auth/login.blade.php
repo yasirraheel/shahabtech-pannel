@@ -21,11 +21,17 @@
                                     <input type="text" class="form-control" value="{{ old('username') }}" name="username" required>
                                 </div>
                                 <div class="form-group">
-                                    <div class="d-flex justify-content-between">
-                                        <label>@lang('Password')</label>
-                                        <a href="{{ route('admin.password.reset') }}" class="forget-text">@lang('Forgot Password?')</a>
-                                    </div>
+                                    <label>@lang('Password')</label>
                                     <input type="password" class="form-control" name="password" required>
+                                </div>
+                                <div class="form-group d-flex justify-content-between align-items-center">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="remember" id="remember" checked>
+                                        <label class="form-check-label text-white" for="remember" style="cursor: pointer;">
+                                            @lang('Remember Me')
+                                        </label>
+                                    </div>
+                                    <a href="{{ route('admin.password.reset') }}" class="forget-text">@lang('Forgot Password?')</a>
                                 </div>
                                 <x-captcha />
                                 <button type="submit" class="btn cmn-btn w-100">@lang('LOGIN')</button>
