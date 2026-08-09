@@ -251,7 +251,7 @@ class AccountListingController extends Controller
         $account->cookie_checked_at = now();
         $account->save();
 
-        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
+        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
 
         if (!$result['valid']) {
             \App\Lib\WhatsappNotification::sendCookieExpiryNotification($account, $result['error'] ?: 'Cookie verification failed');

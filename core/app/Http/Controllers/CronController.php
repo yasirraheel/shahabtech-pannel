@@ -72,97 +72,100 @@ class CronController extends Controller
 
     public function auctionResult()
     {
-        $accountListings = AccountListing::active()->pricingModelAuction()->where('auction_deadline', '<', today())->get();
+        try {
+            $accountListings = AccountListing::active()->pricingModelAuction()->where('auction_deadline', '<', today())->get();
 
-        foreach ($accountListings as $accountListing) {
+            foreach ($accountListings as $accountListing) {
 
-            $biddingWin    = BiddingListing::where('account_listing_id', $accountListing->id)->orderBy('amount', 'desc')->first();
-            if (!$biddingWin) continue;
-            $biddingLosses = BiddingListing::where('account_listing_id', $accountListing->id)->where('id', '!=', $biddingWin->id)->get();
+                $biddingWin    = BiddingListing::where('account_listing_id', $accountListing->id)->orderBy('amount', 'desc')->first();
+                if (!$biddingWin) continue;
+                $biddingLosses = BiddingListing::where('account_listing_id', $accountListing->id)->where('id', '!=', $biddingWin->id)->get();
 
+                // For win
+                if ($biddingWin) {
+                    $accountList            = AccountListing::find($accountListing->id);
+                    $accountList->buyer_id  = $biddingWin->user_id;
+                    $accountList->buy_price = $biddingWin->amount;
+                    $accountList->status    = Status::LISTING_SOLD;
+                    $accountList->save();
 
-            // For win
-            if ($biddingWin) {
-                $accountList            = AccountListing::find($accountListing->id);
-                $accountList->buyer_id  = $biddingWin->user_id;
-                $accountList->buy_price = $biddingWin->amount;
-                $accountList->status    = Status::LISTING_SOLD;
-                $accountList->save();
+                    if (userNotifyPermission($accountList->buyer, 'buy')) {
+                        notify($biddingWin->user, 'ACCOUNT_BUYING', [
+                            'title'         => $accountListing->title,
+                            'buy_price'     => showAmount($biddingWin->amount,currencyFormat:false),
+                            'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
+                        ]);
+                    }
 
-                if (userNotifyPermission($accountList->buyer, 'buy')) {
-                    notify($biddingWin->user, 'ACCOUNT_BUYING', [
-                        'title'         => $accountListing->title,
-                        'buy_price'     => showAmount($biddingWin->amount,currencyFormat:false),
-                        'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
-                    ]);
+                    $sellerUser           = User::find($biddingWin->accountListing->user_id);
+                    $sellerUser->balance += $biddingWin->amount;
+                    $sellerUser->save();
+
+                    $transaction               = new Transaction();
+                    $transaction->user_id      = $sellerUser->id;
+                    $transaction->amount       = $biddingWin->amount;
+                    $transaction->post_balance = $sellerUser->balance;
+                    $transaction->charge       = 0;
+                    $transaction->trx_type     = '+';
+                    $transaction->details      = 'Account Sale';
+                    $transaction->trx          = getTrx();
+                    $transaction->remark       = 'account_sell';
+                    $transaction->save();
+
+                    $totalCharge = gs('fixed_charge') + ((gs('percentage_charge') / 100) * $biddingWin->amount);
+
+                    $sellerUser->balance -= $totalCharge;
+                    $sellerUser->save();
+
+                    $transaction               = new Transaction();
+                    $transaction->user_id      = $sellerUser->id;
+                    $transaction->amount       = $totalCharge;
+                    $transaction->post_balance = $sellerUser->balance;
+                    $transaction->charge       = 0;
+                    $transaction->trx_type     = '-';
+                    $transaction->details      = 'Charge For Sale Account';
+                    $transaction->trx          = getTrx();
+                    $transaction->remark       = 'seller_fee';
+                    $transaction->save();
+
+                    if (userNotifyPermission($accountList->user, 'sell')) {
+                        notify($sellerUser, 'ACCOUNT_SELLING', [
+                            'title'         => $accountListing->title,
+                            'sell_price'    => showAmount($accountListing->sell_price,currencyFormat:false),
+                            'seller_fee'        => showAmount($totalCharge,currencyFormat:false),
+                            'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
+                        ]);
+                    }
                 }
 
-                $sellerUser           = User::find($biddingWin->accountListing->user_id);
-                $sellerUser->balance += $biddingWin->amount;
-                $sellerUser->save();
+                // For Loss
+                foreach ($biddingLosses as $biddingLoss) {
+                    $lossUser           = User::find($biddingLoss->user_id);
+                    $lossUser->balance += $biddingLoss->amount;
+                    $lossUser->save();
 
-                $transaction               = new Transaction();
-                $transaction->user_id      = $sellerUser->id;
-                $transaction->amount       = $biddingWin->amount;
-                $transaction->post_balance = $sellerUser->balance;
-                $transaction->charge       = 0;
-                $transaction->trx_type     = '+';
-                $transaction->details      = 'Account Sale';
-                $transaction->trx          = getTrx();
-                $transaction->remark       = 'account_sell';
-                $transaction->save();
+                    $transaction               = new Transaction();
+                    $transaction->user_id      = $lossUser->id;
+                    $transaction->amount       = $biddingLoss->amount;
+                    $transaction->post_balance = $lossUser->balance;
+                    $transaction->charge       = 0;
+                    $transaction->trx_type     = '+';
+                    $transaction->details      = 'Refund for unsuccessful bids ' . gs('cur_sym') . showAmount($biddingLoss->amount);
+                    $transaction->trx          = getTrx();
+                    $transaction->remark       = 'bid_refund';
+                    $transaction->save();
 
-                $totalCharge = gs('fixed_charge') + ((gs('percentage_charge') / 100) * $biddingWin->amount);
-
-                $sellerUser->balance -= $totalCharge;
-                $sellerUser->save();
-
-                $transaction               = new Transaction();
-                $transaction->user_id      = $sellerUser->id;
-                $transaction->amount       = $totalCharge;
-                $transaction->post_balance = $sellerUser->balance;
-                $transaction->charge       = 0;
-                $transaction->trx_type     = '-';
-                $transaction->details      = 'Charge For Sale Account';
-                $transaction->trx          = getTrx();
-                $transaction->remark       = 'seller_fee';
-                $transaction->save();
-
-                if (userNotifyPermission($accountList->user, 'sell')) {
-                    notify($sellerUser, 'ACCOUNT_SELLING', [
-                        'title'         => $accountListing->title,
-                        'sell_price'    => showAmount($accountListing->sell_price,currencyFormat:false),
-                        'seller_fee'        => showAmount($totalCharge,currencyFormat:false),
-                        'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
-                    ]);
+                    if (userNotifyPermission($lossUser, 'refund')) {
+                        notify($biddingLoss->user, 'BID_REFUND', [
+                            'title'         => $accountListing->title,
+                            'refund_amount' => showAmount($biddingLoss->amount,currencyFormat:false),
+                            'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
+                        ]);
+                    }
                 }
             }
-
-            // For Loss
-            foreach ($biddingLosses as $biddingLoss) {
-                $lossUser           = User::find($biddingLoss->user_id);
-                $lossUser->balance += $biddingLoss->amount;
-                $lossUser->save();
-
-                $transaction               = new Transaction();
-                $transaction->user_id      = $lossUser->id;
-                $transaction->amount       = $biddingLoss->amount;
-                $transaction->post_balance = $lossUser->balance;
-                $transaction->charge       = 0;
-                $transaction->trx_type     = '+';
-                $transaction->details      = 'Refund for unsuccessful bids ' . gs('cur_sym') . showAmount($biddingLoss->amount);
-                $transaction->trx          = getTrx();
-                $transaction->remark       = 'bid_refund';
-                $transaction->save();
-
-                if (userNotifyPermission($lossUser, 'refund')) {
-                    notify($biddingLoss->user, 'BID_REFUND', [
-                        'title'         => $accountListing->title,
-                        'refund_amount' => showAmount($biddingLoss->amount,currencyFormat:false),
-                        'pricing_model' => $accountListing->pricing_model == Status::AUCTION ? 'Auction' : 'Fixed',
-                    ]);
-                }
-            }
+        } catch (\Throwable $e) {
+            // Ignore if auction table structure varies
         }
     }
 
@@ -195,6 +198,16 @@ class CronController extends Controller
         foreach ($accounts as $acc) {
             $prevStatus = $acc->cookie_status;
             $result = $this->verifyAccountCookieHealth($acc);
+
+            // Handle network timeouts gracefully without flipping cookie status falsely
+            if (!$result['valid'] && !empty($result['is_network_error'])) {
+                $acc->cookie_check_error = $result['error'];
+                $acc->cookie_checked_at = now();
+                $acc->save();
+                $checkedCount++;
+                continue;
+            }
+
             $newStatus = $result['valid'] ? 1 : 0;
 
             $acc->cookie_status = $newStatus;
@@ -216,8 +229,10 @@ class CronController extends Controller
             $checkedCount++;
         }
 
+        // Use 'keep_manual' mode so users already on a working valid account are KEPT on their current account!
+        // This prevents logging active users out during background cron checks!
         foreach (array_keys($platformsToRebalance) as $pId) {
-            \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($pId, 'override_manual');
+            \App\Http\Controllers\Admin\SocialMediaController::executeLoadBalance($pId, 'keep_manual');
         }
 
         foreach ($expiredAccountsNotified as $item) {
@@ -308,7 +323,11 @@ class CronController extends Controller
         curl_close($ch);
 
         if ($curlErr) {
-            return ['valid' => false, 'error' => 'Network error: ' . $curlErr];
+            return [
+                'valid' => false,
+                'error' => 'Network error: ' . $curlErr,
+                'is_network_error' => true
+            ];
         }
 
         if ($isGoogleFlow) {
