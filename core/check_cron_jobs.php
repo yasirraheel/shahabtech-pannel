@@ -13,8 +13,7 @@ foreach ($jobs as $j) {
 }
 
 echo "\n--- RECENT CRON LOGS (Last 10) ---\n";
-$logs = CronJobLog::with('cronJob')->orderBy('id', 'desc')->take(10)->get();
+$logs = CronJobLog::orderBy('id', 'desc')->take(10)->get();
 foreach ($logs as $l) {
-    $alias = $l->cronJob->alias ?? 'Unknown';
-    echo "ID: {$l->id} | Job: {$alias} | Start: {$l->start_at} | Duration: {$l->duration}s | Error: {$l->error}\n";
+    echo "ID: {$l->id} | JobID: {$l->cron_job_id} | Start: {$l->start_at} | Duration: {$l->duration}s | Error: {$l->error}\n";
 }
