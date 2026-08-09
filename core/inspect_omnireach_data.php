@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 echo "--- USERS ---\n";
 $users = DB::table('users')->get();
 foreach ($users as $u) {
-    echo "User ID: {$u->id} | Name: {$u->first_name} {$u->last_name} | Email: {$u->email}\n";
+    echo "User ID: {$u->id} | Name: " . ($u->name ?? $u->username ?? 'N/A') . " | Email: {$u->email}\n";
 }
 
 echo "\n--- CONTACT GROUPS ---\n";
