@@ -248,32 +248,60 @@
             $('#togglePassword').html('<i class="las la-eye-slash"></i>');
         });
 
-        // Quick Generate User
+        // Quick Generate User with User-Provided Pool
+        let userPoolIndex = Math.floor(Math.random() * 20);
         $('#generateUserBtn').on('click', function() {
-            let firstNames = ["John", "Emma", "Michael", "Sarah", "David", "Jessica", "James", "Emily", "Robert", "Olivia", "William", "Sophia", "Daniel", "Isabella"];
-            let lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez"];
+            let pool = [
+                { fName: "Yves",  lName: "Baud",  countries: ["FR"] },
+                { fName: "Luc",   lName: "Vane",  countries: ["FR", "NL"] },
+                { fName: "Remi",  lName: "Noel",  countries: ["FR"] },
+                { fName: "Jules", lName: "Fabre", countries: ["FR"] },
+                { fName: "Raoul", lName: "Denis", countries: ["FR"] },
+                { fName: "Marc",  lName: "Petit", countries: ["FR"] },
+                { fName: "Guy",   lName: "Lenz",  countries: ["FR", "DE"] },
+                { fName: "Dirk",  lName: "Haas",  countries: ["NL", "DE"] },
+                { fName: "Lars",  lName: "Vogel", countries: ["NL", "DE"] },
+                { fName: "Sven",  lName: "Koch",  countries: ["NL", "DE"] },
+                { fName: "Kurt",  lName: "Graf",  countries: ["DE"] },
+                { fName: "Finn",  lName: "Maas",  countries: ["NL"] },
+                { fName: "Bram",  lName: "Beck",  countries: ["NL", "DE"] },
+                { fName: "Jens",  lName: "Zorn",  countries: ["DE"] },
+                { fName: "Hugo",  lName: "Blum",  countries: ["FR", "DE"] },
+                { fName: "Leon",  lName: "Roth",  countries: ["FR", "DE"] },
+                { fName: "Max",   lName: "Kress", countries: ["DE"] },
+                { fName: "Noah",  lName: "Fink",  countries: ["DE"] },
+                { fName: "Till",  lName: "Hahn",  countries: ["DE"] },
+                { fName: "Loic",  lName: "Voss",  countries: ["FR", "NL"] }
+            ];
             
-            let fName = firstNames[Math.floor(Math.random() * firstNames.length)];
-            let lName = lastNames[Math.floor(Math.random() * lastNames.length)];
-            let rNum = Math.floor(Math.random() * 9000) + 1000;
+            let person = pool[userPoolIndex % pool.length];
+            let cycleCount = Math.floor(userPoolIndex / pool.length);
+            userPoolIndex++;
             
-            $('input[name="firstname"]').val(fName);
-            $('input[name="lastname"]').val(lName);
+            let countryCode = person.countries[Math.floor(Math.random() * person.countries.length)];
             
-            let uName = fName.toLowerCase() + '_' + rNum;
-            $('input[name="username"]').val(uName).trigger('input'); // This triggers the email auto-fill
+            $('input[name="firstname"]').val(person.fName);
+            $('input[name="lastname"]').val(person.lName);
+            
+            // First cycle uses exact firstname_lastname. Subsequent cycles append numbers for uniqueness.
+            let baseUsername = (person.fName + '_' + person.lName).toLowerCase().replace(/[^a-z0-9_]/g, '');
+            if (cycleCount > 0) {
+                baseUsername += '_' + (Math.floor(Math.random() * 900) + 100);
+            }
+            
+            $('input[name="username"]').val(baseUsername).trigger('input'); // This triggers the email auto-fill
             
             $('#generatePasswordBtn').click();
             
             // Random unique mobile number (10 digits)
             $('input[name="mobile"]').val(generateRandomNumberString(10));
             
-            // Randomly select a country
-            let options = $('#country option');
-            let randomOption = options[Math.floor(Math.random() * options.length)];
-            $('#country').val(randomOption.value).trigger('change');
+            // Select matching country in dropdown
+            if ($('#country option[value="' + countryCode + '"]').length > 0) {
+                $('#country').val(countryCode).trigger('change');
+            }
             
-            notify('success', 'Random user data generated successfully!');
+            notify('success', 'Generated user: ' + person.fName + ' ' + person.lName + ' (' + countryCode + ')!');
         });
         
         $('#is_trial').on('change', function() {
