@@ -236,8 +236,12 @@
                                             <input class="form-check-input" type="checkbox" id="is_tester" name="is_tester" @if($user->is_tester) checked @endif>
                                             <label class="form-check-label fw-bold text--warning" for="is_tester"><i class="las la-vial me-1"></i> @lang('Tester Account')</label>
                                         </div>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="is_exclusive" name="is_exclusive" @if($user->is_exclusive) checked @endif>
+                                            <label class="form-check-label fw-bold text--info" for="is_exclusive"><i class="las la-star me-1"></i> @lang('Exclusive User')</label>
+                                        </div>
                                     </div>
-                                    <small class="text-muted d-block mt-1">@lang('Tester accounts can see and test all active platform accounts on their frontend dashboard.')</small>
+                                    <small class="text-muted d-block mt-1">@lang('Exclusive users can copy account cookies directly to their clipboard in JSON format from their dashboard.')</small>
                                 </div>
                             </div>
 

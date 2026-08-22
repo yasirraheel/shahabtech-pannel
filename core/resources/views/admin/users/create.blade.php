@@ -90,14 +90,18 @@
 
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>@lang('Account Type')</label>
-                                    <div class="d-flex align-items-center mt-2">
-                                        <span class="me-3">@lang('Standard')</span>
+                                    <label>@lang('User Role / Testing Mode')</label>
+                                    <div class="d-flex align-items-center mt-2 flex-wrap gap-4">
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox" id="is_trial" name="is_trial">
-                                            <label class="form-check-label" for="is_trial">@lang('Trial Period')</label>
+                                            <label class="form-check-label fw-bold" for="is_trial">@lang('Trial Period')</label>
+                                        </div>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="is_exclusive" name="is_exclusive">
+                                            <label class="form-check-label fw-bold text--info" for="is_exclusive"><i class="las la-star me-1"></i> @lang('Exclusive User')</label>
                                         </div>
                                     </div>
+                                    <small class="text-muted d-block mt-1">@lang('Exclusive users can copy account cookies directly to their clipboard in JSON format from their dashboard.')</small>
                                 </div>
                             </div>
 

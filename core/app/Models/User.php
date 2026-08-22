@@ -37,6 +37,7 @@ class User extends Authenticatable
         'last_seen' => 'datetime',
         'account_prices' => 'array',
         'is_tester' => 'integer',
+        'is_exclusive' => 'integer',
     ];
 
     public function loginLogs()

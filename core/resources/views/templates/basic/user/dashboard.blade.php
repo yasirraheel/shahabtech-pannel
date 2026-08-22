@@ -179,9 +179,12 @@
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center flex-wrap flex-shrink-0">
-                                                <div class="product-item__button">
+                                                <div class="product-item__button d-flex align-items-center gap-2">
                                                     <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $acc->social_media_id }}" data-account-id="{{ $acc->id }}">
                                                         <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
+                                                    </button>
+                                                    <button type="button" class="btn btn--info btn-copy-cookie d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $acc->social_media_id }}" data-account-id="{{ $acc->id }}">
+                                                        <i class="las la-copy me-1"></i> <span class="btn-copy-text">@lang('Copy Cookie')</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -190,6 +193,7 @@
                                 @else
                                     @php
                                         $platformCounters = [];
+                                        $isExclusive = (bool) auth()->user()->is_exclusive || (bool) @$isAdmin;
                                     @endphp
                                     @forelse ($assignedAccounts as $acc)
                                         @php
@@ -225,7 +229,7 @@
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center flex-wrap flex-shrink-0">
-                                                <div class="product-item__button">
+                                                <div class="product-item__button d-flex align-items-center gap-2">
                                                     @if($isExpired)
                                                         <button type="button" class="btn btn--secondary text-nowrap" disabled style="opacity: 0.6; cursor: not-allowed;">
                                                             <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
@@ -234,6 +238,11 @@
                                                         <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $acc->social_media_id }}" data-account-id="{{ $acc->id }}">
                                                             <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                                         </button>
+                                                        @if($isExclusive)
+                                                            <button type="button" class="btn btn--info btn-copy-cookie d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $acc->social_media_id }}" data-account-id="{{ $acc->id }}">
+                                                                <i class="las la-copy me-1"></i> <span class="btn-copy-text">@lang('Copy Cookie')</span>
+                                                            </button>
+                                                        @endif
                                                     @endif
                                                 </div>
                                             </div>
@@ -263,6 +272,83 @@
     <script>
         (function($){
             "use strict";
+
+            function fallbackCopyText(text) {
+                let textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {}
+                document.body.removeChild(textArea);
+            }
+
+            $('.btn-copy-cookie').on('click', function(e) {
+                e.preventDefault();
+                let btn = $(this);
+                let btnText = btn.find('.btn-copy-text');
+                let originalText = btnText.text();
+                let platformId = btn.data('platform-id');
+                let accountId = btn.data('account-id');
+
+                btn.prop('disabled', true);
+                btnText.text('Fetching...');
+
+                let ajaxUrl = '{{ url("api/extension/cookies") }}/' + platformId;
+                if (accountId) {
+                    ajaxUrl += '/' + accountId;
+                }
+
+                $.ajax({
+                    url: ajaxUrl,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success && response.cookies) {
+                            let jsonCookies = JSON.stringify(response.cookies, null, 2);
+                            
+                            function copySuccess() {
+                                notify('success', 'Cookie copied to clipboard in JSON format!');
+                                btnText.text('Copied!');
+                                setTimeout(function() {
+                                    btn.prop('disabled', false);
+                                    btnText.text(originalText);
+                                }, 2500);
+                            }
+
+                            if (navigator.clipboard && window.isSecureContext) {
+                                navigator.clipboard.writeText(jsonCookies).then(function() {
+                                    copySuccess();
+                                }).catch(function() {
+                                    fallbackCopyText(jsonCookies);
+                                    copySuccess();
+                                });
+                            } else {
+                                fallbackCopyText(jsonCookies);
+                                copySuccess();
+                            }
+                        } else {
+                            notify('error', response.message || 'Failed to fetch cookie data.');
+                            btn.prop('disabled', false);
+                            btnText.text(originalText);
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = 'Failed to fetch cookie data.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                        notify('error', msg);
+                        btn.prop('disabled', false);
+                        btnText.text(originalText);
+                    }
+                });
+            });
+
             $('.btn-inject-access').on('click', function(e) {
                 e.preventDefault();
                 let btn = $(this);
