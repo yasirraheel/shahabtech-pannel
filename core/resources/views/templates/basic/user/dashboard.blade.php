@@ -188,11 +188,18 @@
                                         </div>
                                     @endforeach
                                 @else
+                                    @php
+                                        $platformCounters = [];
+                                    @endphp
                                     @forelse ($assignedAccounts as $acc)
                                         @php
                                             $platform = $acc->socialMedia;
+                                            $pId = $acc->social_media_id;
                                             $instructions = $platform->instructions ?: $acc->instructions;
-                                            $platformAccCount = $assignedAccounts->where('social_media_id', $acc->social_media_id)->count();
+                                            $platformAccCount = $assignedAccounts->where('social_media_id', $pId)->count();
+                                            
+                                            $platformCounters[$pId] = ($platformCounters[$pId] ?? 0) + 1;
+                                            $accIndexNumber = $platformCounters[$pId];
                                         @endphp
                                         <div class="product-item">
                                             <div class="product-item__wrapper">
@@ -203,9 +210,10 @@
                                                 </div>
                                                 <div class="product-item__content">
                                                     <h4 class="product-item__title d-flex align-items-center mb-0">
-                                                        <span class="text--base">{{ __($platform->name) }}</span>
-                                                        @if($platformAccCount > 1 || !empty($acc->title))
-                                                            <small class="text-white ms-2">({{ __($acc->title) }})</small>
+                                                        @if($platformAccCount > 1)
+                                                            <span class="text--base">{{ __($platform->name) }} {{ $accIndexNumber }}</span>
+                                                        @else
+                                                            <span class="text--base">{{ __($platform->name) }}</span>
                                                         @endif
                                                     </h4>
                                                     @if($instructions)

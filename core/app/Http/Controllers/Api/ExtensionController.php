@@ -51,14 +51,27 @@ class ExtensionController extends Controller
             $query->whereIn('id', $user->account_ids ?? []);
         }
 
-        $accounts = $query->get()
-            ->map(function ($acc) {
+        $platformCounters = [];
+        $accountsList = $query->get();
+        $countsByPlatform = $accountsList->groupBy('social_media_id')->map->count();
+
+        $accounts = $accountsList
+            ->map(function ($acc) use (&$platformCounters, $countsByPlatform) {
+                $pId = $acc->socialMedia->id;
+                $platformCounters[$pId] = ($platformCounters[$pId] ?? 0) + 1;
+                $idx = $platformCounters[$pId];
+                $totalCount = $countsByPlatform[$pId] ?? 1;
+
+                $displayName = $totalCount > 1 
+                    ? ($acc->socialMedia->name . ' ' . $idx) 
+                    : $acc->socialMedia->name;
+
                 return [
                     'id'           => $acc->socialMedia->id,
                     'account_id'   => $acc->id,
                     'name'         => $acc->socialMedia->name,
-                    'title'        => $acc->title,
-                    'display_name' => $acc->socialMedia->name . ($acc->title ? ' (' . $acc->title . ')' : ''),
+                    'title'        => $displayName,
+                    'display_name' => $displayName,
                     'url'          => $acc->socialMedia->url,
                     'domain'       => $acc->socialMedia->domain,
                 ];
