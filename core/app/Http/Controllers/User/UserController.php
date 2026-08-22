@@ -38,24 +38,36 @@ class UserController extends Controller
                 ->get();
         }
 
-        // Platforms the user can access via their plan or specific account
-        $platforms = [];
+        // All accounts the user can access via their plan OR specific assigned account_ids
+        $assignedAccounts = collect();
         if ($user->plan_id) {
-            $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) use ($user) {
-                $q->where('plan_id', $user->plan_id)
-                  ->where('status', \App\Constants\Status::LISTING_ACTIVE);
-            })->get();
-        } elseif (!empty($user->account_ids)) {
-            $platforms = \App\Models\SocialMedia::active()->whereHas('accountListing', function ($q) use ($user) {
-                $q->whereIn('id', $user->account_ids)
-                  ->where('status', \App\Constants\Status::LISTING_ACTIVE);
-            })->get();
+            $planAccounts = \App\Models\AccountListing::with('socialMedia')
+                ->where('plan_id', $user->plan_id)
+                ->where('status', \App\Constants\Status::LISTING_ACTIVE)
+                ->whereHas('socialMedia', function($q) {
+                    $q->where('status', \App\Constants\Status::ENABLE);
+                })
+                ->get();
+            $assignedAccounts = $assignedAccounts->merge($planAccounts);
         }
+
+        if (!empty($user->account_ids)) {
+            $specificAccounts = \App\Models\AccountListing::with('socialMedia')
+                ->whereIn('id', $user->account_ids)
+                ->where('status', \App\Constants\Status::LISTING_ACTIVE)
+                ->whereHas('socialMedia', function($q) {
+                    $q->where('status', \App\Constants\Status::ENABLE);
+                })
+                ->get();
+            $assignedAccounts = $assignedAccounts->merge($specificAccounts);
+        }
+
+        $assignedAccounts = $assignedAccounts->unique('id')->values();
 
         $totalDeposit     = Deposit::where('user_id', $user->id)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
         $totalWithdrawals = Withdrawal::where('user_id', $user->id)->where('status', Status::PAYMENT_SUCCESS)->sum('amount');
 
-        return view('Template::user.dashboard', compact('pageTitle', 'user', 'platforms', 'totalDeposit', 'totalWithdrawals', 'isAdmin', 'adminAccounts'));
+        return view('Template::user.dashboard', compact('pageTitle', 'user', 'assignedAccounts', 'totalDeposit', 'totalWithdrawals', 'isAdmin', 'adminAccounts'));
     }
 
     public function subscribePlan(Request $request, $id)

@@ -223,12 +223,13 @@ class ManageUsersController extends Controller
 
         if ($request->filled('account_ids')) {
             $specificIds = array_map('intval', (array) $request->account_ids);
-            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get()->keyBy('social_media_id');
+            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get();
+            $specificPlatformIds = $specificAccounts->pluck('social_media_id')->toArray();
             
             $filteredAutoIds = [];
             foreach ($assignedAccountIds as $accId) {
                 $acc = \App\Models\AccountListing::find($accId);
-                if ($acc && isset($specificAccounts[$acc->social_media_id])) {
+                if ($acc && in_array($acc->social_media_id, $specificPlatformIds)) {
                     continue;
                 }
                 $filteredAutoIds[] = $accId;
@@ -412,12 +413,13 @@ class ManageUsersController extends Controller
 
         if ($request->filled('account_ids')) {
             $specificIds = array_map('intval', (array) $request->account_ids);
-            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get()->keyBy('social_media_id');
+            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get();
+            $specificPlatformIds = $specificAccounts->pluck('social_media_id')->toArray();
             
             $filteredAutoIds = [];
             foreach ($assignedAccountIds as $accId) {
                 $acc = \App\Models\AccountListing::find($accId);
-                if ($acc && isset($specificAccounts[$acc->social_media_id])) {
+                if ($acc && in_array($acc->social_media_id, $specificPlatformIds)) {
                     continue;
                 }
                 $filteredAutoIds[] = $accId;

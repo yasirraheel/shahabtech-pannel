@@ -188,7 +188,12 @@
                                         </div>
                                     @endforeach
                                 @else
-                                    @forelse ($platforms as $platform)
+                                    @forelse ($assignedAccounts as $acc)
+                                        @php
+                                            $platform = $acc->socialMedia;
+                                            $instructions = $platform->instructions ?: $acc->instructions;
+                                            $platformAccCount = $assignedAccounts->where('social_media_id', $acc->social_media_id)->count();
+                                        @endphp
                                         <div class="product-item">
                                             <div class="product-item__wrapper">
                                                 <div class="product-item__thumb">
@@ -199,16 +204,10 @@
                                                 <div class="product-item__content">
                                                     <h4 class="product-item__title d-flex align-items-center mb-0">
                                                         <span class="text--base">{{ __($platform->name) }}</span>
+                                                        @if($platformAccCount > 1 || !empty($acc->title))
+                                                            <small class="text-white ms-2">({{ __($acc->title) }})</small>
+                                                        @endif
                                                     </h4>
-                                                    @php
-                                                        $account = null;
-                                                        if (auth()->user()->plan_id) {
-                                                            $account = $platform->accountListing()->where('plan_id', auth()->user()->plan_id)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
-                                                        } elseif (!empty(auth()->user()->account_ids)) {
-                                                            $account = $platform->accountListing()->whereIn('id', auth()->user()->account_ids)->where('status', \App\Constants\Status::LISTING_ACTIVE)->first();
-                                                        }
-                                                        $instructions = $platform->instructions ?: ($account ? $account->instructions : null);
-                                                    @endphp
                                                     @if($instructions)
                                                         <div class="mt-2" style="font-size: 0.85rem; line-height: 1.4; color: #b3b3b3; max-width: 85%;">
                                                             <strong class="d-block mb-1" style="color: var(--base-color, #6c63ff);"><i class="las la-info-circle"></i> @lang('Instructions')</strong>
@@ -224,7 +223,7 @@
                                                             <i class="las la-ban me-1"></i> <span class="btn-text">@lang('Expired')</span>
                                                         </button>
                                                     @else
-                                                        <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $platform->id }}">
+                                                        <button type="button" class="btn btn--base btn-inject-access d-inline-flex align-items-center justify-content-center text-nowrap" data-platform-id="{{ $acc->social_media_id }}" data-account-id="{{ $acc->id }}">
                                                             <i class="las la-external-link-square-alt me-1"></i> <span class="btn-text">@lang('Visit Platform')</span>
                                                         </button>
                                                     @endif

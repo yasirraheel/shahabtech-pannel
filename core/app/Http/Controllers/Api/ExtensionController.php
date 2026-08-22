@@ -51,14 +51,15 @@ class ExtensionController extends Controller
         }
 
         $accounts = $query->get()
-            ->groupBy('social_media_id')
-            ->map(function ($group) {
-                $sm = $group->first()->socialMedia;
+            ->map(function ($acc) {
                 return [
-                    'id'     => $sm->id,
-                    'name'   => $sm->name,
-                    'url'    => $sm->url,
-                    'domain' => $sm->domain,
+                    'id'           => $acc->socialMedia->id,
+                    'account_id'   => $acc->id,
+                    'name'         => $acc->socialMedia->name,
+                    'title'        => $acc->title,
+                    'display_name' => $acc->socialMedia->name . ($acc->title ? ' (' . $acc->title . ')' : ''),
+                    'url'          => $acc->socialMedia->url,
+                    'domain'       => $acc->socialMedia->domain,
                 ];
             })
             ->values();
