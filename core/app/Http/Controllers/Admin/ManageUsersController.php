@@ -153,7 +153,10 @@ class ManageUsersController extends Controller
         $pageTitle = 'Add New User';
         $countries = json_decode(file_get_contents(resource_path('views/partials/country.json')));
         $plans = \App\Models\Plan::active()->get();
-        $accounts = \App\Models\AccountListing::with('socialMedia')->active()->get();
+        $accounts = \App\Models\AccountListing::with('socialMedia')
+            ->active()
+            ->where('cookie_status', '!=', 0)
+            ->get();
         $socialMedias = \App\Models\SocialMedia::active()->get();
         return view('admin.users.create', compact('pageTitle', 'countries', 'plans', 'accounts', 'socialMedias'));
     }
@@ -292,7 +295,10 @@ class ManageUsersController extends Controller
         $countries = json_decode(file_get_contents(resource_path('views/partials/country.json')));
         
         $plans = \App\Models\Plan::active()->get();
-        $accounts = \App\Models\AccountListing::with('socialMedia')->active()->get();
+        $accounts = \App\Models\AccountListing::with('socialMedia')
+            ->active()
+            ->where('cookie_status', '!=', 0)
+            ->get();
         $socialMedias = \App\Models\SocialMedia::active()->get();
 
         return view('admin.users.detail', compact('pageTitle', 'user','totalDeposit','totalWithdrawals','totalTransaction','countries', 'plans', 'accounts', 'socialMedias'));

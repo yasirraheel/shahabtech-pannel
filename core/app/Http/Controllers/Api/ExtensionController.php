@@ -39,6 +39,7 @@ class ExtensionController extends Controller
 
         // Get all active accounts for user's plan OR specific account
         $query = AccountListing::where('status', Status::LISTING_ACTIVE)
+            ->where('cookie_status', '!=', 0)
             ->whereHas('socialMedia', function($q) {
                 $q->active();
             })

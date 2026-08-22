@@ -44,6 +44,7 @@ class UserController extends Controller
             $planAccounts = \App\Models\AccountListing::with('socialMedia')
                 ->where('plan_id', $user->plan_id)
                 ->where('status', \App\Constants\Status::LISTING_ACTIVE)
+                ->where('cookie_status', '!=', 0)
                 ->whereHas('socialMedia', function($q) {
                     $q->where('status', \App\Constants\Status::ENABLE);
                 })
@@ -55,6 +56,7 @@ class UserController extends Controller
             $specificAccounts = \App\Models\AccountListing::with('socialMedia')
                 ->whereIn('id', $user->account_ids)
                 ->where('status', \App\Constants\Status::LISTING_ACTIVE)
+                ->where('cookie_status', '!=', 0)
                 ->whereHas('socialMedia', function($q) {
                     $q->where('status', \App\Constants\Status::ENABLE);
                 })
