@@ -213,6 +213,11 @@ class CronController extends Controller
             $acc->cookie_status = $newStatus;
             $acc->cookie_check_error = $result['error'] ?: null;
             $acc->cookie_checked_at = now();
+
+            if ($result['valid'] && !empty($result['account_name'])) {
+                $acc->title = $result['account_name'];
+            }
+
             $acc->save();
 
             if ($prevStatus !== $newStatus) {
@@ -345,7 +350,14 @@ class CronController extends Controller
                 }
             }
 
-            return ['valid' => true, 'error' => null];
+            $extractedName = null;
+            if (!empty($json['user']['name'])) {
+                $extractedName = trim($json['user']['name']);
+            } elseif (!empty($json['user']['email'])) {
+                $extractedName = trim($json['user']['email']);
+            }
+
+            return ['valid' => true, 'error' => null, 'account_name' => $extractedName];
         }
 
         // For other platforms, check HTTP status & redirect URL
@@ -361,6 +373,17 @@ class CronController extends Controller
             return ['valid' => false, 'error' => "HTTP Error Code $httpCode"];
         }
 
-        return ['valid' => true, 'error' => null];
+        $extractedName = null;
+        $json = json_decode($response, true);
+        if (is_array($json)) {
+            $extractedName = $json['user']['name'] 
+                ?? $json['user']['email'] 
+                ?? $json['name'] 
+                ?? $json['email'] 
+                ?? $json['username'] 
+                ?? null;
+        }
+
+        return ['valid' => true, 'error' => null, 'account_name' => is_string($extractedName) ? trim($extractedName) : null];
     }
 }

@@ -101,6 +101,52 @@ class AccountListingController extends Controller
         return view('admin.account_listing.by_platform', compact('pageTitle', 'accountListings', 'platform', 'plans', 'categories'));
     }
 
+    public static function getCookieFingerprint($cookieInput)
+    {
+        if (empty($cookieInput)) {
+            return '';
+        }
+
+        $decoded = is_string($cookieInput) ? json_decode($cookieInput, true) : $cookieInput;
+        $pairs = [];
+
+        if (is_array($decoded)) {
+            foreach ($decoded as $item) {
+                if (is_array($item) || is_object($item)) {
+                    $item = (array) $item;
+                    $name = $item['name'] ?? $item['key'] ?? null;
+                    $val  = $item['value'] ?? $item['val'] ?? null;
+                    if ($name && $val !== null) {
+                        $pairs[$name] = $val;
+                    }
+                }
+            }
+        } elseif (is_string($cookieInput)) {
+            $parts = explode(';', $cookieInput);
+            foreach ($parts as $part) {
+                if (str_contains($part, '=')) {
+                    list($k, $v) = explode('=', trim($part), 2);
+                    if ($k && $v !== null) {
+                        $pairs[trim($k)] = trim($v);
+                    }
+                }
+            }
+        }
+
+        if (empty($pairs)) {
+            return '';
+        }
+
+        ksort($pairs);
+
+        $normalizedParts = [];
+        foreach ($pairs as $k => $v) {
+            $normalizedParts[] = "$k=$v";
+        }
+
+        return hash('sha256', implode('&', $normalizedParts));
+    }
+
     public function store(Request $request, $id = null)
     {
         $request->validate([
@@ -112,6 +158,22 @@ class AccountListingController extends Controller
             'account_info'    => 'required',
             'instructions'    => 'nullable|string',
         ]);
+
+        $newFingerprint = self::getCookieFingerprint($request->account_info);
+
+        if ($newFingerprint) {
+            $existingAccounts = AccountListing::when($id, function($q) use ($id) {
+                $q->where('id', '!=', $id);
+            })->get();
+
+            foreach ($existingAccounts as $existingAcc) {
+                $existingFingerprint = self::getCookieFingerprint($existingAcc->account_info);
+                if ($existingFingerprint && $existingFingerprint === $newFingerprint) {
+                    $notify[] = ['error', "This cookie data is already configured on account '{$existingAcc->title}'! Every account must have unique cookie data."];
+                    return back()->withNotify($notify)->withInput();
+                }
+            }
+        }
 
         if ($id) {
             $account       = AccountListing::findOrFail($id);
@@ -129,6 +191,21 @@ class AccountListingController extends Controller
         $account->account_info    = json_decode($request->account_info) ? json_decode($request->account_info) : $request->account_info;
         $account->instructions    = $request->instructions;
         $account->status          = Status::LISTING_ACTIVE;
+        $account->save();
+
+        // Perform instant live cookie verification & auto-update account title if name extracted
+        $cronController = new \App\Http\Controllers\CronController();
+        $verifyResult   = $cronController->verifyAccountCookieHealth($account);
+
+        $account->cookie_status      = $verifyResult['valid'] ? 1 : 0;
+        $account->cookie_check_error = $verifyResult['error'] ?: null;
+        $account->cookie_checked_at  = now();
+
+        if ($verifyResult['valid'] && !empty($verifyResult['account_name'])) {
+            $account->title = $verifyResult['account_name'];
+            $notifyMessage .= " (Account title updated to '{$verifyResult['account_name']}')";
+        }
+
         $account->save();
 
         // Trigger manual load balancer logic (override_manual) for active non-expired subscribed users
@@ -222,6 +299,12 @@ class AccountListingController extends Controller
         ]);
 
         $original = AccountListing::findOrFail($id);
+        $duplicateFingerprint = self::getCookieFingerprint($original->account_info);
+
+        if ($duplicateFingerprint) {
+            $notify[] = ['error', "Cannot duplicate account: The cookie data is already assigned to '{$original->title}'. Each account must have unique cookie data."];
+            return back()->withNotify($notify)->withInput();
+        }
 
         $duplicate = new AccountListing();
         $duplicate->title           = $request->title;
@@ -249,6 +332,13 @@ class AccountListingController extends Controller
         $account->cookie_status = $result['valid'] ? 1 : 0;
         $account->cookie_check_error = $result['error'] ?: null;
         $account->cookie_checked_at = now();
+
+        $titleMsg = "";
+        if ($result['valid'] && !empty($result['account_name'])) {
+            $account->title = $result['account_name'];
+            $titleMsg = " Account title updated to '{$result['account_name']}'.";
+        }
+
         $account->save();
 
         $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
@@ -260,7 +350,7 @@ class AccountListingController extends Controller
         $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
 
         if ($result['valid']) {
-            $notify[] = ['success', "Cookie for '{$account->title}' is valid!"];
+            $notify[] = ['success', "Cookie for '{$account->title}' is valid!{$titleMsg}"];
         } else {
             $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error'] . $reassignedText];
         }
