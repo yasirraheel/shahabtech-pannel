@@ -354,7 +354,9 @@ class CronController extends Controller
             if (isset($json['expires'])) {
                 $sessionExpiryTs = strtotime($json['expires']);
                 if ($sessionExpiryTs && $sessionExpiryTs < time()) {
-                    return ['valid' => false, 'error' => 'Google Session Expired (' . date('Y-m-d H:i', $sessionExpiryTs) . ' UTC)'];
+                    $tz = config('app.timezone') ?: date_default_timezone_get();
+                    $formattedTime = \Carbon\Carbon::createFromTimestamp($sessionExpiryTs)->timezone($tz)->format('Y-m-d H:i');
+                    return ['valid' => false, 'error' => 'Google Session Expired (' . $formattedTime . ')'];
                 }
             }
 
