@@ -101,50 +101,115 @@ class AccountListingController extends Controller
         return view('admin.account_listing.by_platform', compact('pageTitle', 'accountListings', 'platform', 'plans', 'categories'));
     }
 
-    public static function getCookieFingerprint($cookieInput)
+    public static function getSessionToken($cookieInput)
     {
         if (empty($cookieInput)) {
             return '';
         }
 
         $decoded = is_string($cookieInput) ? json_decode($cookieInput, true) : $cookieInput;
-        $pairs = [];
+        if (!is_array($decoded) && is_object($decoded)) {
+            $decoded = (array) $decoded;
+        }
+
+        $sessionKeys = [
+            '__Secure-next-auth.session-token',
+            'next-auth.session-token',
+            '__Secure-1PSID',
+            '__Secure-3PSID',
+            'SID',
+            'session_id',
+            'sessionid',
+            'session_token',
+            'auth_token',
+            'access_token',
+            'c_user',
+            'PHPSESSID',
+            'JSESSIONID'
+        ];
 
         if (is_array($decoded)) {
+            // First pass: search for primary authentication session tokens
+            foreach ($sessionKeys as $sKey) {
+                foreach ($decoded as $item) {
+                    if (is_array($item) || is_object($item)) {
+                        $item = (array) $item;
+                        $name = $item['name'] ?? $item['key'] ?? null;
+                        $val  = $item['value'] ?? $item['val'] ?? null;
+                        if ($name && strcasecmp($name, $sKey) === 0 && !empty($val)) {
+                            return strtolower($sKey) . ':' . trim($val);
+                        }
+                    }
+                }
+            }
+
+            // Second pass: filter out tracking/volatile cookies and return name=value map hash
+            $pairs = [];
+            $ignoredNames = ['_ga', '_gid', '_gat', '_grecaptcha', 'search_samesite', 'nid', '1p_jar', 'otz', '__host-gaps', '__host-next-auth.csrf-token'];
+
             foreach ($decoded as $item) {
                 if (is_array($item) || is_object($item)) {
                     $item = (array) $item;
-                    $name = $item['name'] ?? $item['key'] ?? null;
-                    $val  = $item['value'] ?? $item['val'] ?? null;
-                    if ($name && $val !== null) {
-                        $pairs[$name] = $val;
+                    $name = strtolower(trim($item['name'] ?? $item['key'] ?? ''));
+                    $val  = trim($item['value'] ?? $item['val'] ?? '');
+
+                    if (!empty($name) && !empty($val)) {
+                        $isIgnored = false;
+                        foreach ($ignoredNames as $ign) {
+                            if ($name === $ign || str_starts_with($name, '_ga_') || str_starts_with($name, '_gat_')) {
+                                $isIgnored = true;
+                                break;
+                            }
+                        }
+                        if (!$isIgnored) {
+                            $pairs[$name] = $val;
+                        }
                     }
                 }
+            }
+
+            if (!empty($pairs)) {
+                ksort($pairs);
+                $parts = [];
+                foreach ($pairs as $k => $v) {
+                    $parts[] = "$k=$v";
+                }
+                return 'map:' . hash('sha256', implode('&', $parts));
             }
         } elseif (is_string($cookieInput)) {
             $parts = explode(';', $cookieInput);
+            $pairs = [];
             foreach ($parts as $part) {
                 if (str_contains($part, '=')) {
                     list($k, $v) = explode('=', trim($part), 2);
-                    if ($k && $v !== null) {
-                        $pairs[trim($k)] = trim($v);
+                    $kLower = strtolower(trim($k));
+                    $vClean = trim($v);
+                    if ($kLower && $vClean) {
+                        foreach ($sessionKeys as $sKey) {
+                            if (strcasecmp($kLower, $sKey) === 0) {
+                                return strtolower($sKey) . ':' . $vClean;
+                            }
+                        }
+                        $pairs[$kLower] = $vClean;
                     }
                 }
             }
+            if (!empty($pairs)) {
+                ksort($pairs);
+                $partsStr = [];
+                foreach ($pairs as $k => $v) {
+                    $partsStr[] = "$k=$v";
+                }
+                return 'map:' . hash('sha256', implode('&', $partsStr));
+            }
         }
 
-        if (empty($pairs)) {
-            return '';
-        }
+        return '';
+    }
 
-        ksort($pairs);
-
-        $normalizedParts = [];
-        foreach ($pairs as $k => $v) {
-            $normalizedParts[] = "$k=$v";
-        }
-
-        return hash('sha256', implode('&', $normalizedParts));
+    public static function getCookieFingerprint($cookieInput)
+    {
+        return self::getSessionToken($cookieInput);
     }
 
     public static function formatUniqueAccountTitle($title, $accountId)
