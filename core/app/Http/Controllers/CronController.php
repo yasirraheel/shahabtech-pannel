@@ -359,9 +359,7 @@ class CronController extends Controller
             }
 
             $extractedName = null;
-            if (!empty($json['user']['name']) && !empty($json['user']['email'])) {
-                $extractedName = trim($json['user']['name']) . ' (' . trim($json['user']['email']) . ')';
-            } elseif (!empty($json['user']['name'])) {
+            if (!empty($json['user']['name'])) {
                 $extractedName = trim($json['user']['name']);
             } elseif (!empty($json['user']['email'])) {
                 $extractedName = trim($json['user']['email']);
