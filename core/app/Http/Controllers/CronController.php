@@ -215,7 +215,7 @@ class CronController extends Controller
             $acc->cookie_checked_at = now();
 
             if ($result['valid'] && !empty($result['account_name'])) {
-                $acc->title = $result['account_name'];
+                $acc->title = \App\Http\Controllers\Admin\AccountListingController::formatUniqueAccountTitle($result['account_name'], $acc->id);
             }
 
             $acc->save();
@@ -351,7 +351,9 @@ class CronController extends Controller
             }
 
             $extractedName = null;
-            if (!empty($json['user']['name'])) {
+            if (!empty($json['user']['name']) && !empty($json['user']['email'])) {
+                $extractedName = trim($json['user']['name']) . ' (' . trim($json['user']['email']) . ')';
+            } elseif (!empty($json['user']['name'])) {
                 $extractedName = trim($json['user']['name']);
             } elseif (!empty($json['user']['email'])) {
                 $extractedName = trim($json['user']['email']);

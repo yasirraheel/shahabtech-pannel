@@ -147,6 +147,33 @@ class AccountListingController extends Controller
         return hash('sha256', implode('&', $normalizedParts));
     }
 
+    public static function formatUniqueAccountTitle($title, $accountId)
+    {
+        if (empty($title)) {
+            return 'Account #' . $accountId;
+        }
+
+        $cleanTitle = preg_replace('/\s*#\d+$/', '', trim($title));
+
+        $otherCount = AccountListing::where('id', '!=', $accountId)
+            ->where('title', 'LIKE', $cleanTitle . '%')
+            ->count();
+
+        if ($otherCount > 0) {
+            $matchingIds = AccountListing::where('title', 'LIKE', $cleanTitle . '%')
+                ->orderBy('id', 'asc')
+                ->pluck('id')
+                ->toArray();
+
+            $pos = array_search($accountId, $matchingIds);
+            if ($pos !== false && $pos > 0) {
+                return $cleanTitle . ' #' . ($pos + 1);
+            }
+        }
+
+        return $cleanTitle;
+    }
+
     public function store(Request $request, $id = null)
     {
         $request->validate([
@@ -202,8 +229,9 @@ class AccountListingController extends Controller
         $account->cookie_checked_at  = now();
 
         if ($verifyResult['valid'] && !empty($verifyResult['account_name'])) {
-            $account->title = $verifyResult['account_name'];
-            $notifyMessage .= " (Account title updated to '{$verifyResult['account_name']}')";
+            $formattedTitle = self::formatUniqueAccountTitle($verifyResult['account_name'], $account->id);
+            $account->title = $formattedTitle;
+            $notifyMessage .= " (Account title updated to '{$formattedTitle}')";
         }
 
         $account->save();
@@ -335,8 +363,9 @@ class AccountListingController extends Controller
 
         $titleMsg = "";
         if ($result['valid'] && !empty($result['account_name'])) {
-            $account->title = $result['account_name'];
-            $titleMsg = " Account title updated to '{$result['account_name']}'.";
+            $formattedTitle = self::formatUniqueAccountTitle($result['account_name'], $account->id);
+            $account->title = $formattedTitle;
+            $titleMsg = " Account title updated to '{$formattedTitle}'.";
         }
 
         $account->save();
