@@ -323,7 +323,9 @@
                                     <div class="p-2 bg--light rounded border">
                                         <small class="fw-bold d-block text--primary mb-1"><i class="las la-shield-alt"></i> @lang('Active Assigned Accounts (Admin Only View):')</small>
                                         @foreach($userAssignedAccountListings as $assignedAccount)
-                                            <span class="badge badge--dark me-1 mb-1">{{ __(@$assignedAccount->socialMedia->name) }} - {{ __($assignedAccount->title) }}</span>
+                                            <div class="mb-1">
+                                                <span class="badge badge--dark d-inline-block" style="white-space: normal; text-align: left; max-width: 100%;">{{ __(@$assignedAccount->socialMedia->name) }} - {{ __($assignedAccount->title) }}</span>
+                                            </div>
                                         @endforeach
                                     </div>
                                 </div>

@@ -53,14 +53,16 @@
                                         $assignedAccountsList = $user->assignedAccountListings();
                                     @endphp
                                     @if($assignedAccountsList->isNotEmpty())
-                                        <div class="mt-1 text-start" style="text-align: left !important;">
+                                        <div class="mt-2 text-start" style="text-align: left !important;">
                                             <span class="text-muted d-block small mb-1">
                                                 <i class="las la-layer-group"></i> <strong>Assigned Accounts:</strong>
                                             </span>
                                             @foreach($assignedAccountsList as $accItem)
-                                                <span class="badge badge--primary d-inline-block mb-1">
-                                                    {{ __(@$accItem->socialMedia->name) }} - {{ __($accItem->title) }}
-                                                </span>
+                                                <div class="mb-1">
+                                                    <span class="badge badge--primary d-inline-block" style="white-space: normal; text-align: left; max-width: 100%;">
+                                                        {{ __(@$accItem->socialMedia->name) }} - {{ __($accItem->title) }}
+                                                    </span>
+                                                </div>
                                             @endforeach
                                         </div>
                                     @endif
