@@ -215,7 +215,15 @@ class CronController extends Controller
             $acc->cookie_checked_at = now();
 
             if ($result['valid'] && !empty($result['account_name'])) {
-                $acc->title = \App\Http\Controllers\Admin\AccountListingController::formatUniqueAccountTitle($result['account_name'], $acc->id);
+                $dupMatch = \App\Http\Controllers\Admin\AccountListingController::checkDuplicateName($result['account_name'], $acc->social_media_id, $acc->id);
+                if ($dupMatch) {
+                    $acc->cookie_status = 0;
+                    $acc->cookie_check_error = "Duplicate account: Verified name '{$dupMatch->title}' belongs to account ID {$dupMatch->id}.";
+                    $acc->save();
+                    $checkedCount++;
+                    continue;
+                }
+                $acc->title = $result['account_name'];
             }
 
             $acc->save();

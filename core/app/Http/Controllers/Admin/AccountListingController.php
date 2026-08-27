@@ -212,31 +212,46 @@ class AccountListingController extends Controller
         return self::getSessionToken($cookieInput);
     }
 
-    public static function formatUniqueAccountTitle($title, $accountId)
+    public static function normalizeAccountName($title)
     {
         if (empty($title)) {
-            return 'Account #' . $accountId;
+            return '';
         }
 
-        $cleanTitle = preg_replace('/\s*#\d+$/', '', trim($title));
+        $titleStr = trim($title);
 
-        $otherCount = AccountListing::where('id', '!=', $accountId)
-            ->where('title', 'LIKE', $cleanTitle . '%')
-            ->count();
+        if (preg_match('/[\w\.-]+@[\w\.-]+\.\w+/', $titleStr, $matches)) {
+            return strtolower($matches[0]);
+        }
 
-        if ($otherCount > 0) {
-            $matchingIds = AccountListing::where('title', 'LIKE', $cleanTitle . '%')
-                ->orderBy('id', 'asc')
-                ->pluck('id')
-                ->toArray();
+        return strtolower(preg_replace('/\s+/', ' ', $titleStr));
+    }
 
-            $pos = array_search($accountId, $matchingIds);
-            if ($pos !== false && $pos > 0) {
-                return $cleanTitle . ' #' . ($pos + 1);
+    public static function checkDuplicateName($title, $platformId, $excludeAccountId = null)
+    {
+        if (empty($title)) {
+            return null;
+        }
+
+        $normTitle = self::normalizeAccountName($title);
+        if (empty($normTitle)) {
+            return null;
+        }
+
+        $existingAccounts = AccountListing::when($excludeAccountId, function($q) use ($excludeAccountId) {
+                $q->where('id', '!=', $excludeAccountId);
+            })
+            ->where('social_media_id', $platformId)
+            ->get();
+
+        foreach ($existingAccounts as $existingAcc) {
+            $existingNorm = self::normalizeAccountName($existingAcc->title);
+            if (!empty($existingNorm) && $existingNorm === $normTitle) {
+                return $existingAcc;
             }
         }
 
-        return $cleanTitle;
+        return null;
     }
 
     public function store(Request $request, $id = null)
@@ -251,20 +266,10 @@ class AccountListingController extends Controller
             'instructions'    => 'nullable|string',
         ]);
 
-        $newFingerprint = self::getCookieFingerprint($request->account_info);
-
-        if ($newFingerprint) {
-            $existingAccounts = AccountListing::when($id, function($q) use ($id) {
-                $q->where('id', '!=', $id);
-            })->get();
-
-            foreach ($existingAccounts as $existingAcc) {
-                $existingFingerprint = self::getCookieFingerprint($existingAcc->account_info);
-                if ($existingFingerprint && $existingFingerprint === $newFingerprint) {
-                    $notify[] = ['error', "This cookie data is already configured on account '{$existingAcc->title}'! Every account must have unique cookie data."];
-                    return back()->withNotify($notify)->withInput();
-                }
-            }
+        $dupMatch = self::checkDuplicateName($request->title, $request->social_media_id, $id);
+        if ($dupMatch) {
+            $notify[] = ['error', "An account with the name/email '{$dupMatch->title}' already exists! Duplicate accounts are not allowed."];
+            return back()->withNotify($notify)->withInput();
         }
 
         if ($id) {
@@ -285,23 +290,35 @@ class AccountListingController extends Controller
         $account->status          = Status::LISTING_ACTIVE;
         $account->save();
 
-        // Perform instant live cookie verification & auto-update account title if name extracted
+        // Perform instant live cookie verification & extract live account name
         $cronController = new \App\Http\Controllers\CronController();
         $verifyResult   = $cronController->verifyAccountCookieHealth($account);
+
+        if ($verifyResult['valid'] && !empty($verifyResult['account_name'])) {
+            $extractedName = $verifyResult['account_name'];
+            $dupMatch = self::checkDuplicateName($extractedName, $account->social_media_id, $account->id);
+
+            if ($dupMatch) {
+                if (!$id) {
+                    $account->delete();
+                } else {
+                    $account->cookie_status = 0;
+                    $account->cookie_check_error = "Duplicate account name: '{$dupMatch->title}' already exists.";
+                    $account->save();
+                }
+                $notify[] = ['error', "Validation failed: An account with the name/email '{$dupMatch->title}' already exists on this platform! Duplicate account blocked."];
+                return back()->withNotify($notify)->withInput();
+            }
+
+            $account->title = $extractedName;
+            $notifyMessage .= " (Verified as '{$extractedName}')";
+        }
 
         $account->cookie_status      = $verifyResult['valid'] ? 1 : 0;
         $account->cookie_check_error = $verifyResult['error'] ?: null;
         $account->cookie_checked_at  = now();
-
-        if ($verifyResult['valid'] && !empty($verifyResult['account_name'])) {
-            $formattedTitle = self::formatUniqueAccountTitle($verifyResult['account_name'], $account->id);
-            $account->title = $formattedTitle;
-            $notifyMessage .= " (Account title updated to '{$formattedTitle}')";
-        }
-
         $account->save();
 
-        // Trigger manual load balancer logic (override_manual) for active non-expired subscribed users
         SocialMediaController::executeLoadBalance($account->social_media_id, 'override_manual');
 
         $notify[] = ['success', $notifyMessage];
@@ -392,10 +409,10 @@ class AccountListingController extends Controller
         ]);
 
         $original = AccountListing::findOrFail($id);
-        $duplicateFingerprint = self::getCookieFingerprint($original->account_info);
 
-        if ($duplicateFingerprint) {
-            $notify[] = ['error', "Cannot duplicate account: The cookie data is already assigned to '{$original->title}'. Each account must have unique cookie data."];
+        $dupMatch = self::checkDuplicateName($request->title, $original->social_media_id);
+        if ($dupMatch) {
+            $notify[] = ['error', "Cannot duplicate: An account with the name/email '{$dupMatch->title}' already exists!"];
             return back()->withNotify($notify)->withInput();
         }
 
@@ -428,12 +445,39 @@ class AccountListingController extends Controller
 
         $titleMsg = "";
         if ($result['valid'] && !empty($result['account_name'])) {
-            $formattedTitle = self::formatUniqueAccountTitle($result['account_name'], $account->id);
-            $account->title = $formattedTitle;
-            $titleMsg = " Account title updated to '{$formattedTitle}'.";
+            $extractedName = $result['account_name'];
+            $dupMatch = self::checkDuplicateName($extractedName, $account->social_media_id, $account->id);
+
+            if ($dupMatch) {
+                $account->cookie_status = 0;
+                $account->cookie_check_error = "Duplicate account: Verified name '{$dupMatch->title}' already exists on account ID {$dupMatch->id}.";
+                $account->save();
+                $notify[] = ['error', "Cookie check failed: Verified name '{$dupMatch->title}' already exists on account ID {$dupMatch->id}! Duplicate accounts are not allowed."];
+                return back()->withNotify($notify);
+            }
+
+            $account->title = $extractedName;
+            $titleMsg = " Account title updated to '{$extractedName}'.";
         }
 
         $account->save();
+
+        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
+
+        if (!$result['valid']) {
+            \App\Lib\WhatsappNotification::sendCookieExpiryNotification($account, $result['error'] ?: 'Cookie verification failed');
+        }
+
+        $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
+
+        if ($result['valid']) {
+            $notify[] = ['success', "Cookie for '{$account->title}' is valid!{$titleMsg}"];
+        } else {
+            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error'] . $reassignedText];
+        }
+
+        return back()->withNotify($notify);
+    }
 
         $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
 
