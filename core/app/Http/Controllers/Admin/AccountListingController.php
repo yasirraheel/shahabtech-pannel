@@ -435,42 +435,53 @@ class AccountListingController extends Controller
 
     public function checkCookie($id)
     {
-        $account = AccountListing::with('socialMedia')->findOrFail($id);
-        $cronController = new \App\Http\Controllers\CronController();
-        $result = $cronController->verifyAccountCookieHealth($account);
+        try {
+            $account = AccountListing::with('socialMedia')->findOrFail($id);
+            $cronController = new \App\Http\Controllers\CronController();
+            $result = $cronController->verifyAccountCookieHealth($account);
 
-        $account->cookie_status = $result['valid'] ? 1 : 0;
-        $account->cookie_check_error = $result['error'] ?: null;
-        $account->cookie_checked_at = now();
+            $account->cookie_status = $result['valid'] ? 1 : 0;
+            $account->cookie_check_error = $result['error'] ?: null;
+            $account->cookie_checked_at = now();
 
-        $titleMsg = "";
-        if ($result['valid'] && !empty($result['account_name'])) {
-            $extractedName = $result['account_name'];
-            $dupMatch = self::checkDuplicateName($extractedName, $account->social_media_id, $account->id);
+            $titleMsg = "";
+            if ($result['valid'] && !empty($result['account_name'])) {
+                $extractedName = $result['account_name'];
+                $dupMatch = self::checkDuplicateName($extractedName, $account->social_media_id, $account->id);
 
-            if ($dupMatch) {
-                $account->cookie_status = 0;
-                $account->cookie_check_error = "Duplicate account: Verified name '{$dupMatch->title}' already exists on account ID {$dupMatch->id}.";
-                $account->save();
-                $notify[] = ['error', "Cookie check failed: Verified name '{$dupMatch->title}' already exists on account ID {$dupMatch->id}! Duplicate accounts are not allowed."];
-                return back()->withNotify($notify);
+                if ($dupMatch) {
+                    $account->cookie_status = 0;
+                    $account->cookie_check_error = "Duplicate account: Verified name '{$dupMatch->title}' already exists on account ID {$dupMatch->id}.";
+                    $account->save();
+                    $notify[] = ['error', "Cookie check failed: Verified name '{$dupMatch->title}' already exists on account ID {$dupMatch->id}! Duplicate accounts are not allowed."];
+                    return back()->withNotify($notify);
+                }
+
+                $account->title = $extractedName;
+                $titleMsg = " Account title updated to '{$extractedName}'.";
             }
 
-            $account->title = $extractedName;
-            $titleMsg = " Account title updated to '{$extractedName}'.";
+            $account->save();
+
+            $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
+
+            if (!$result['valid']) {
+                \App\Lib\WhatsappNotification::sendCookieExpiryNotification($account, $result['error'] ?: 'Cookie verification failed');
+            }
+
+            $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
+
+            if ($result['valid']) {
+                $notify[] = ['success', "Cookie for '{$account->title}' is valid!{$titleMsg}"];
+            } else {
+                $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . ($result['error'] ?: 'Verification failed') . $reassignedText];
+            }
+
+            return back()->withNotify($notify);
+        } catch (\Throwable $e) {
+            $notify[] = ['error', 'An error occurred while checking cookie health: ' . $e->getMessage()];
+            return back()->withNotify($notify);
         }
-
-        $account->save();
-
-        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
-
-        if (!$result['valid']) {
-            \App\Lib\WhatsappNotification::sendCookieExpiryNotification($account, $result['error'] ?: 'Cookie verification failed');
-        }
-
-        $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
-
-        return back()->withNotify($notify);
     }
 
     public static function rebalanceAffectedUsersForExpiredAccount(AccountListing $expiredAccount)
