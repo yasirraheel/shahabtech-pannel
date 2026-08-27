@@ -470,29 +470,6 @@ class AccountListingController extends Controller
 
         $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
 
-        if ($result['valid']) {
-            $notify[] = ['success', "Cookie for '{$account->title}' is valid!{$titleMsg}"];
-        } else {
-            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error'] . $reassignedText];
-        }
-
-        return back()->withNotify($notify);
-    }
-
-        $reassignedCount = SocialMediaController::executeLoadBalance($account->social_media_id, 'keep_manual');
-
-        if (!$result['valid']) {
-            \App\Lib\WhatsappNotification::sendCookieExpiryNotification($account, $result['error'] ?: 'Cookie verification failed');
-        }
-
-        $reassignedText = $reassignedCount > 0 ? " ({$reassignedCount} active user(s) load balanced)" : "";
-
-        if ($result['valid']) {
-            $notify[] = ['success', "Cookie for '{$account->title}' is valid!{$titleMsg}"];
-        } else {
-            $notify[] = ['error', "Cookie for '{$account->title}' is invalid: " . $result['error'] . $reassignedText];
-        }
-
         return back()->withNotify($notify);
     }
 
