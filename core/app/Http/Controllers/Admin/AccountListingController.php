@@ -238,13 +238,27 @@ class AccountListingController extends Controller
             return null;
         }
 
+        // If excludeAccountId is provided, check if the title matches the target account's OWN current title
+        if ($excludeAccountId) {
+            $targetAccount = AccountListing::find($excludeAccountId);
+            if ($targetAccount && !empty($targetAccount->title)) {
+                $ownNorm = self::normalizeAccountName($targetAccount->title);
+                if ($ownNorm && $ownNorm === $normTitle) {
+                    return null; // Matching its OWN current name/email, not a duplicate
+                }
+            }
+        }
+
         $existingAccounts = AccountListing::when($excludeAccountId, function($q) use ($excludeAccountId) {
-                $q->where('id', '!=', $excludeAccountId);
+                $q->where('id', '!=', (int) $excludeAccountId);
             })
             ->where('social_media_id', $platformId)
             ->get();
 
         foreach ($existingAccounts as $existingAcc) {
+            if ($excludeAccountId && (int) $existingAcc->id === (int) $excludeAccountId) {
+                continue; // Explicitly skip own account ID
+            }
             $existingNorm = self::normalizeAccountName($existingAcc->title);
             if (!empty($existingNorm) && $existingNorm === $normTitle) {
                 return $existingAcc;
