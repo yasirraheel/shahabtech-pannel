@@ -226,18 +226,7 @@ class ManageUsersController extends Controller
 
         if ($request->filled('account_ids')) {
             $specificIds = array_map('intval', (array) $request->account_ids);
-            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get();
-            $specificPlatformIds = $specificAccounts->pluck('social_media_id')->toArray();
-            
-            $filteredAutoIds = [];
-            foreach ($assignedAccountIds as $accId) {
-                $acc = \App\Models\AccountListing::find($accId);
-                if ($acc && in_array($acc->social_media_id, $specificPlatformIds)) {
-                    continue;
-                }
-                $filteredAutoIds[] = $accId;
-            }
-            $assignedAccountIds = array_merge($filteredAutoIds, $specificIds);
+            $assignedAccountIds = array_merge($assignedAccountIds, $specificIds);
         }
 
         if (!$request->filled('platform_ids') && !$request->filled('account_ids')) {
@@ -420,18 +409,7 @@ class ManageUsersController extends Controller
 
         if ($request->filled('account_ids')) {
             $specificIds = array_map('intval', (array) $request->account_ids);
-            $specificAccounts = \App\Models\AccountListing::whereIn('id', $specificIds)->get();
-            $specificPlatformIds = $specificAccounts->pluck('social_media_id')->toArray();
-            
-            $filteredAutoIds = [];
-            foreach ($assignedAccountIds as $accId) {
-                $acc = \App\Models\AccountListing::find($accId);
-                if ($acc && in_array($acc->social_media_id, $specificPlatformIds)) {
-                    continue;
-                }
-                $filteredAutoIds[] = $accId;
-            }
-            $assignedAccountIds = array_merge($filteredAutoIds, $specificIds);
+            $assignedAccountIds = array_merge($assignedAccountIds, $specificIds);
         }
 
         if (!$request->filled('platform_ids') && !$request->filled('account_ids')) {

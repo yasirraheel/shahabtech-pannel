@@ -46,6 +46,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -740,6 +741,17 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    private void confirmDeleteProject(String projectId, String projectName) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Project")
+                .setMessage("Are you sure you want to remove \"" + projectName + "\" from your saved projects?")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    deleteSavedProject(projectId);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     public void renderSavedProjects() {
         if (containerProjectsList == null) return;
         containerProjectsList.removeAllViews();
@@ -852,7 +864,7 @@ public class MainActivity extends AppCompatActivity
                 btnDelete.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
                 btnDelete.setTextColor(Color.parseColor("#9CA3AF"));
                 btnDelete.setPadding(dp10, dp4, dp4, dp4);
-                btnDelete.setOnClickListener(v -> deleteSavedProject(pid));
+                btnDelete.setOnClickListener(v -> confirmDeleteProject(pid, pname));
 
                 card.addView(iconFrame);
                 card.addView(textCol);
