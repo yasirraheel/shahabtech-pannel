@@ -6,12 +6,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Base64;
-import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -21,24 +23,36 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.EditText;
+import android.widget.Button;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.URLDecoder;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+        implements NavigationView.OnNavigationItemSelectedListener {
 
     private static final String TAG = "MainActivity";
     private static final String PREFS_NAME = "WeMatePrefs";
@@ -49,6 +63,16 @@ public class MainActivity extends AppCompatActivity {
     public static final String SERVER_URL = "https://panel.shahabtech.com";
 
     private SharedPreferences prefs;
+
+    // Drawer / Navigation
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private MaterialToolbar toolbar;
+    private BottomNavigationView bottomNav;
+    private ActionBarDrawerToggle drawerToggle;
+
+    // Drawer header views
+    private TextView drawerUserName, drawerUserEmail, drawerAvatarInitial;
 
     // UI Layout Containers
     private ScrollView layoutLogin;
@@ -61,19 +85,19 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar loginProgress;
 
     // Account List Elements
-    private TextView txtUserName, txtNoAccounts;
-    private Button btnLogout;
+    private TextView txtUserName, txtUserAvatar, txtNoAccounts;
     private ProgressBar accountsProgress;
     private LinearLayout containerAccountList;
 
     // WebView Elements
     private TextView txtActiveAccountName;
-    private Button btnSwitchAccount, btnRefreshWebview;
+    private ImageButton btnSwitchAccount, btnRefreshWebview;
     private ProgressBar webviewProgress;
     private WebView mWebView;
 
     private ValueCallback<Uri[]> mFilePathCallback;
     private boolean isWarmingUp = true;
+    private String currentUserName = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +107,8 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
         initViews();
+        setupDrawer();
+        setupBottomNav();
         setupWebView();
         checkPermissions();
 
@@ -102,6 +128,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        drawerLayout = findViewById(R.id.drawer_layout);
+        navigationView = findViewById(R.id.nav_view);
+        toolbar = findViewById(R.id.toolbar);
+        bottomNav = findViewById(R.id.bottom_nav);
+
         layoutLogin = findViewById(R.id.layout_login);
         layoutAccounts = findViewById(R.id.layout_accounts);
         layoutWebview = findViewById(R.id.layout_webview);
@@ -112,8 +143,8 @@ public class MainActivity extends AppCompatActivity {
         loginProgress = findViewById(R.id.login_progress);
 
         txtUserName = findViewById(R.id.txt_user_name);
+        txtUserAvatar = findViewById(R.id.txt_user_avatar);
         txtNoAccounts = findViewById(R.id.txt_no_accounts);
-        btnLogout = findViewById(R.id.btn_logout);
         accountsProgress = findViewById(R.id.accounts_progress);
         containerAccountList = findViewById(R.id.container_account_list);
 
@@ -123,6 +154,13 @@ public class MainActivity extends AppCompatActivity {
         webviewProgress = findViewById(R.id.webview_progress);
         mWebView = findViewById(R.id.webview);
 
+        // Drawer header
+        View headerView = navigationView.getHeaderView(0);
+        drawerUserName = headerView.findViewById(R.id.drawer_user_name);
+        drawerUserEmail = headerView.findViewById(R.id.drawer_user_email);
+        drawerAvatarInitial = headerView.findViewById(R.id.drawer_avatar_initial);
+
+        // Login button
         btnLogin.setOnClickListener(v -> {
             String user = inputUsername.getText().toString().trim();
             String pass = inputPassword.getText().toString().trim();
@@ -135,13 +173,7 @@ public class MainActivity extends AppCompatActivity {
             performLogin(user, pass, false);
         });
 
-        btnLogout.setOnClickListener(v -> {
-            prefs.edit().clear().apply();
-            CookieManager.getInstance().removeAllCookies(null);
-            showScreen("LOGIN");
-            Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
-        });
-
+        // WebView bar buttons
         btnSwitchAccount.setOnClickListener(v -> {
             mWebView.loadUrl("about:blank");
             showScreen("ACCOUNTS");
@@ -155,10 +187,93 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void setupDrawer() {
+        setSupportActionBar(toolbar);
+
+        drawerToggle = new ActionBarDrawerToggle(
+                this, drawerLayout, toolbar,
+                R.string.app_name, R.string.app_name
+        );
+        drawerLayout.addDrawerListener(drawerToggle);
+        drawerToggle.syncState();
+        // Set the hamburger icon color to white
+        drawerToggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.on_primary, getTheme()));
+
+        navigationView.setNavigationItemSelectedListener(this);
+    }
+
+    private void setupBottomNav() {
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.bottom_home) {
+                showScreen("ACCOUNTS");
+                loadAssignedAccounts();
+                return true;
+            } else if (id == R.id.bottom_accounts) {
+                showScreen("ACCOUNTS");
+                loadAssignedAccounts();
+                return true;
+            } else if (id == R.id.bottom_settings) {
+                Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.nav_home) {
+            showScreen("ACCOUNTS");
+            loadAssignedAccounts();
+        } else if (id == R.id.nav_accounts) {
+            showScreen("ACCOUNTS");
+            loadAssignedAccounts();
+        } else if (id == R.id.nav_settings) {
+            Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
+        } else if (id == R.id.nav_logout) {
+            performLogout();
+        }
+
+        drawerLayout.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    private void performLogout() {
+        prefs.edit().clear().apply();
+        CookieManager.getInstance().removeAllCookies(null);
+        currentUserName = "";
+        showScreen("LOGIN");
+        Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
+    }
+
     private void showScreen(String screen) {
         layoutLogin.setVisibility("LOGIN".equals(screen) ? View.VISIBLE : View.GONE);
         layoutAccounts.setVisibility("ACCOUNTS".equals(screen) ? View.VISIBLE : View.GONE);
         layoutWebview.setVisibility("WEBVIEW".equals(screen) ? View.VISIBLE : View.GONE);
+
+        // Lock drawer on login & webview screen, unlock on accounts
+        if ("LOGIN".equals(screen) || "WEBVIEW".equals(screen)) {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+        } else {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        }
+    }
+
+    private void updateUserInfo(String fullname, String email) {
+        currentUserName = fullname;
+        txtUserName.setText("Hi, " + fullname + "!");
+
+        // Avatar initial
+        String initial = fullname.isEmpty() ? "W" : fullname.substring(0, 1).toUpperCase();
+        txtUserAvatar.setText(initial);
+
+        // Drawer header
+        drawerUserName.setText(fullname);
+        drawerUserEmail.setText(email != null ? email : "");
+        drawerAvatarInitial.setText(initial);
     }
 
     /**
@@ -170,7 +285,6 @@ public class MainActivity extends AppCompatActivity {
             btnLogin.setEnabled(false);
         }
 
-        // JavaScript to execute in WebView
         String js = "(function() {" +
                 "  fetch('" + SERVER_URL + "/api/extension/login', {" +
                 "    method: 'POST'," +
@@ -241,40 +355,107 @@ public class MainActivity extends AppCompatActivity {
         mWebView.post(() -> mWebView.evaluateJavascript(js, null));
     }
 
+    /**
+     * Creates a professional Material Design account card programmatically
+     */
     private void addAccountCard(String displayName, String platformName, int platformId, int accountId, String targetUrl) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(32, 28, 32, 28);
+        int dp4 = dpToPx(4);
+        int dp8 = dpToPx(8);
+        int dp12 = dpToPx(12);
+        int dp14 = dpToPx(14);
+        int dp16 = dpToPx(16);
+        int dp20 = dpToPx(20);
+        int dp44 = dpToPx(44);
 
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+        // Outer Card
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp16, dp16, dp16, dp16);
+
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        params.setMargins(0, 0, 0, 20);
-        card.setLayoutParams(params);
-        card.setBackgroundColor(0xFFFFFFFF);
-        card.setElevation(6f);
+        cardParams.setMargins(0, 0, 0, dp12);
+        card.setLayoutParams(cardParams);
+        card.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_card_ripple));
+        card.setElevation(dpToPx(2));
         card.setClickable(true);
         card.setFocusable(true);
 
+        // Avatar Circle
+        FrameLayout avatarFrame = new FrameLayout(this);
+        LinearLayout.LayoutParams avatarParams = new LinearLayout.LayoutParams(dp44, dp44);
+        avatarFrame.setLayoutParams(avatarParams);
+        avatarFrame.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_avatar_circle));
+
+        TextView avatarText = new TextView(this);
+        FrameLayout.LayoutParams avatarTextParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        );
+        avatarText.setLayoutParams(avatarTextParams);
+        avatarText.setGravity(Gravity.CENTER);
+        String initial = displayName.isEmpty() ? "G" : displayName.substring(0, 1).toUpperCase();
+        avatarText.setText(initial);
+        avatarText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        avatarText.setTextColor(getResources().getColor(R.color.primary, getTheme()));
+        avatarText.setTypeface(null, android.graphics.Typeface.BOLD);
+        avatarFrame.addView(avatarText);
+
+        // Text Column
+        LinearLayout textCol = new LinearLayout(this);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textColParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+        );
+        textColParams.setMarginStart(dp14);
+        textCol.setLayoutParams(textColParams);
+
         TextView title = new TextView(this);
         title.setText(displayName);
-        title.setTextSize(17);
-        title.setTextColor(0xFF0F172A);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        title.setTextColor(getResources().getColor(R.color.text_primary, getTheme()));
         title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setMaxLines(1);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Platform: " + platformName + "  •  Click to Open");
-        subtitle.setTextSize(13);
-        subtitle.setTextColor(0xFF64748B);
-        subtitle.setPadding(0, 10, 0, 0);
+        subtitle.setText(platformName + "  •  Tap to open");
+        subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        subtitle.setTextColor(getResources().getColor(R.color.text_muted, getTheme()));
+        subtitle.setPadding(0, dp4, 0, 0);
 
-        card.addView(title);
-        card.addView(subtitle);
+        textCol.addView(title);
+        textCol.addView(subtitle);
+
+        // Status badge
+        TextView badge = new TextView(this);
+        badge.setText("Active");
+        badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        badge.setTextColor(getResources().getColor(R.color.badge_green_text, getTheme()));
+        badge.setPadding(dp8, dp4, dp8, dp4);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setColor(getResources().getColor(R.color.badge_green_bg, getTheme()));
+        badgeBg.setCornerRadius(dpToPx(6));
+        badge.setBackground(badgeBg);
+        badge.setTypeface(null, android.graphics.Typeface.BOLD);
+
+        card.addView(avatarFrame);
+        card.addView(textCol);
+        card.addView(badge);
 
         card.setOnClickListener(v -> openAccountInWebView(displayName, platformId, accountId, targetUrl));
 
         containerAccountList.addView(card);
+    }
+
+    private int dpToPx(int dp) {
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp,
+                getResources().getDisplayMetrics()
+        );
     }
 
     private void setupWebView() {
@@ -294,7 +475,6 @@ public class MainActivity extends AppCompatActivity {
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(mWebView, true);
 
-        // Modern Chrome Mobile User-Agent
         String defaultUA = webSettings.getUserAgentString();
         webSettings.setUserAgentString(defaultUA.replace("Android", "Android 14").replace("Mobile", "Mobile"));
 
@@ -371,7 +551,7 @@ public class MainActivity extends AppCompatActivity {
                 DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
                 if (dm != null) {
                     dm.enqueue(request);
-                    Toast.makeText(getApplicationContext(), "Downloading " + filename + " to Downloads folder...", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "Downloading " + filename + "...", Toast.LENGTH_LONG).show();
                 }
             } catch (Exception e) {
                 Toast.makeText(getApplicationContext(), "Download failed: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -395,14 +575,17 @@ public class MainActivity extends AppCompatActivity {
                     if (response.optBoolean("success", false)) {
                         JSONObject userObj = response.optJSONObject("user");
                         String fullname = userObj != null ? userObj.optString("name", user) : user;
+                        String email = userObj != null ? userObj.optString("email", user) : user;
 
                         prefs.edit()
                                 .putString("username", user)
                                 .putString("password", pass)
+                                .putString("fullname", fullname)
+                                .putString("email", email)
                                 .putBoolean("is_logged_in", true)
                                 .apply();
 
-                        txtUserName.setText("Welcome, " + fullname + "!");
+                        updateUserInfo(fullname, email);
                         showScreen("ACCOUNTS");
                         loadAssignedAccounts();
                     } else {
@@ -439,7 +622,7 @@ public class MainActivity extends AppCompatActivity {
                                 addAccountCard(displayName, platformName, platformId, accountId, targetUrl);
                             }
                         } else {
-                            txtNoAccounts.setText(response.optString("message", "No assigned accounts found. Contact Administrator."));
+                            txtNoAccounts.setText(response.optString("message", "No assigned accounts found.\nContact your administrator."));
                             txtNoAccounts.setVisibility(View.VISIBLE);
                         }
                     } else {
@@ -470,10 +653,7 @@ public class MainActivity extends AppCompatActivity {
                             urlToLoad = "https://labs.google/fx/tools/flow";
                         }
 
-                        // Inject Cookies into Android CookieManager for labs.google and .google.com
                         CookieInjector.injectCookies(MainActivity.this, mWebView, cookies, urlToLoad);
-
-                        // Load Google Flow
                         mWebView.loadUrl(urlToLoad);
                     } else {
                         webviewProgress.setVisibility(View.GONE);
@@ -528,14 +708,18 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (layoutWebview.getVisibility() == View.VISIBLE) {
+        // Close drawer first if open
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else if (layoutWebview.getVisibility() == View.VISIBLE) {
             if (mWebView.canGoBack()) {
                 mWebView.goBack();
             } else {
                 showScreen("ACCOUNTS");
             }
         } else if (layoutAccounts.getVisibility() == View.VISIBLE) {
-            showScreen("LOGIN");
+            // Don't go back to login, just exit
+            super.onBackPressed();
         } else {
             super.onBackPressed();
         }

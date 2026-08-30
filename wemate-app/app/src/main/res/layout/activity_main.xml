@@ -1,265 +1,397 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA"
+    android:fitsSystemWindows="true"
     tools:context=".MainActivity">
 
-    <!-- 1. LOGIN SCREEN -->
-    <ScrollView
-        android:id="@+id/layout_login"
+    <!-- ============================================================ -->
+    <!-- MAIN CONTENT AREA (everything except the drawer sidebar)     -->
+    <!-- ============================================================ -->
+    <RelativeLayout
+        android:id="@+id/main_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:visibility="visible">
+        android:background="@color/background">
 
-        <LinearLayout
+        <!-- ======================= LOGIN SCREEN ======================= -->
+        <ScrollView
+            android:id="@+id/layout_login"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="WeMate Mobile"
-                android:textColor="#1E293B"
-                android:textSize="28sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Access Google Flow &amp; Panel Accounts"
-                android:textColor="#64748B"
-                android:textSize="14sp" />
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="visible">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:background="#FFFFFF"
-                android:elevation="4dp"
+                android:gravity="center"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:paddingHorizontal="28dp"
+                android:paddingTop="80dp"
+                android:paddingBottom="40dp">
 
+                <!-- Logo Area -->
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:background="@drawable/bg_avatar_circle">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Username or Email"
-                    android:textColor="#475569"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <EditText
-                    android:id="@+id/input_username"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="4dp"
-                    android:background="#F1F5F9"
-                    android:hint="Enter username or email"
-                    android:inputType="textEmailAddress"
-                    android:paddingHorizontal="12dp"
-                    android:textColor="#0F172A"
-                    android:textSize="14sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="W"
+                        android:textColor="@color/primary"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Password"
-                    android:textColor="#475569"
-                    android:textSize="12sp"
+                    android:layout_marginTop="20dp"
+                    android:text="Welcome Back"
+                    android:textColor="@color/text_primary"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
-                <EditText
-                    android:id="@+id/input_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="4dp"
-                    android:background="#F1F5F9"
-                    android:hint="Enter password"
-                    android:inputType="textPassword"
-                    android:paddingHorizontal="12dp"
-                    android:textColor="#0F172A"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Sign in to access your Google Flow accounts"
+                    android:textColor="@color/text_secondary"
+                    android:textAlignment="center"
                     android:textSize="14sp" />
 
-                <Button
-                    android:id="@+id/btn_login"
+                <!-- Login Card -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <!-- Username Field -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Username or Email"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/input_username"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_input"
+                        android:hint="Enter username or email"
+                        android:inputType="textEmailAddress"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_muted"
+                        android:textSize="14sp" />
+
+                    <!-- Password Field -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:text="Password"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/input_password"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_input"
+                        android:hint="Enter your password"
+                        android:inputType="textPassword"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_muted"
+                        android:textSize="14sp" />
+
+                    <!-- Sign In Button -->
+                    <Button
+                        android:id="@+id/btn_login"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="24dp"
+                        android:background="@drawable/bg_button_primary"
+                        android:text="Sign In"
+                        android:textColor="@color/on_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="false"
+                        android:stateListAnimator="@null" />
+
+                    <ProgressBar
+                        android:id="@+id/login_progress"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="16dp"
+                        android:indeterminateTint="@color/primary"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+                <!-- Footer -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
-                    android:backgroundTint="#2563EB"
-                    android:text="Sign In to WeMate"
-                    android:textColor="#FFFFFF"
+                    android:text="WeMate • Powered by ShahabTech"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ======================= DASHBOARD SCREEN ======================= -->
+        <LinearLayout
+            android:id="@+id/layout_accounts"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Top App Bar / Toolbar -->
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@color/primary"
+                app:title="WeMate"
+                app:titleTextColor="@color/on_primary"
+                app:navigationIcon="@drawable/ic_home"
+                app:navigationIconTint="@color/on_primary" />
+
+            <!-- Content Area between toolbar and bottom nav -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingBottom="8dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="16dp"
+                        android:paddingTop="16dp">
+
+                        <!-- Welcome Header Card -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_card"
+                            android:orientation="vertical"
+                            android:padding="20dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <!-- User Avatar -->
+                                <FrameLayout
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
+                                    android:background="@drawable/bg_avatar_circle">
+
+                                    <TextView
+                                        android:id="@+id/txt_user_avatar"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:gravity="center"
+                                        android:text="U"
+                                        android:textColor="@color/primary"
+                                        android:textSize="20sp"
+                                        android:textStyle="bold" />
+                                </FrameLayout>
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="14dp"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:id="@+id/txt_user_name"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Welcome!"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="18sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="2dp"
+                                        android:text="Ready to create amazing videos"
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="13sp" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Section Title -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="24dp"
+                            android:layout_marginBottom="12dp"
+                            android:text="Your Assigned Accounts"
+                            android:textColor="@color/text_primary"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+
+                        <ProgressBar
+                            android:id="@+id/accounts_progress"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_gravity="center"
+                            android:layout_marginTop="40dp"
+                            android:indeterminateTint="@color/primary"
+                            android:visibility="visible" />
+
+                        <TextView
+                            android:id="@+id/txt_no_accounts"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="40dp"
+                            android:gravity="center"
+                            android:text="No assigned accounts found.\nContact your administrator."
+                            android:textColor="@color/text_muted"
+                            android:textSize="14sp"
+                            android:lineSpacingExtra="4dp"
+                            android:visibility="gone" />
+
+                        <!-- Dynamic Account Cards Container -->
+                        <LinearLayout
+                            android:id="@+id/container_account_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+
+                    </LinearLayout>
+                </ScrollView>
+            </FrameLayout>
+
+            <!-- Bottom Navigation Bar -->
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+                android:id="@+id/bottom_nav"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/bottom_nav_bg"
+                app:elevation="8dp"
+                app:itemIconTint="@color/primary"
+                app:itemTextColor="@color/text_secondary"
+                app:labelVisibilityMode="labeled"
+                app:menu="@menu/bottom_nav_menu" />
+
+        </LinearLayout>
+
+        <!-- ======================= WEBVIEW SCREEN ======================= -->
+        <LinearLayout
+            android:id="@+id/layout_webview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- WebView Top Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@color/webview_bar_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="4dp">
+
+                <ImageButton
+                    android:id="@+id/btn_switch_account"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Back to accounts"
+                    android:src="@drawable/ic_back"
+                    app:tint="@color/webview_bar_text"
+                    android:padding="10dp" />
+
+                <TextView
+                    android:id="@+id/txt_active_account_name"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="Google Flow"
+                    android:textColor="@color/webview_bar_text"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
-                <ProgressBar
-                    android:id="@+id/login_progress"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="16dp"
-                    android:visibility="gone" />
-
+                <ImageButton
+                    android:id="@+id/btn_refresh_webview"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Refresh"
+                    android:src="@drawable/ic_refresh"
+                    app:tint="@color/webview_bar_text"
+                    android:padding="10dp" />
             </LinearLayout>
 
-        </LinearLayout>
-    </ScrollView>
-
-    <!-- 2. ACCOUNT SELECTION SCREEN -->
-    <LinearLayout
-        android:id="@+id/layout_accounts"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:visibility="gone">
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/txt_user_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Welcome!"
-                    android:textColor="#0F172A"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Select an account to access Google Flow"
-                    android:textColor="#64748B"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/btn_logout"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:text="Logout"
-                android:textColor="#EF4444"
-                android:textSize="13sp" />
-        </RelativeLayout>
-
-        <ProgressBar
-            android:id="@+id/accounts_progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="32dp"
-            android:visibility="visible" />
-
-        <TextView
-            android:id="@+id/txt_no_accounts"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:gravity="center"
-            android:text="No assigned accounts found. Contact Administrator."
-            android:textColor="#94A3B8"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <LinearLayout
-                android:id="@+id/container_account_list"
+            <ProgressBar
+                android:id="@+id/webview_progress"
+                style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </ScrollView>
+                android:layout_height="3dp"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/primary"
+                android:visibility="gone" />
 
-    </LinearLayout>
-
-    <!-- 3. WEBVIEW SCREEN -->
-    <LinearLayout
-        android:id="@+id/layout_webview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <!-- TOP NAVIGATION OVERLAY BAR -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="#0F172A"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="8dp">
-
-            <Button
-                android:id="@+id/btn_switch_account"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="← Accounts"
-                android:textColor="#38BDF8"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/txt_active_account_name"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:maxLines="1"
-                android:text="Google Flow"
-                android:textColor="#F8FAFC"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btn_refresh_webview"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="↻ Refresh"
-                android:textColor="#F8FAFC"
-                android:textSize="13sp" />
+            <WebView
+                android:id="@+id/webview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
         </LinearLayout>
 
-        <ProgressBar
-            android:id="@+id/webview_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:indeterminate="true"
-            android:visibility="gone" />
+    </RelativeLayout>
 
-        <WebView
-            android:id="@+id/webview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+    <!-- ============================================================ -->
+    <!-- NAVIGATION DRAWER (sidebar)                                  -->
+    <!-- ============================================================ -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:fitsSystemWindows="true"
+        app:headerLayout="@layout/nav_header"
+        app:menu="@menu/drawer_menu" />
 
-    </LinearLayout>
-
-</RelativeLayout>
+</androidx.drawerlayout.widget.DrawerLayout>
