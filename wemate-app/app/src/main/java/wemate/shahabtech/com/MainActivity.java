@@ -128,6 +128,19 @@ public class MainActivity extends AppCompatActivity
     private String currentValidityText = "";
     private boolean currentIsExpired = false;
 
+    private boolean isApiWebViewReady = false;
+    private final java.util.List<Runnable> pendingApiActions = new java.util.ArrayList<>();
+
+    private void runWhenApiReady(Runnable action) {
+        runOnUiThread(() -> {
+            if (isApiWebViewReady) {
+                action.run();
+            } else {
+                pendingApiActions.add(action);
+            }
+        });
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -420,6 +433,7 @@ public class MainActivity extends AppCompatActivity
         WebSettings ws = mApiWebView.getSettings();
         ws.setJavaScriptEnabled(true);
         ws.setDomStorageEnabled(true);
+        ws.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
@@ -430,6 +444,11 @@ public class MainActivity extends AppCompatActivity
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 Log.d(TAG, "API WebView ready at: " + url);
+                isApiWebViewReady = true;
+                for (Runnable r : new java.util.ArrayList<>(pendingApiActions)) {
+                    r.run();
+                }
+                pendingApiActions.clear();
             }
         });
         mApiWebView.addJavascriptInterface(new ApiBridge(), "AndroidBridge");
@@ -442,51 +461,62 @@ public class MainActivity extends AppCompatActivity
             btnLogin.setEnabled(false);
         }
 
-        String js = "(function() {" +
-                "  fetch('" + SERVER_URL + "/api/extension/login', {" +
-                "    method: 'POST'," +
-                "    headers: {" +
-                "      'Content-Type': 'application/json'," +
-                "      'Accept': 'application/json'" +
-                "    }," +
-                "    body: JSON.stringify({" +
-                "      username: " + JSONObject.quote(user) + "," +
-                "      password: " + JSONObject.quote(pass) +
-                "    })" +
-                "  })" +
-                "  .then(function(r) { return r.json(); })" +
-                "  .then(function(data) {" +
-                "    window.AndroidBridge.onLoginResult(JSON.stringify(data), " + JSONObject.quote(user) + ", " + JSONObject.quote(pass) + ");" +
-                "  })" +
-                "  .catch(function(err) {" +
-                "    window.AndroidBridge.onApiError('Login failed: ' + err.message);" +
-                "  });" +
-                "})();";
+        runWhenApiReady(() -> {
+            String js = "(function() {" +
+                    "  fetch('" + SERVER_URL + "/api/extension/login', {" +
+                    "    method: 'POST'," +
+                    "    headers: {" +
+                    "      'Content-Type': 'application/json'," +
+                    "      'Accept': 'application/json'" +
+                    "    }," +
+                    "    body: JSON.stringify({" +
+                    "      username: " + JSONObject.quote(user) + "," +
+                    "      password: " + JSONObject.quote(pass) +
+                    "    })" +
+                    "  })" +
+                    "  .then(function(r) { return r.json(); })" +
+                    "  .then(function(data) {" +
+                    "    window.AndroidBridge.onLoginResult(JSON.stringify(data), " + JSONObject.quote(user) + ", " + JSONObject.quote(pass) + ");" +
+                    "  })" +
+                    "  .catch(function(err) {" +
+                    "    window.AndroidBridge.onApiError('Login failed: ' + err.message);" +
+                    "  });" +
+                    "})();";
 
-        mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
+            mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
+        });
     }
 
     private void loadAssignedAccounts() {
-        if (containerAccountList.getChildCount() == 0) {
+        if (accountsProgress != null) {
             accountsProgress.setVisibility(View.VISIBLE);
         }
-        txtNoAccounts.setVisibility(View.GONE);
+        if (txtNoAccounts != null) {
+            txtNoAccounts.setVisibility(View.GONE);
+        }
 
-        String js = "(function() {" +
-                "  fetch('" + SERVER_URL + "/api/extension/platforms', {" +
-                "    method: 'GET'," +
-                "    headers: { 'Accept': 'application/json' }" +
-                "  })" +
-                "  .then(function(r) { return r.json(); })" +
-                "  .then(function(data) {" +
-                "    window.AndroidBridge.onPlatformsResult(JSON.stringify(data));" +
-                "  })" +
-                "  .catch(function(err) {" +
-                "    window.AndroidBridge.onApiError('Failed to fetch accounts: ' + err.message);" +
-                "  });" +
-                "})();";
+        runWhenApiReady(() -> {
+            String js = "(function() {" +
+                    "  fetch('" + SERVER_URL + "/api/extension/platforms?_t=' + new Date().getTime(), {" +
+                    "    method: 'GET'," +
+                    "    cache: 'no-store'," +
+                    "    headers: {" +
+                    "      'Accept': 'application/json'," +
+                    "      'Cache-Control': 'no-cache, no-store, must-revalidate'," +
+                    "      'Pragma': 'no-cache'" +
+                    "    }" +
+                    "  })" +
+                    "  .then(function(r) { return r.json(); })" +
+                    "  .then(function(data) {" +
+                    "    window.AndroidBridge.onPlatformsResult(JSON.stringify(data));" +
+                    "  })" +
+                    "  .catch(function(err) {" +
+                    "    window.AndroidBridge.onApiError('Failed to fetch accounts: ' + err.message);" +
+                    "  });" +
+                    "})();";
 
-        mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
+            mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
+        });
     }
 
     private void renderCachedAccounts() {
@@ -903,7 +933,14 @@ public class MainActivity extends AppCompatActivity
             accountsProgress.setVisibility(View.VISIBLE);
         }
         renderSavedProjects();
-        loadAssignedAccounts();
+
+        String savedUser = prefs.getString("saved_username", "");
+        String savedPass = prefs.getString("saved_password", "");
+        if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
+            performLogin(savedUser, savedPass, true);
+        } else {
+            loadAssignedAccounts();
+        }
     }
 
     /**
@@ -1604,10 +1641,19 @@ public class MainActivity extends AppCompatActivity
                         prefs.edit().putString("cached_platforms", jsonStr).apply();
                         displayPlatformsJson(jsonStr);
                     } else {
-                        // If network returned an error but we have cached accounts, don't clear the screen
-                        if (containerAccountList.getChildCount() == 0) {
-                            txtNoAccounts.setText(response.optString("message", "Failed to fetch accounts"));
-                            txtNoAccounts.setVisibility(View.VISIBLE);
+                        String msg = response.optString("message", "");
+                        if ("Unauthorized".equalsIgnoreCase(msg) || response.optInt("status") == 401 || msg.contains("Unauthenticated")) {
+                            // Re-login in background
+                            String savedUser = prefs.getString("saved_username", "");
+                            String savedPass = prefs.getString("saved_password", "");
+                            if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
+                                performLogin(savedUser, savedPass, true);
+                            }
+                        } else {
+                            if (containerAccountList.getChildCount() == 0) {
+                                txtNoAccounts.setText(msg.isEmpty() ? "Failed to fetch accounts" : msg);
+                                txtNoAccounts.setVisibility(View.VISIBLE);
+                            }
                         }
                     }
                 } catch (Exception e) {
