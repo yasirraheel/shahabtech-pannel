@@ -2,16 +2,56 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\User;
-use App\Models\Plan;
-use App\Models\SocialMedia;
-use App\Models\AccountListing;
 use App\Constants\Status;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\AccountListing;
+use App\Models\SocialMedia;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ExtensionController extends Controller
 {
+    /**
+     * Helper to compute user validity text identical to web header
+     */
+    private function getUserValidity(User $user)
+    {
+        $expiryDate = $user->expires_at ?: ($user->created_at ? $user->created_at->addDays(30) : now()->addDays(30));
+        $isExpired = $user->expires_at ? now()->greaterThanOrEqualTo($expiryDate) : false;
+        if (!$user->expires_at && !$user->is_trial) {
+            $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+        }
+
+        $validityText = '';
+        if ($user->is_trial) {
+            if ($user->pending_trial_minutes > 0) {
+                $validityText = 'Trial: Pending Start';
+                $isExpired = false;
+            } else {
+                $diff = now()->diff(Carbon::parse($expiryDate));
+                if ($isExpired) {
+                    $validityText = 'Trial Expired';
+                } elseif ($diff->days > 0) {
+                    $validityText = 'Trial: ' . $diff->days . ' Days';
+                } elseif ($diff->h > 0) {
+                    $validityText = 'Trial: ' . $diff->h . ' Hours';
+                } else {
+                    $validityText = 'Trial: ' . $diff->i . ' Mins';
+                }
+            }
+        } else {
+            $daysRemaining = $isExpired ? 0 : (int) now()->startOfDay()->diffInDays(Carbon::parse($expiryDate)->startOfDay(), false);
+            $validityText = $isExpired ? 'Expired' : ($daysRemaining . ' Days Remaining');
+        }
+
+        return [
+            'is_expired'    => $isExpired,
+            'validity_text' => $validityText,
+            'expires_at'    => $expiryDate ? Carbon::parse($expiryDate)->toDateTimeString() : null,
+        ];
+    }
+
     /**
      * Mobile App Login endpoint
      */
@@ -41,21 +81,23 @@ class ExtensionController extends Controller
             ], 403);
         }
 
-        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
-        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+        $validity = $this->getUserValidity($user);
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'user'    => [
-                'id'       => $user->id,
-                'name'     => $user->fullname,
-                'username' => $user->username,
-                'email'    => $user->email,
-                'expired'  => $isExpired,
+                'id'            => $user->id,
+                'name'          => $user->fullname,
+                'username'      => $user->username,
+                'email'         => $user->email,
+                'is_expired'    => $validity['is_expired'],
+                'validity_text' => $validity['validity_text'],
+                'expires_at'    => $validity['expires_at'],
             ],
         ]);
     }
+
     /**
      * Get all platforms the user has access to via their plan
      */
@@ -63,21 +105,25 @@ class ExtensionController extends Controller
     {
         $user = $request->user();
 
+        $validity = $this->getUserValidity($user);
+
         if (!$user->plan_id && empty($user->account_ids)) {
             return response()->json([
-                'success'   => true,
-                'platforms' => [],
-                'message'   => 'No plan or accounts assigned. Contact admin.',
+                'success'       => true,
+                'platforms'     => [],
+                'validity_text' => $validity['validity_text'],
+                'is_expired'    => $validity['is_expired'],
+                'message'       => 'No plan or accounts assigned. Contact admin.',
             ]);
         }
 
-        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
-        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
-        if ($isExpired) {
+        if ($validity['is_expired']) {
             return response()->json([
-                'success'   => true,
-                'platforms' => [],
-                'message'   => 'Your subscription is expired. Please contact administrator.',
+                'success'       => true,
+                'platforms'     => [],
+                'validity_text' => $validity['validity_text'],
+                'is_expired'    => true,
+                'message'       => 'Your subscription is expired. Please contact administrator.',
             ]);
         }
 
@@ -123,8 +169,10 @@ class ExtensionController extends Controller
             ->values();
 
         return response()->json([
-            'success'   => true,
-            'platforms' => $accounts,
+            'success'       => true,
+            'platforms'     => $accounts,
+            'validity_text' => $validity['validity_text'],
+            'is_expired'    => $validity['is_expired'],
         ]);
     }
 
@@ -141,9 +189,8 @@ class ExtensionController extends Controller
             return response()->json(['success' => false, 'message' => 'No active plan or accounts'], 403);
         }
         
-        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
-        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
-        if (!$isAdmin && $isExpired) {
+        $validity = $this->getUserValidity($user);
+        if (!$isAdmin && $validity['is_expired']) {
             return response()->json(['success' => false, 'message' => 'Your subscription is expired. Please contact administrator.'], 403);
         }
 
@@ -192,11 +239,10 @@ class ExtensionController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('plan');
-        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
-        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+        $validity = $this->getUserValidity($user);
 
         $planData = null;
-        if (!$isExpired) {
+        if (!$validity['is_expired']) {
             if ($user->plan) {
                 $planData = [
                     'id'   => $user->plan->id,
@@ -216,11 +262,13 @@ class ExtensionController extends Controller
             'force_update'     => (bool) gs('force_extension_update'),
             'download_url'     => getExtensionDownloadUrl(),
             'user'             => [
-                'id'       => $user->id,
-                'name'     => $user->fullname,
-                'username' => $user->username,
-                'email'    => $user->email,
-                'plan'     => $planData,
+                'id'            => $user->id,
+                'name'          => $user->fullname,
+                'username'      => $user->username,
+                'email'         => $user->email,
+                'validity_text' => $validity['validity_text'],
+                'is_expired'    => $validity['is_expired'],
+                'plan'          => $planData,
             ],
         ]);
     }

@@ -6,15 +6,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -23,16 +27,16 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.EditText;
-import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -72,7 +76,7 @@ public class MainActivity extends AppCompatActivity
     private ActionBarDrawerToggle drawerToggle;
 
     // Drawer header views
-    private TextView drawerUserName, drawerUserEmail, drawerAvatarInitial;
+    private TextView drawerUserName, drawerUserEmail, drawerAvatarInitial, drawerUserValidity;
 
     // UI Layout Containers
     private ScrollView layoutLogin;
@@ -81,11 +85,13 @@ public class MainActivity extends AppCompatActivity
 
     // Login Elements
     private EditText inputUsername, inputPassword;
+    private CheckBox checkboxRememberMe;
     private Button btnLogin;
     private ProgressBar loginProgress;
 
     // Account List Elements
-    private TextView txtUserName, txtUserAvatar, txtNoAccounts;
+    private TextView txtUserName, txtUserAvatar, txtUserValidity, txtNoAccounts;
+    private LinearLayout containerValidity;
     private ProgressBar accountsProgress;
     private LinearLayout containerAccountList;
 
@@ -93,11 +99,13 @@ public class MainActivity extends AppCompatActivity
     private TextView txtActiveAccountName;
     private ImageButton btnSwitchAccount, btnRefreshWebview;
     private ProgressBar webviewProgress;
-    private WebView mWebView;
+    private WebView mWebView;       // For Google Flow
+    private WebView mApiWebView;    // Dedicated hidden WebView for Panel API calls
 
     private ValueCallback<Uri[]> mFilePathCallback;
-    private boolean isWarmingUp = true;
     private String currentUserName = "";
+    private String currentValidityText = "";
+    private boolean currentIsExpired = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,18 +117,30 @@ public class MainActivity extends AppCompatActivity
         initViews();
         setupDrawer();
         setupBottomNav();
-        setupWebView();
+        setupApiWebView();
+        setupFlowWebView();
         checkPermissions();
 
-        // Warm up WebView by loading the panel domain so Hostinger CDN clearance is obtained
-        mWebView.loadUrl(SERVER_URL + "/login");
+        // Restore saved login info
+        String savedUser = prefs.getString("saved_username", "");
+        String savedPass = prefs.getString("saved_password", "");
+        boolean rememberMe = prefs.getBoolean("remember_me", true);
 
-        String savedUser = prefs.getString("username", "");
-        String savedPass = prefs.getString("password", "");
         inputUsername.setText(savedUser);
         inputPassword.setText(savedPass);
+        checkboxRememberMe.setChecked(rememberMe);
 
+        // Check if already logged in
         if (prefs.getBoolean("is_logged_in", false) && !savedUser.isEmpty() && !savedPass.isEmpty()) {
+            currentUserName = prefs.getString("fullname", savedUser);
+            currentValidityText = prefs.getString("validity_text", "");
+            currentIsExpired = prefs.getBoolean("is_expired", false);
+            updateUserInfo(currentUserName, prefs.getString("email", savedUser), currentValidityText, currentIsExpired);
+
+            showScreen("ACCOUNTS");
+            // Render cached accounts instantly
+            renderCachedAccounts();
+            // Silently verify & update in background
             performLogin(savedUser, savedPass, true);
         } else {
             showScreen("LOGIN");
@@ -139,11 +159,14 @@ public class MainActivity extends AppCompatActivity
 
         inputUsername = findViewById(R.id.input_username);
         inputPassword = findViewById(R.id.input_password);
+        checkboxRememberMe = findViewById(R.id.checkbox_remember_me);
         btnLogin = findViewById(R.id.btn_login);
         loginProgress = findViewById(R.id.login_progress);
 
         txtUserName = findViewById(R.id.txt_user_name);
         txtUserAvatar = findViewById(R.id.txt_user_avatar);
+        txtUserValidity = findViewById(R.id.txt_user_validity);
+        containerValidity = findViewById(R.id.container_validity);
         txtNoAccounts = findViewById(R.id.txt_no_accounts);
         accountsProgress = findViewById(R.id.accounts_progress);
         containerAccountList = findViewById(R.id.container_account_list);
@@ -153,12 +176,14 @@ public class MainActivity extends AppCompatActivity
         btnRefreshWebview = findViewById(R.id.btn_refresh_webview);
         webviewProgress = findViewById(R.id.webview_progress);
         mWebView = findViewById(R.id.webview);
+        mApiWebView = findViewById(R.id.api_webview);
 
         // Drawer header
         View headerView = navigationView.getHeaderView(0);
         drawerUserName = headerView.findViewById(R.id.drawer_user_name);
         drawerUserEmail = headerView.findViewById(R.id.drawer_user_email);
         drawerAvatarInitial = headerView.findViewById(R.id.drawer_avatar_initial);
+        drawerUserValidity = headerView.findViewById(R.id.drawer_user_validity);
 
         // Login button
         btnLogin.setOnClickListener(v -> {
@@ -170,13 +195,21 @@ public class MainActivity extends AppCompatActivity
                 return;
             }
 
+            // Save Remember Me preference
+            boolean remember = checkboxRememberMe.isChecked();
+            prefs.edit()
+                    .putString("saved_username", remember ? user : "")
+                    .putString("saved_password", remember ? pass : "")
+                    .putBoolean("remember_me", remember)
+                    .apply();
+
             performLogin(user, pass, false);
         });
 
-        // WebView bar buttons
+        // WebView navigation buttons
         btnSwitchAccount.setOnClickListener(v -> {
-            mWebView.loadUrl("about:blank");
             showScreen("ACCOUNTS");
+            renderCachedAccounts();
             loadAssignedAccounts();
         });
 
@@ -196,7 +229,6 @@ public class MainActivity extends AppCompatActivity
         );
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
-        // Set the hamburger icon color to white
         drawerToggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.on_primary, getTheme()));
 
         navigationView.setNavigationItemSelectedListener(this);
@@ -205,12 +237,9 @@ public class MainActivity extends AppCompatActivity
     private void setupBottomNav() {
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
-            if (id == R.id.bottom_home) {
+            if (id == R.id.bottom_home || id == R.id.bottom_accounts) {
                 showScreen("ACCOUNTS");
-                loadAssignedAccounts();
-                return true;
-            } else if (id == R.id.bottom_accounts) {
-                showScreen("ACCOUNTS");
+                renderCachedAccounts();
                 loadAssignedAccounts();
                 return true;
             } else if (id == R.id.bottom_settings) {
@@ -225,11 +254,9 @@ public class MainActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.nav_home) {
+        if (id == R.id.nav_home || id == R.id.nav_accounts) {
             showScreen("ACCOUNTS");
-            loadAssignedAccounts();
-        } else if (id == R.id.nav_accounts) {
-            showScreen("ACCOUNTS");
+            renderCachedAccounts();
             loadAssignedAccounts();
         } else if (id == R.id.nav_settings) {
             Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
@@ -242,11 +269,46 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void performLogout() {
-        prefs.edit().clear().apply();
+        // Clear active session flag only, keep saved credentials for remember me
+        prefs.edit()
+                .putBoolean("is_logged_in", false)
+                .putString("cached_platforms", "")
+                .apply();
+
         CookieManager.getInstance().removeAllCookies(null);
         currentUserName = "";
+
+        // Keep saved credentials in input fields if remember me was on
+        String savedUser = prefs.getString("saved_username", "");
+        String savedPass = prefs.getString("saved_password", "");
+        inputUsername.setText(savedUser);
+        inputPassword.setText(savedPass);
+        checkboxRememberMe.setChecked(prefs.getBoolean("remember_me", true));
+
         showScreen("LOGIN");
         Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Dynamically updates status bar color and icon tint to match the current screen
+     */
+    private void updateStatusBarColor(int color, boolean lightIcons) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(color);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                View decor = window.getDecorView();
+                int flags = decor.getSystemUiVisibility();
+                if (!lightIcons) {
+                    flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                } else {
+                    flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                }
+                decor.setSystemUiVisibility(flags);
+            }
+        }
     }
 
     private void showScreen(String screen) {
@@ -254,21 +316,55 @@ public class MainActivity extends AppCompatActivity
         layoutAccounts.setVisibility("ACCOUNTS".equals(screen) ? View.VISIBLE : View.GONE);
         layoutWebview.setVisibility("WEBVIEW".equals(screen) ? View.VISIBLE : View.GONE);
 
-        // Lock drawer on login & webview screen, unlock on accounts
-        if ("LOGIN".equals(screen) || "WEBVIEW".equals(screen)) {
+        if ("LOGIN".equals(screen)) {
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        } else {
+            // Light background status bar with dark icons
+            updateStatusBarColor(0xFFF8FAFC, false);
+        } else if ("ACCOUNTS".equals(screen)) {
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+            // Primary Indigo status bar (#6366F1) matching MaterialToolbar
+            updateStatusBarColor(0xFF6366F1, true);
+        } else if ("WEBVIEW".equals(screen)) {
+            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            // Dark Slate status bar (#1E293B) matching WebView Header bar
+            updateStatusBarColor(0xFF1E293B, true);
         }
     }
 
-    private void updateUserInfo(String fullname, String email) {
+    private void updateUserInfo(String fullname, String email, String validityText, boolean isExpired) {
         currentUserName = fullname;
+        currentValidityText = validityText;
+        currentIsExpired = isExpired;
+
         txtUserName.setText("Hi, " + fullname + "!");
 
-        // Avatar initial
         String initial = fullname.isEmpty() ? "W" : fullname.substring(0, 1).toUpperCase();
         txtUserAvatar.setText(initial);
+
+        // Validity badge update
+        if (validityText != null && !validityText.isEmpty()) {
+            txtUserValidity.setText(validityText);
+            drawerUserValidity.setText(validityText);
+
+            int bgCol = isExpired ? 0xFFFEE2E2 : 0xFFFEF3C7;
+            int textCol = isExpired ? 0xFFB91C1C : 0xFFB45309;
+
+            GradientDrawable badge = new GradientDrawable();
+            badge.setColor(bgCol);
+            badge.setCornerRadius(dpToPx(8));
+            badge.setStroke(dpToPx(1), isExpired ? 0xFFFECACA : 0xFFFDE68A);
+
+            containerValidity.setBackground(badge);
+            drawerUserValidity.setBackground(badge);
+            txtUserValidity.setTextColor(textCol);
+            drawerUserValidity.setTextColor(textCol);
+
+            containerValidity.setVisibility(View.VISIBLE);
+            drawerUserValidity.setVisibility(View.VISIBLE);
+        } else {
+            containerValidity.setVisibility(View.GONE);
+            drawerUserValidity.setVisibility(View.GONE);
+        }
 
         // Drawer header
         drawerUserName.setText(fullname);
@@ -277,8 +373,23 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
-     * Executes login request via WebView Chromium engine to bypass Hostinger CDN bot challenge
+     * Dedicated background WebView for all API requests to panel.shahabtech.com.
+     * Always stays on panel domain, ensuring 100% same-origin, bypasses CDN challenge,
+     * and NEVER suffers from CORS or cross-origin failures.
      */
+    private void setupApiWebView() {
+        WebSettings ws = mApiWebView.getSettings();
+        ws.setJavaScriptEnabled(true);
+        ws.setDomStorageEnabled(true);
+
+        CookieManager cm = CookieManager.getInstance();
+        cm.setAcceptCookie(true);
+        cm.setAcceptThirdPartyCookies(mApiWebView, true);
+
+        mApiWebView.addJavascriptInterface(new ApiBridge(), "AndroidBridge");
+        mApiWebView.loadUrl(SERVER_URL + "/login");
+    }
+
     private void performLogin(String user, String pass, boolean isAutoLogin) {
         if (!isAutoLogin) {
             loginProgress.setVisibility(View.VISIBLE);
@@ -306,13 +417,14 @@ public class MainActivity extends AppCompatActivity
                 "  });" +
                 "})();";
 
-        mWebView.post(() -> mWebView.evaluateJavascript(js, null));
+        mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
     }
 
     private void loadAssignedAccounts() {
-        accountsProgress.setVisibility(View.VISIBLE);
+        if (containerAccountList.getChildCount() == 0) {
+            accountsProgress.setVisibility(View.VISIBLE);
+        }
         txtNoAccounts.setVisibility(View.GONE);
-        containerAccountList.removeAllViews();
 
         String js = "(function() {" +
                 "  fetch('" + SERVER_URL + "/api/extension/platforms', {" +
@@ -328,7 +440,14 @@ public class MainActivity extends AppCompatActivity
                 "  });" +
                 "})();";
 
-        mWebView.post(() -> mWebView.evaluateJavascript(js, null));
+        mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
+    }
+
+    private void renderCachedAccounts() {
+        String cached = prefs.getString("cached_platforms", "");
+        if (!cached.isEmpty()) {
+            displayPlatformsJson(cached);
+        }
     }
 
     private void openAccountInWebView(String displayName, int platformId, int accountId, String targetUrl) {
@@ -352,22 +471,52 @@ public class MainActivity extends AppCompatActivity
                 "  });" +
                 "})();";
 
-        mWebView.post(() -> mWebView.evaluateJavascript(js, null));
+        mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
     }
 
-    /**
-     * Creates a professional Material Design account card programmatically
-     */
+    private void displayPlatformsJson(String jsonStr) {
+        try {
+            JSONObject response = new JSONObject(jsonStr);
+            if (response.optBoolean("success", false)) {
+                String validity = response.optString("validity_text", "");
+                boolean isExpired = response.optBoolean("is_expired", false);
+                if (!validity.isEmpty()) {
+                    updateUserInfo(currentUserName, prefs.getString("email", ""), validity, isExpired);
+                }
+
+                JSONArray platforms = response.optJSONArray("platforms");
+                containerAccountList.removeAllViews();
+
+                if (platforms != null && platforms.length() > 0) {
+                    txtNoAccounts.setVisibility(View.GONE);
+                    for (int i = 0; i < platforms.length(); i++) {
+                        JSONObject platform = platforms.getJSONObject(i);
+                        String platformName = platform.optString("name", "Google Flow");
+                        String displayName = platform.optString("display_name", platformName);
+                        int platformId = platform.optInt("id", 3);
+                        int accountId = platform.optInt("account_id", 0);
+                        String targetUrl = platform.optString("url", "https://labs.google/fx/tools/flow");
+
+                        addAccountCard(displayName, platformName, platformId, accountId, targetUrl);
+                    }
+                } else {
+                    txtNoAccounts.setText(response.optString("message", "No assigned accounts found.\nContact your administrator."));
+                    txtNoAccounts.setVisibility(View.VISIBLE);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error displaying platforms: " + e.getMessage());
+        }
+    }
+
     private void addAccountCard(String displayName, String platformName, int platformId, int accountId, String targetUrl) {
         int dp4 = dpToPx(4);
         int dp8 = dpToPx(8);
         int dp12 = dpToPx(12);
         int dp14 = dpToPx(14);
         int dp16 = dpToPx(16);
-        int dp20 = dpToPx(20);
         int dp44 = dpToPx(44);
 
-        // Outer Card
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
@@ -458,7 +607,14 @@ public class MainActivity extends AppCompatActivity
         );
     }
 
-    private void setupWebView() {
+    /**
+     * Configures the Google Flow browsing WebView with:
+     * 1. CSS & JS injection to hide user avatar / account button (same as chrome extension)
+     * 2. CSS & JS injection to hide projects on home page (same as chrome extension)
+     * 3. Anti-logout protection (blocks Google Sign-out navigation and click events)
+     * 4. Media upload and download capabilities
+     */
+    private void setupFlowWebView() {
         WebSettings webSettings = mWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
@@ -478,11 +634,20 @@ public class MainActivity extends AppCompatActivity
         String defaultUA = webSettings.getUserAgentString();
         webSettings.setUserAgentString(defaultUA.replace("Android", "Android 14").replace("Mobile", "Mobile"));
 
-        mWebView.addJavascriptInterface(new WebAppInterface(), "AndroidBridge");
-
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString().toLowerCase();
+
+                // BLOCK GOOGLE LOGOUT / SIGN OUT
+                if (url.contains("signout") || url.contains("logout") ||
+                        url.contains("sign_out") || url.contains("signoutoptions") ||
+                        url.contains("accounts.google.com/logout") ||
+                        url.contains("labs.google/fx/api/auth/signout")) {
+                    Log.w(TAG, "Blocked logout attempt: " + url);
+                    Toast.makeText(MainActivity.this, "Sign out from Google Flow is disabled.", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
                 return false;
             }
 
@@ -490,9 +655,9 @@ public class MainActivity extends AppCompatActivity
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 webviewProgress.setVisibility(View.GONE);
-                if (isWarmingUp) {
-                    isWarmingUp = false;
-                }
+
+                // Inject extension guards (Avatar hiding, Project hiding, Anti-logout)
+                injectExtensionGuards(view);
             }
         });
 
@@ -503,6 +668,10 @@ public class MainActivity extends AppCompatActivity
                     webviewProgress.setVisibility(View.VISIBLE);
                 } else {
                     webviewProgress.setVisibility(View.GONE);
+                }
+                // Also inject early during loading
+                if (newProgress > 30) {
+                    injectExtensionGuards(view);
                 }
             }
 
@@ -551,7 +720,7 @@ public class MainActivity extends AppCompatActivity
                 DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
                 if (dm != null) {
                     dm.enqueue(request);
-                    Toast.makeText(getApplicationContext(), "Downloading " + filename + "...", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "Downloading " + filename + " to Downloads folder...", Toast.LENGTH_LONG).show();
                 }
             } catch (Exception e) {
                 Toast.makeText(getApplicationContext(), "Download failed: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
@@ -560,9 +729,131 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
-     * JavaScript Bridge Interface connected to WebView Chromium Engine
+     * Injects CSS and JavaScript matching the chrome extension into Google Flow:
+     * 1. Hides Google account avatar circle & account button
+     * 2. Hides existing projects on the home page so shared accounts stay private
+     * 3. Disables and blocks any Sign-out / Logout clicks
      */
-    public class WebAppInterface {
+    private void injectExtensionGuards(WebView view) {
+        String js = "(function() {" +
+                "  if (window.__wemate_guard_injected__) return;" +
+                "  window.__wemate_guard_injected__ = true;" +
+                "" +
+                "  /* 1. INJECT HIDING CSS */" +
+                "  var style = document.createElement('style');" +
+                "  style.id = '__wemate_guard_style__';" +
+                "  style.textContent = `" +
+                "    /* Hide Google Account Avatar & Profile Menu */" +
+                "    img[src*='googleusercontent.com']," +
+                "    [aria-label*='Google Account' i]," +
+                "    [aria-label*='Account' i]," +
+                "    [aria-label*='Profile' i]," +
+                "    a[href*='accounts.google']," +
+                "    a[href*='signout']," +
+                "    button[aria-label*='Google Account' i]," +
+                "    button[aria-label*='Account' i]," +
+                "    button[aria-label*='Profile' i]," +
+                "    [data-testid*='user-menu']," +
+                "    [data-testid*='avatar']," +
+                "    [data-testid*='profile']," +
+                "    .gb_A, .gb_B, .gb_d, img.gb_qa, img.gb_sa {" +
+                "      display: none !important;" +
+                "      visibility: hidden !important;" +
+                "      pointer-events: none !important;" +
+                "    }" +
+                "    /* Mark hidden project cards */" +
+                "    [data-wemate-hide] {" +
+                "      display: none !important;" +
+                "      visibility: hidden !important;" +
+                "    }" +
+                "  `;" +
+                "  (document.head || document.documentElement).appendChild(style);" +
+                "" +
+                "  /* 2. HIDE HOME PAGE PROJECTS & GOOGLE AVATAR VIA DOM WATCHER */" +
+                "  function applyHidingRules() {" +
+                "    var isHome = !location.pathname.includes('/project/');" +
+                "" +
+                "    /* Hide avatar buttons in top bar */" +
+                "    var avatars = document.querySelectorAll('header img, nav img, button:has(img), [role=\"button\"]:has(img)');" +
+                "    avatars.forEach(function(el) {" +
+                "      var src = (el.src || (el.querySelector('img') && el.querySelector('img').src) || '');" +
+                "      if (src.indexOf('googleusercontent') !== -1) {" +
+                "        var parent = el.closest('button, a, [role=\"button\"]') || el;" +
+                "        parent.style.setProperty('display', 'none', 'important');" +
+                "      }" +
+                "    });" +
+                "" +
+                "    /* Hide single-letter colored circular avatars in header (e.g. pink circle in screenshot) */" +
+                "    var allBtns = document.querySelectorAll('header button, header [role=\"button\"], nav button');" +
+                "    allBtns.forEach(function(b) {" +
+                "      var aria = (b.getAttribute('aria-label') || '').toLowerCase();" +
+                "      if (aria.includes('account') || aria.includes('profile') || aria.includes('google')) {" +
+                "        b.style.setProperty('display', 'none', 'important');" +
+                "        b.style.setProperty('pointer-events', 'none', 'important');" +
+                "      }" +
+                "      /* Check for round avatar sibling next to ULTRA badge */" +
+                "      var r = b.getBoundingClientRect();" +
+                "      if (r.width > 24 && r.width < 50 && Math.abs(r.width - r.height) < 6) {" +
+                "        var style = window.getComputedStyle(b);" +
+                "        if (style.borderRadius.includes('50%') || parseInt(style.borderRadius) > 15) {" +
+                "          b.style.setProperty('display', 'none', 'important');" +
+                "        }" +
+                "      }" +
+                "    });" +
+                "" +
+                "    /* Hide projects if on Home page */" +
+                "    if (isHome) {" +
+                "      document.querySelectorAll('a[href*=\"/project/\"]').forEach(function(a) {" +
+                "        var txt = (a.textContent || '').toLowerCase();" +
+                "        if (txt.includes('new') || txt.includes('create') || txt.includes('+')) return;" +
+                "        var card = a.closest('article') || a.closest('li') || a.closest('[role=\"gridcell\"]');" +
+                "        if (!card) {" +
+                "          var cur = a;" +
+                "          for (var i = 0; i < 6 && cur && cur.parentElement && cur.parentElement !== document.body; i++) {" +
+                "            cur = cur.parentElement;" +
+                "            if (cur.parentElement && cur.parentElement.children.length > 3) { card = cur; break; }" +
+                "          }" +
+                "        }" +
+                "        if (card) {" +
+                "          card.style.setProperty('display', 'none', 'important');" +
+                "          card.style.setProperty('visibility', 'hidden', 'important');" +
+                "        }" +
+                "        a.style.setProperty('display', 'none', 'important');" +
+                "      });" +
+                "    }" +
+                "  }" +
+                "" +
+                "  applyHidingRules();" +
+                "  setInterval(applyHidingRules, 600);" +
+                "" +
+                "  /* 3. BLOCK SIGN OUT / LOGOUT CLICKS */" +
+                "  document.addEventListener('click', function(e) {" +
+                "    var el = e.target;" +
+                "    for (var i = 0; i < 8 && el; i++) {" +
+                "      var txt = (el.textContent || '').trim().toLowerCase();" +
+                "      var aria = (el.getAttribute('aria-label') || '').toLowerCase();" +
+                "      var href = (el.getAttribute('href') || '').toLowerCase();" +
+                "      if (txt.includes('sign out') || txt.includes('signout') ||" +
+                "          txt.includes('log out') || txt.includes('logout') ||" +
+                "          aria.includes('sign out') || aria.includes('signout') ||" +
+                "          href.includes('signout') || href.includes('logout')) {" +
+                "        e.preventDefault();" +
+                "        e.stopPropagation();" +
+                "        e.stopImmediatePropagation();" +
+                "        return false;" +
+                "      }" +
+                "      el = el.parentElement;" +
+                "    }" +
+                "  }, true);" +
+                "})();";
+
+        view.post(() -> view.evaluateJavascript(js, null));
+    }
+
+    /**
+     * JavaScript Bridge Interface connected to the dedicated API WebView
+     */
+    public class ApiBridge {
 
         @JavascriptInterface
         public void onLoginResult(String jsonStr, String user, String pass) {
@@ -576,17 +867,20 @@ public class MainActivity extends AppCompatActivity
                         JSONObject userObj = response.optJSONObject("user");
                         String fullname = userObj != null ? userObj.optString("name", user) : user;
                         String email = userObj != null ? userObj.optString("email", user) : user;
+                        String validity = userObj != null ? userObj.optString("validity_text", "") : "";
+                        boolean isExpired = userObj != null && userObj.optBoolean("is_expired", false);
 
                         prefs.edit()
-                                .putString("username", user)
-                                .putString("password", pass)
                                 .putString("fullname", fullname)
                                 .putString("email", email)
+                                .putString("validity_text", validity)
+                                .putBoolean("is_expired", isExpired)
                                 .putBoolean("is_logged_in", true)
                                 .apply();
 
-                        updateUserInfo(fullname, email);
+                        updateUserInfo(fullname, email, validity, isExpired);
                         showScreen("ACCOUNTS");
+                        renderCachedAccounts();
                         loadAssignedAccounts();
                     } else {
                         String msg = response.optString("message", "Login failed");
@@ -594,7 +888,7 @@ public class MainActivity extends AppCompatActivity
                         showScreen("LOGIN");
                     }
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Response parse error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Response error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     showScreen("LOGIN");
                 }
             });
@@ -608,30 +902,21 @@ public class MainActivity extends AppCompatActivity
                 try {
                     JSONObject response = new JSONObject(jsonStr);
                     if (response.optBoolean("success", false)) {
-                        JSONArray platforms = response.optJSONArray("platforms");
-
-                        if (platforms != null && platforms.length() > 0) {
-                            for (int i = 0; i < platforms.length(); i++) {
-                                JSONObject platform = platforms.getJSONObject(i);
-                                String platformName = platform.optString("name", "Google Flow");
-                                String displayName = platform.optString("display_name", platformName);
-                                int platformId = platform.optInt("id", 3);
-                                int accountId = platform.optInt("account_id", 0);
-                                String targetUrl = platform.optString("url", "https://labs.google/fx/tools/flow");
-
-                                addAccountCard(displayName, platformName, platformId, accountId, targetUrl);
-                            }
-                        } else {
-                            txtNoAccounts.setText(response.optString("message", "No assigned accounts found.\nContact your administrator."));
+                        // Cache platforms locally
+                        prefs.edit().putString("cached_platforms", jsonStr).apply();
+                        displayPlatformsJson(jsonStr);
+                    } else {
+                        // If network returned an error but we have cached accounts, don't clear the screen
+                        if (containerAccountList.getChildCount() == 0) {
+                            txtNoAccounts.setText(response.optString("message", "Failed to fetch accounts"));
                             txtNoAccounts.setVisibility(View.VISIBLE);
                         }
-                    } else {
-                        txtNoAccounts.setText(response.optString("message", "Failed to fetch accounts"));
-                        txtNoAccounts.setVisibility(View.VISIBLE);
                     }
                 } catch (Exception e) {
-                    txtNoAccounts.setText("Error parsing accounts");
-                    txtNoAccounts.setVisibility(View.VISIBLE);
+                    if (containerAccountList.getChildCount() == 0) {
+                        txtNoAccounts.setText("Error parsing accounts");
+                        txtNoAccounts.setVisibility(View.VISIBLE);
+                    }
                 }
             });
         }
@@ -675,7 +960,10 @@ public class MainActivity extends AppCompatActivity
                 accountsProgress.setVisibility(View.GONE);
                 webviewProgress.setVisibility(View.GONE);
 
-                Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                // If accounts are already displayed from cache, don't disturb the user with a toast
+                if (containerAccountList.getChildCount() == 0) {
+                    Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                }
             });
         }
     }
@@ -708,7 +996,6 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        // Close drawer first if open
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         } else if (layoutWebview.getVisibility() == View.VISIBLE) {
@@ -716,9 +1003,10 @@ public class MainActivity extends AppCompatActivity
                 mWebView.goBack();
             } else {
                 showScreen("ACCOUNTS");
+                renderCachedAccounts();
+                loadAssignedAccounts();
             }
         } else if (layoutAccounts.getVisibility() == View.VISIBLE) {
-            // Don't go back to login, just exit
             super.onBackPressed();
         } else {
             super.onBackPressed();
