@@ -14,6 +14,13 @@ Route::get('cron', 'CronController@cron')->name('cron');
 Route::get('cron/cookie-check', 'CronController@cookieCheck')->name('cron.cookie.check');
 
 // Extension API Routes (Session-based via normal auth)
+Route::options('api/extension/{any?}', function() {
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+})->where('any', '.*');
+
 Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->group(function () {
     Route::get('version', 'ExtensionController@version')->name('version');
     Route::post('login', 'ExtensionController@mobileLogin')->name('mobile.login');

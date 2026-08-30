@@ -12,6 +12,13 @@ use Illuminate\Http\Request;
 
 class ExtensionController extends Controller
 {
+    public function __construct()
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept");
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    }
+
     /**
      * Helper to compute user validity text identical to web header
      */

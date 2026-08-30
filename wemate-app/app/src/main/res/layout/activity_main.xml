@@ -399,19 +399,134 @@
                 android:indeterminateTint="@color/primary"
                 android:visibility="gone" />
 
-            <WebView
-                android:id="@+id/webview"
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent">
+
+                <WebView
+                    android:id="@+id/webview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <!-- Custom Flow Fullscreen Loader Overlay -->
+                <RelativeLayout
+                    android:id="@+id/layout_webview_loader"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#0B0F19"
+                    android:gravity="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="24dp">
+
+                        <ProgressBar
+                            android:id="@+id/loader_spinner"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:indeterminate="true"
+                            android:indeterminateTint="#6366F1" />
+
+                        <TextView
+                            android:id="@+id/txt_loader_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Loading Google Flow..."
+                            android:textColor="#FFFFFF"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/txt_loader_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Connecting to creative studio session..."
+                            android:textColor="#94A3B8"
+                            android:textSize="13sp" />
+
+                        <ProgressBar
+                            android:id="@+id/loader_progress_bar"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="220dp"
+                            android:layout_height="6dp"
+                            android:layout_marginTop="20dp"
+                            android:max="100"
+                            android:progress="15"
+                            android:progressTint="#6366F1"
+                            android:progressBackgroundTint="#1E293B" />
+
+                        <TextView
+                            android:id="@+id/txt_loader_percent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="15%"
+                            android:textColor="#818CF8"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+                </RelativeLayout>
+
+                <!-- Floating In-Action Notification Banner -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_action_loader"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="#1E293B"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="#6366F1"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="10dp">
+
+                        <ProgressBar
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:indeterminate="true"
+                            android:indeterminateTint="#818CF8" />
+
+                        <TextView
+                            android:id="@+id/txt_action_loader_msg"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Creating new project..."
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </RelativeLayout>
 
         </LinearLayout>
 
-        <!-- Hidden Dedicated API WebView for panel communications -->
+        <!-- Dedicated Background API WebView for panel communications (Must be attached for Chromium renderer) -->
         <WebView
             android:id="@+id/api_webview"
             android:layout_width="1dp"
             android:layout_height="1dp"
-            android:visibility="gone" />
+            android:alpha="0.01" />
 
     </RelativeLayout>
 

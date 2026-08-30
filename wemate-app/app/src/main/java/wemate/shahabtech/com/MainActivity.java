@@ -34,6 +34,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -101,6 +102,13 @@ public class MainActivity extends AppCompatActivity
     private ProgressBar webviewProgress;
     private WebView mWebView;       // For Google Flow
     private WebView mApiWebView;    // Dedicated hidden WebView for Panel API calls
+
+    // Custom Flow Loaders
+    private RelativeLayout layoutWebviewLoader;
+    private TextView txtLoaderTitle, txtLoaderSubtitle, txtLoaderPercent;
+    private ProgressBar loaderProgressBar;
+    private com.google.android.material.card.MaterialCardView cardActionLoader;
+    private TextView txtActionLoaderMsg;
 
     private ValueCallback<Uri[]> mFilePathCallback;
     private String currentUserName = "";
@@ -177,6 +185,15 @@ public class MainActivity extends AppCompatActivity
         webviewProgress = findViewById(R.id.webview_progress);
         mWebView = findViewById(R.id.webview);
         mApiWebView = findViewById(R.id.api_webview);
+
+        // Custom Loader Views
+        layoutWebviewLoader = findViewById(R.id.layout_webview_loader);
+        txtLoaderTitle = findViewById(R.id.txt_loader_title);
+        txtLoaderSubtitle = findViewById(R.id.txt_loader_subtitle);
+        txtLoaderPercent = findViewById(R.id.txt_loader_percent);
+        loaderProgressBar = findViewById(R.id.loader_progress_bar);
+        cardActionLoader = findViewById(R.id.card_action_loader);
+        txtActionLoaderMsg = findViewById(R.id.txt_action_loader_msg);
 
         // Drawer header
         View headerView = navigationView.getHeaderView(0);
@@ -386,6 +403,13 @@ public class MainActivity extends AppCompatActivity
         cm.setAcceptCookie(true);
         cm.setAcceptThirdPartyCookies(mApiWebView, true);
 
+        mApiWebView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                Log.d(TAG, "API WebView ready at: " + url);
+            }
+        });
         mApiWebView.addJavascriptInterface(new ApiBridge(), "AndroidBridge");
         mApiWebView.loadUrl(SERVER_URL + "/login");
     }
@@ -455,6 +479,16 @@ public class MainActivity extends AppCompatActivity
         showScreen("WEBVIEW");
         webviewProgress.setVisibility(View.VISIBLE);
 
+        final String finalTargetUrl = (targetUrl == null || targetUrl.isEmpty()) ? "https://labs.google/fx/tools/flow" : targetUrl;
+
+        // Fallback: If cookie fetch doesn't complete within 3 seconds, load Flow directly so screen is never black
+        mWebView.postDelayed(() -> {
+            if (layoutWebview.getVisibility() == View.VISIBLE && (mWebView.getUrl() == null || mWebView.getUrl().equals("about:blank"))) {
+                Log.w(TAG, "Cookie fetch timeout, loading target URL directly: " + finalTargetUrl);
+                mWebView.loadUrl(finalTargetUrl);
+            }
+        }, 3000);
+
         String endpoint = SERVER_URL + "/api/extension/cookies/" + platformId + (accountId > 0 ? "/" + accountId : "");
 
         String js = "(function() {" +
@@ -464,7 +498,7 @@ public class MainActivity extends AppCompatActivity
                 "  })" +
                 "  .then(function(r) { return r.json(); })" +
                 "  .then(function(data) {" +
-                "    window.AndroidBridge.onCookiesResult(JSON.stringify(data), " + JSONObject.quote(targetUrl) + ");" +
+                "    window.AndroidBridge.onCookiesResult(JSON.stringify(data), " + JSONObject.quote(finalTargetUrl) + ");" +
                 "  })" +
                 "  .catch(function(err) {" +
                 "    window.AndroidBridge.onApiError('Failed to fetch cookies: ' + err.message);" +
@@ -614,6 +648,36 @@ public class MainActivity extends AppCompatActivity
      * 3. Anti-logout protection (blocks Google Sign-out navigation and click events)
      * 4. Media upload and download capabilities
      */
+    public void showActionLoader(String msg) {
+        runOnUiThread(() -> {
+            if (txtActionLoaderMsg != null && cardActionLoader != null) {
+                txtActionLoaderMsg.setText(msg);
+                cardActionLoader.setAlpha(0f);
+                cardActionLoader.setVisibility(View.VISIBLE);
+                cardActionLoader.animate().alpha(1f).setDuration(200).start();
+            }
+        });
+    }
+
+    public void hideActionLoader() {
+        runOnUiThread(() -> {
+            if (cardActionLoader != null && cardActionLoader.getVisibility() == View.VISIBLE) {
+                cardActionLoader.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+                    cardActionLoader.setVisibility(View.GONE);
+                    cardActionLoader.setAlpha(1f);
+                }).start();
+            }
+        });
+    }
+
+    /**
+     * Configures the Google Flow browsing WebView with:
+     * 1. Animated fullscreen and action loaders for smooth user feedback
+     * 2. CSS & JS injection to hide user avatar / account button (same as chrome extension)
+     * 3. CSS & JS injection to hide shared projects without breaking Next.js hydration or New Project
+     * 4. Anti-logout protection (blocks Google Sign-out navigation and click events)
+     * 5. Media upload and download capabilities
+     */
     private void setupFlowWebView() {
         WebSettings webSettings = mWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -627,7 +691,7 @@ public class MainActivity extends AppCompatActivity
         webSettings.setDisplayZoomControls(false);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
-        webSettings.setSupportMultipleWindows(true);
+        webSettings.setSupportMultipleWindows(false);
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -635,6 +699,8 @@ public class MainActivity extends AppCompatActivity
 
         String defaultUA = webSettings.getUserAgentString();
         webSettings.setUserAgentString(defaultUA.replace("Android", "Android 14").replace("Mobile", "Mobile"));
+
+        mWebView.addJavascriptInterface(new ApiBridge(), "AndroidBridge");
 
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
@@ -656,40 +722,57 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                injectExtensionGuards(view);
+                if (layoutWebviewLoader != null && layoutWebview.getVisibility() == View.VISIBLE) {
+                    layoutWebviewLoader.setVisibility(View.VISIBLE);
+                    layoutWebviewLoader.setAlpha(1f);
+                    loaderProgressBar.setProgress(15);
+                    txtLoaderPercent.setText("15%");
+                    txtLoaderSubtitle.setText("Connecting to Google Flow...");
+                }
+                hideActionLoader();
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 webviewProgress.setVisibility(View.GONE);
-                injectExtensionGuards(view);
+                hideActionLoader();
+                // Inject extension guards after page has fully hydrated (500ms delay to prevent React hydration error 418)
+                view.postDelayed(() -> injectExtensionGuards(view), 500);
             }
         });
 
         mWebView.setWebChromeClient(new WebChromeClient() {
             @Override
-            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
-                WebView newWebView = new WebView(view.getContext());
-                newWebView.setWebViewClient(new WebViewClient() {
-                    @Override
-                    public boolean shouldOverrideUrlLoading(WebView wv, WebResourceRequest request) {
-                        view.loadUrl(request.getUrl().toString());
-                        return true;
-                    }
-                });
-                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                transport.setWebView(newWebView);
-                resultMsg.sendToTarget();
-                return true;
-            }
-
-            @Override
             public void onProgressChanged(WebView view, int newProgress) {
                 if (newProgress < 100) {
                     webviewProgress.setVisibility(View.VISIBLE);
+                    if (layoutWebviewLoader != null && layoutWebview.getVisibility() == View.VISIBLE) {
+                        layoutWebviewLoader.setVisibility(View.VISIBLE);
+                        loaderProgressBar.setProgress(newProgress);
+                        txtLoaderPercent.setText(newProgress + "%");
+                        if (newProgress < 35) {
+                            txtLoaderSubtitle.setText("Connecting to Google Flow...");
+                        } else if (newProgress < 75) {
+                            txtLoaderSubtitle.setText("Loading AI creative studio...");
+                        } else {
+                            txtLoaderSubtitle.setText("Preparing workspace...");
+                        }
+                    }
                 } else {
                     webviewProgress.setVisibility(View.GONE);
+                    if (layoutWebviewLoader != null && layoutWebviewLoader.getVisibility() == View.VISIBLE) {
+                        loaderProgressBar.setProgress(100);
+                        txtLoaderPercent.setText("100%");
+                        layoutWebviewLoader.animate()
+                                .alpha(0f)
+                                .setDuration(300)
+                                .withEndAction(() -> {
+                                    layoutWebviewLoader.setVisibility(View.GONE);
+                                    layoutWebviewLoader.setAlpha(1f);
+                                })
+                                .start();
+                    }
                 }
             }
 
@@ -749,60 +832,60 @@ public class MainActivity extends AppCompatActivity
     /**
      * Injects CSS and JavaScript matching the chrome extension into Google Flow:
      * 1. Hides Google account avatar circle & account button
-     * 2. Hides existing projects on the home page by targeting ONLY the Virtuoso scroller
+     * 2. Hides shared project cards on the home page without hiding the scroller or creation panel
      * 3. Guarantees "+ New Project" button and its creation panel/drawer work 100%
      * 4. Disables and blocks any Sign-out / Logout clicks
+     * 5. Triggers custom in-app action loader when clicking New Project or Generate
      */
     private void injectExtensionGuards(WebView view) {
         String js = "(function() {" +
-                "  /* 1. REDIRECT WINDOW.OPEN TO KEEP NEW PROJECTS IN SAME WEBVIEW */" +
+                "  /* 1. SAFE WINDOW.OPEN PROXY — KEEPS NAVIGATION INSIDE THE SAME WEBVIEW */" +
                 "  try {" +
-                "    var _origOpen = window.open;" +
-                "    window.open = function(url, target, features) {" +
+                "    var _proxyWin = {" +
+                "      location: {" +
+                "        set href(val) { if (val) window.location.href = val; }," +
+                "        get href() { return window.location.href; }," +
+                "        replace: function(val) { if (val) window.location.replace(val); }," +
+                "        assign: function(val) { if (val) window.location.assign(val); }" +
+                "      }," +
+                "      focus: function() {}," +
+                "      close: function() {}," +
+                "      document: document" +
+                "    };" +
+                "    window.open = function(url) {" +
                 "      if (url && typeof url === 'string') {" +
                 "        window.location.href = url;" +
-                "        return window;" +
                 "      }" +
-                "      return _origOpen ? _origOpen.apply(this, arguments) : null;" +
+                "      return _proxyWin;" +
                 "    };" +
                 "  } catch(_) {}" +
                 "" +
-                "  /* 2. INJECT TARGETED CSS (HIDES VIRTUOSO & AVATAR ONLY, NEVER TOUCHES NEW PROJECT) */" +
+                "  /* 2. TARGETED CSS (HIDES GOOGLE AVATAR & MARKED PROJECT CARDS ONLY) */" +
                 "  if (!document.getElementById('__wemate_guard_style__')) {" +
                 "    var style = document.createElement('style');" +
                 "    style.id = '__wemate_guard_style__';" +
                 "    style.textContent = `" +
-                "      /* HIDE THE VIRTUALIZED SHARED PROJECTS SCROLLER */" +
-                "      [data-virtuoso-scroller='true']," +
-                "      [data-testid*='virtuoso-scroller']," +
-                "      [data-testid*='virtuoso-item-list'] {" +
-                "        display: none !important;" +
-                "        visibility: hidden !important;" +
-                "        height: 0 !important;" +
-                "        max-height: 0 !important;" +
-                "        overflow: hidden !important;" +
-                "      }" +
-                "      /* HIDE GOOGLE ACCOUNT AVATAR & MENUS */" +
-                "      img[src*='googleusercontent.com']," +
-                "      header button:has(img[src*='googleusercontent.com'])," +
-                "      header a:has(img[src*='googleusercontent.com'])," +
+                "      /* HIDE GOOGLE ACCOUNT AVATAR IMAGE INSIDE ULTRA BUTTON */" +
+                "      button img[src*='googleusercontent.com']," +
+                "      header button img[src*='googleusercontent.com']," +
                 "      [aria-label*='Google Account' i]," +
                 "      [aria-label*='Account' i]," +
-                "      [aria-label*='Profile' i]," +
                 "      a[href*='accounts.google']," +
-                "      a[href*='signout']," +
-                "      button[aria-label*='Google Account' i]," +
-                "      button[aria-label*='Account' i]," +
-                "      button[aria-label*='Profile' i]," +
-                "      [data-testid*='user-menu']," +
-                "      [data-testid*='avatar']," +
-                "      [data-testid*='profile']," +
-                "      .gb_A, .gb_B, .gb_d, img.gb_qa, img.gb_sa {" +
+                "      a[href*='signout'] {" +
                 "        display: none !important;" +
                 "        visibility: hidden !important;" +
                 "        pointer-events: none !important;" +
+                "        width: 0 !important;" +
+                "        height: 0 !important;" +
                 "      }" +
-                "      /* GUARANTEE NEW PROJECT BUTTON & CREATION DIALOGS REMAIN 100% VISIBLE */" +
+                "      /* HIDE MARKED SHARED PROJECT CARDS (NEVER THE SCROLLER OR NEW PROJECT) */" +
+                "      [data-bf-hide] {" +
+                "        display: none !important;" +
+                "        visibility: hidden !important;" +
+                "        height: 0 !important;" +
+                "        overflow: hidden !important;" +
+                "      }" +
+                "      /* ALWAYS PRESERVE NEW PROJECT BUTTON & CREATION DIALOGS */" +
                 "      button," +
                 "      [role='button']," +
                 "      [role='dialog']," +
@@ -810,7 +893,6 @@ public class MainActivity extends AppCompatActivity
                 "      [role='tab']," +
                 "      input," +
                 "      textarea {" +
-                "        visibility: visible !important;" +
                 "        opacity: 1 !important;" +
                 "      }" +
                 "    `;" +
@@ -820,9 +902,10 @@ public class MainActivity extends AppCompatActivity
                 "  if (window.__wemate_guard_injected__) return;" +
                 "  window.__wemate_guard_injected__ = true;" +
                 "" +
-                "  /* 3. LIGHTWEIGHT CLEAN CONTROLLER (NO INFINITE LOOPS) */" +
+                "  /* 3. LIGHTWEIGHT PROJECT CARD CONTROLLER */" +
                 "  function applyGuards() {" +
-                "    if (location.pathname.indexOf('/project/') === -1) {" +
+                "    var isHome = location.pathname.indexOf('/project/') === -1;" +
+                "    if (isHome) {" +
                 "      /* Hide Recent projects headings on home page */" +
                 "      document.querySelectorAll('h1, h2, h3, h4, h5').forEach(function(h) {" +
                 "        var t = (h.textContent || '').trim().toLowerCase();" +
@@ -830,64 +913,90 @@ public class MainActivity extends AppCompatActivity
                 "          h.style.setProperty('display', 'none', 'important');" +
                 "        }" +
                 "      });" +
-                "    }" +
-                "" +
-                "    /* Hide Google account avatar button in header */" +
-                "    var header = document.querySelector('header') || document.querySelector('nav');" +
-                "    if (header) {" +
-                "      var btns = header.querySelectorAll('button, [role=\"button\"]');" +
-                "      btns.forEach(function(b) {" +
-                "        var aria = (b.getAttribute('aria-label') || '').toLowerCase();" +
-                "        if (aria.includes('account') || aria.includes('profile') || aria.includes('google')) {" +
-                "          b.style.setProperty('display', 'none', 'important');" +
-                "          b.style.setProperty('pointer-events', 'none', 'important');" +
-                "          return;" +
-                "        }" +
-                "        var txt = b.textContent.trim();" +
-                "        if (txt.length >= 1 && txt.length <= 2 && !b.querySelector('svg')) {" +
-                "          var rect = b.getBoundingClientRect();" +
-                "          if (rect.top < 100 && rect.width > 20 && rect.width < 60) {" +
-                "            b.style.setProperty('display', 'none', 'important');" +
-                "            b.style.setProperty('pointer-events', 'none', 'important');" +
-                "          }" +
+                "      /* Hide individual project cards (never New Project button) */" +
+                "      document.querySelectorAll('a[href*=\"/project/\"]').forEach(function(a) {" +
+                "        if (a.dataset.bfSeen) return;" +
+                "        a.dataset.bfSeen = '1';" +
+                "        var txt = (a.textContent || '').toLowerCase();" +
+                "        if (txt.includes('new') || txt.includes('create') || txt.includes('+')) return;" +
+                "        var card = a.closest('article') || a.closest('li') || a.closest('[role=\"gridcell\"]');" +
+                "        if (card) {" +
+                "          card.setAttribute('data-bf-hide', '1');" +
+                "        } else {" +
+                "          a.setAttribute('data-bf-hide', '1');" +
                 "        }" +
                 "      });" +
                 "    }" +
+                "" +
+                "    /* Disable clicks on account menu button in header */" +
+                "    document.querySelectorAll('button').forEach(function(b) {" +
+                "      if (b.querySelector('img[src*=\"googleusercontent.com\"]') ||" +
+                "          (b.getAttribute('aria-label') || '').toLowerCase().includes('google account')) {" +
+                "        b.style.pointerEvents = 'none';" +
+                "      }" +
+                "    });" +
                 "  }" +
                 "" +
                 "  applyGuards();" +
-                "  document.addEventListener('DOMContentLoaded', applyGuards);" +
-                "  window.addEventListener('popstate', applyGuards);" +
                 "" +
+                "  /* 4. ACTION LOADER & GOOGLE LOGOUT BLOCKER */" +
+                "  document.addEventListener('click', function(e) {" +
+                "    var el = e.target;" +
+                "    for (var i = 0; i < 6 && el; i++) {" +
+                "      var txt = (el.textContent || '').trim().toLowerCase();" +
+                "      var aria = (el.getAttribute('aria-label') || '').toLowerCase();" +
+                "      var href = (el.getAttribute('href') || '').toLowerCase();" +
+                "" +
+                "      /* Block Google Sign-Out clicks */" +
+                "      if (txt.includes('sign out') || txt.includes('signout') ||" +
+                "          txt.includes('log out') || txt.includes('logout') ||" +
+                "          aria.includes('sign out') || href.includes('signout') || href.includes('logout')) {" +
+                "        e.preventDefault();" +
+                "        e.stopPropagation();" +
+                "        e.stopImmediatePropagation();" +
+                "        return false;" +
+                "      }" +
+                "" +
+                "      /* Trigger in-app action loader for New Project click */" +
+                "      if (txt.includes('new project') || txt.includes('create new') || aria.includes('new project')) {" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
+                "          window.AndroidBridge.onActionStarted('Creating new project...');" +
+                "        }" +
+                "        setTimeout(function() {" +
+                "          if (window.AndroidBridge && window.AndroidBridge.onActionFinished) {" +
+                "            window.AndroidBridge.onActionFinished();" +
+                "          }" +
+                "        }, 4500);" +
+                "        break;" +
+                "      }" +
+                "" +
+                "      /* Trigger in-app action loader for Generate video click */" +
+                "      if (txt === 'generate' || aria.includes('generate')) {" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
+                "          window.AndroidBridge.onActionStarted('Generating video...');" +
+                "        }" +
+                "        setTimeout(function() {" +
+                "          if (window.AndroidBridge && window.AndroidBridge.onActionFinished) {" +
+                "            window.AndroidBridge.onActionFinished();" +
+                "          }" +
+                "        }, 6000);" +
+                "        break;" +
+                "      }" +
+                "" +
+                "      el = el.parentElement;" +
+                "    }" +
+                "  }, true);" +
+                "" +
+                "  /* 5. MUTATION OBSERVER WITH 400ms DEBOUNCE */" +
                 "  var _t = null;" +
                 "  var observer = new MutationObserver(function() {" +
                 "    if (_t) return;" +
                 "    _t = setTimeout(function() {" +
                 "      _t = null;" +
                 "      applyGuards();" +
-                "    }, 350);" +
+                "    }, 400);" +
                 "  });" +
                 "  observer.observe(document.documentElement, { childList: true, subtree: true });" +
-                "" +
-                "  /* 4. BLOCK GOOGLE SIGN-OUT CLICKS ONLY */" +
-                "  document.addEventListener('click', function(e) {" +
-                "    var el = e.target;" +
-                "    for (var i = 0; i < 8 && el; i++) {" +
-                "      var txt = (el.textContent || '').trim().toLowerCase();" +
-                "      var aria = (el.getAttribute('aria-label') || '').toLowerCase();" +
-                "      var href = (el.getAttribute('href') || '').toLowerCase();" +
-                "      if (txt.includes('sign out') || txt.includes('signout') ||" +
-                "          txt.includes('log out') || txt.includes('logout') ||" +
-                "          aria.includes('sign out') || aria.includes('signout') ||" +
-                "          href.includes('signout') || href.includes('logout')) {" +
-                "        e.preventDefault();" +
-                "        e.stopPropagation();" +
-                "        e.stopImmediatePropagation();" +
-                "        return false;" +
-                "      }" +
-                "      el = el.parentElement;" +
-                "    }" +
-                "  }, true);" +
                 "})();";
 
         view.post(() -> view.evaluateJavascript(js, null));
@@ -1007,7 +1116,22 @@ public class MainActivity extends AppCompatActivity
                 if (containerAccountList.getChildCount() == 0) {
                     Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
+
+                // If currently showing webview and it's empty, fallback load Google Flow directly
+                if (layoutWebview.getVisibility() == View.VISIBLE && (mWebView.getUrl() == null || mWebView.getUrl().equals("about:blank"))) {
+                    mWebView.loadUrl("https://labs.google/fx/tools/flow");
+                }
             });
+        }
+
+        @JavascriptInterface
+        public void onActionStarted(String actionName) {
+            showActionLoader(actionName);
+        }
+
+        @JavascriptInterface
+        public void onActionFinished() {
+            hideActionLoader();
         }
     }
 
