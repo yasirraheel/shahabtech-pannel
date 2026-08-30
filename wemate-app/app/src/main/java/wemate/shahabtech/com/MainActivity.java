@@ -496,6 +496,16 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void openAccountInWebView(String displayName, int platformId, int accountId, String targetUrl) {
+        int previousAccountId = prefs.getInt("active_account_id", 0);
+        if (accountId > 0 && previousAccountId > 0 && previousAccountId != accountId) {
+            // Switching to a different assigned account, clear session cookies cleanly
+            CookieManager.getInstance().removeAllCookies(null);
+            CookieManager.getInstance().flush();
+        }
+        if (accountId > 0) {
+            prefs.edit().putInt("active_account_id", accountId).apply();
+        }
+
         if (platformId > 0) {
             prefs.edit().putInt("flow_platform_id", platformId).putInt("flow_account_id", accountId).apply();
         }
@@ -506,7 +516,8 @@ public class MainActivity extends AppCompatActivity
         final String finalTargetUrl = (targetUrl == null || targetUrl.isEmpty()) ? "https://labs.google/fx/tools/flow" : targetUrl;
 
         // Immediately inject cached cookies so session is 100% active before page load
-        String cachedCookies = prefs.getString("cached_flow_cookies", "");
+        String cookieKey = "cached_cookies_" + platformId + "_" + accountId;
+        String cachedCookies = prefs.getString(cookieKey, prefs.getString("cached_flow_cookies", ""));
         if (!cachedCookies.isEmpty()) {
             try {
                 CookieInjector.injectCookies(this, mWebView, new JSONArray(cachedCookies), finalTargetUrl);
@@ -559,7 +570,7 @@ public class MainActivity extends AppCompatActivity
                     for (int i = 0; i < platforms.length(); i++) {
                         JSONObject platform = platforms.getJSONObject(i);
                         String platformName = platform.optString("name", "Google Flow");
-                        String displayName = platform.optString("display_name", platformName);
+                        String displayName = platform.optString("display_name", platform.optString("title", platformName));
                         int platformId = platform.optInt("id", 3);
                         int accountId = platform.optInt("account_id", 0);
                         String targetUrl = platform.optString("url", "https://labs.google/fx/tools/flow");
@@ -1604,7 +1615,11 @@ public class MainActivity extends AppCompatActivity
                     if (response.optBoolean("success", false)) {
                         JSONArray cookies = response.optJSONArray("cookies");
                         if (cookies != null && cookies.length() > 0) {
-                            prefs.edit().putString("cached_flow_cookies", cookies.toString()).apply();
+                            int activePlatformId = prefs.getInt("flow_platform_id", 3);
+                            int activeAccountId = prefs.getInt("flow_account_id", 0);
+                            String cookieKey = "cached_cookies_" + activePlatformId + "_" + activeAccountId;
+                            prefs.edit().putString(cookieKey, cookies.toString())
+                                        .putString("cached_flow_cookies", cookies.toString()).apply();
                             CookieInjector.injectCookies(MainActivity.this, mWebView, cookies, targetUrl);
                         }
                     } else {

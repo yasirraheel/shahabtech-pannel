@@ -134,22 +134,48 @@ class ExtensionController extends Controller
             ]);
         }
 
-        // Get all active accounts for user's plan OR specific account
-        $query = AccountListing::where('status', Status::LISTING_ACTIVE)
-            ->where('cookie_status', '!=', 0)
-            ->whereHas('socialMedia', function($q) {
-                $q->active();
-            })
-            ->with('socialMedia');
+        $isAdmin = auth()->guard('admin')->check() || session()->get('is_admin_testing') === true || (bool) $user->is_tester;
 
-        if ($user->plan_id) {
-            $query->where('plan_id', $user->plan_id);
-        } else {
-            $query->whereIn('id', $user->account_ids ?? []);
+        // All accounts the user can access via their plan OR specific assigned account_ids (same as web panel UserController)
+        $assignedAccounts = collect();
+
+        if ($isAdmin) {
+            $adminAccounts = AccountListing::with('socialMedia')
+                ->where('status', Status::LISTING_ACTIVE)
+                ->whereHas('socialMedia', function($q) {
+                    $q->active();
+                })
+                ->get();
+            $assignedAccounts = $assignedAccounts->merge($adminAccounts);
         }
 
+        if ($user->plan_id) {
+            $planAccounts = AccountListing::with('socialMedia')
+                ->where('plan_id', $user->plan_id)
+                ->where('status', Status::LISTING_ACTIVE)
+                ->whereHas('socialMedia', function($q) {
+                    $q->active();
+                })
+                ->get();
+            $assignedAccounts = $assignedAccounts->merge($planAccounts);
+        }
+
+        if (!empty($user->account_ids)) {
+            $accountIds = (array) $user->account_ids;
+            $specificAccounts = AccountListing::with('socialMedia')
+                ->whereIn('id', $accountIds)
+                ->where('status', Status::LISTING_ACTIVE)
+                ->whereHas('socialMedia', function($q) {
+                    $q->active();
+                })
+                ->get();
+            $assignedAccounts = $assignedAccounts->merge($specificAccounts);
+        }
+
+        $assignedAccounts = $assignedAccounts->unique('id')->values();
+
         $platformCounters = [];
-        $accountsList = $query->get();
+        $accountsList = $assignedAccounts;
         $countsByPlatform = $accountsList->groupBy('social_media_id')->map->count();
 
         $accounts = $accountsList
@@ -210,11 +236,15 @@ class ExtensionController extends Controller
         } else {
             $query->where('social_media_id', $platformId);
             if (!$isAdmin) {
-                if ($user->plan_id) {
-                    $query->where('plan_id', $user->plan_id);
-                } else {
-                    $query->whereIn('id', $user->account_ids ?? []);
-                }
+                $allowedIds = (array) ($user->account_ids ?? []);
+                $query->where(function($q) use ($user, $allowedIds) {
+                    if ($user->plan_id) {
+                        $q->where('plan_id', $user->plan_id);
+                    }
+                    if (!empty($allowedIds)) {
+                        $q->orWhereIn('id', $allowedIds);
+                    }
+                });
             }
         }
 
