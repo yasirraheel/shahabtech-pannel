@@ -626,6 +626,8 @@ public class MainActivity extends AppCompatActivity
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+        webSettings.setSupportMultipleWindows(true);
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -652,26 +654,42 @@ public class MainActivity extends AppCompatActivity
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                injectExtensionGuards(view);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 webviewProgress.setVisibility(View.GONE);
-
-                // Inject extension guards (Avatar hiding, Project hiding, Anti-logout)
                 injectExtensionGuards(view);
             }
         });
 
         mWebView.setWebChromeClient(new WebChromeClient() {
             @Override
+            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
+                WebView newWebView = new WebView(view.getContext());
+                newWebView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView wv, WebResourceRequest request) {
+                        view.loadUrl(request.getUrl().toString());
+                        return true;
+                    }
+                });
+                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                transport.setWebView(newWebView);
+                resultMsg.sendToTarget();
+                return true;
+            }
+
+            @Override
             public void onProgressChanged(WebView view, int newProgress) {
                 if (newProgress < 100) {
                     webviewProgress.setVisibility(View.VISIBLE);
                 } else {
                     webviewProgress.setVisibility(View.GONE);
-                }
-                // Also inject early during loading
-                if (newProgress > 30) {
-                    injectExtensionGuards(view);
                 }
             }
 
@@ -731,102 +749,127 @@ public class MainActivity extends AppCompatActivity
     /**
      * Injects CSS and JavaScript matching the chrome extension into Google Flow:
      * 1. Hides Google account avatar circle & account button
-     * 2. Hides existing projects on the home page so shared accounts stay private
-     * 3. Disables and blocks any Sign-out / Logout clicks
+     * 2. Hides existing projects on the home page by targeting ONLY the Virtuoso scroller
+     * 3. Guarantees "+ New Project" button and its creation panel/drawer work 100%
+     * 4. Disables and blocks any Sign-out / Logout clicks
      */
     private void injectExtensionGuards(WebView view) {
         String js = "(function() {" +
+                "  /* 1. REDIRECT WINDOW.OPEN TO KEEP NEW PROJECTS IN SAME WEBVIEW */" +
+                "  try {" +
+                "    var _origOpen = window.open;" +
+                "    window.open = function(url, target, features) {" +
+                "      if (url && typeof url === 'string') {" +
+                "        window.location.href = url;" +
+                "        return window;" +
+                "      }" +
+                "      return _origOpen ? _origOpen.apply(this, arguments) : null;" +
+                "    };" +
+                "  } catch(_) {}" +
+                "" +
+                "  /* 2. INJECT TARGETED CSS (HIDES VIRTUOSO & AVATAR ONLY, NEVER TOUCHES NEW PROJECT) */" +
+                "  if (!document.getElementById('__wemate_guard_style__')) {" +
+                "    var style = document.createElement('style');" +
+                "    style.id = '__wemate_guard_style__';" +
+                "    style.textContent = `" +
+                "      /* HIDE THE VIRTUALIZED SHARED PROJECTS SCROLLER */" +
+                "      [data-virtuoso-scroller='true']," +
+                "      [data-testid*='virtuoso-scroller']," +
+                "      [data-testid*='virtuoso-item-list'] {" +
+                "        display: none !important;" +
+                "        visibility: hidden !important;" +
+                "        height: 0 !important;" +
+                "        max-height: 0 !important;" +
+                "        overflow: hidden !important;" +
+                "      }" +
+                "      /* HIDE GOOGLE ACCOUNT AVATAR & MENUS */" +
+                "      img[src*='googleusercontent.com']," +
+                "      header button:has(img[src*='googleusercontent.com'])," +
+                "      header a:has(img[src*='googleusercontent.com'])," +
+                "      [aria-label*='Google Account' i]," +
+                "      [aria-label*='Account' i]," +
+                "      [aria-label*='Profile' i]," +
+                "      a[href*='accounts.google']," +
+                "      a[href*='signout']," +
+                "      button[aria-label*='Google Account' i]," +
+                "      button[aria-label*='Account' i]," +
+                "      button[aria-label*='Profile' i]," +
+                "      [data-testid*='user-menu']," +
+                "      [data-testid*='avatar']," +
+                "      [data-testid*='profile']," +
+                "      .gb_A, .gb_B, .gb_d, img.gb_qa, img.gb_sa {" +
+                "        display: none !important;" +
+                "        visibility: hidden !important;" +
+                "        pointer-events: none !important;" +
+                "      }" +
+                "      /* GUARANTEE NEW PROJECT BUTTON & CREATION DIALOGS REMAIN 100% VISIBLE */" +
+                "      button," +
+                "      [role='button']," +
+                "      [role='dialog']," +
+                "      [role='tabpanel']," +
+                "      [role='tab']," +
+                "      input," +
+                "      textarea {" +
+                "        visibility: visible !important;" +
+                "        opacity: 1 !important;" +
+                "      }" +
+                "    `;" +
+                "    (document.head || document.documentElement).appendChild(style);" +
+                "  }" +
+                "" +
                 "  if (window.__wemate_guard_injected__) return;" +
                 "  window.__wemate_guard_injected__ = true;" +
                 "" +
-                "  /* 1. INJECT HIDING CSS */" +
-                "  var style = document.createElement('style');" +
-                "  style.id = '__wemate_guard_style__';" +
-                "  style.textContent = `" +
-                "    /* Hide Google Account Avatar & Profile Menu */" +
-                "    img[src*='googleusercontent.com']," +
-                "    [aria-label*='Google Account' i]," +
-                "    [aria-label*='Account' i]," +
-                "    [aria-label*='Profile' i]," +
-                "    a[href*='accounts.google']," +
-                "    a[href*='signout']," +
-                "    button[aria-label*='Google Account' i]," +
-                "    button[aria-label*='Account' i]," +
-                "    button[aria-label*='Profile' i]," +
-                "    [data-testid*='user-menu']," +
-                "    [data-testid*='avatar']," +
-                "    [data-testid*='profile']," +
-                "    .gb_A, .gb_B, .gb_d, img.gb_qa, img.gb_sa {" +
-                "      display: none !important;" +
-                "      visibility: hidden !important;" +
-                "      pointer-events: none !important;" +
-                "    }" +
-                "    /* Mark hidden project cards */" +
-                "    [data-wemate-hide] {" +
-                "      display: none !important;" +
-                "      visibility: hidden !important;" +
-                "    }" +
-                "  `;" +
-                "  (document.head || document.documentElement).appendChild(style);" +
-                "" +
-                "  /* 2. HIDE HOME PAGE PROJECTS & GOOGLE AVATAR VIA DOM WATCHER */" +
-                "  function applyHidingRules() {" +
-                "    var isHome = !location.pathname.includes('/project/');" +
-                "" +
-                "    /* Hide avatar buttons in top bar */" +
-                "    var avatars = document.querySelectorAll('header img, nav img, button:has(img), [role=\"button\"]:has(img)');" +
-                "    avatars.forEach(function(el) {" +
-                "      var src = (el.src || (el.querySelector('img') && el.querySelector('img').src) || '');" +
-                "      if (src.indexOf('googleusercontent') !== -1) {" +
-                "        var parent = el.closest('button, a, [role=\"button\"]') || el;" +
-                "        parent.style.setProperty('display', 'none', 'important');" +
-                "      }" +
-                "    });" +
-                "" +
-                "    /* Hide single-letter colored circular avatars in header (e.g. pink circle in screenshot) */" +
-                "    var allBtns = document.querySelectorAll('header button, header [role=\"button\"], nav button');" +
-                "    allBtns.forEach(function(b) {" +
-                "      var aria = (b.getAttribute('aria-label') || '').toLowerCase();" +
-                "      if (aria.includes('account') || aria.includes('profile') || aria.includes('google')) {" +
-                "        b.style.setProperty('display', 'none', 'important');" +
-                "        b.style.setProperty('pointer-events', 'none', 'important');" +
-                "      }" +
-                "      /* Check for round avatar sibling next to ULTRA badge */" +
-                "      var r = b.getBoundingClientRect();" +
-                "      if (r.width > 24 && r.width < 50 && Math.abs(r.width - r.height) < 6) {" +
-                "        var style = window.getComputedStyle(b);" +
-                "        if (style.borderRadius.includes('50%') || parseInt(style.borderRadius) > 15) {" +
-                "          b.style.setProperty('display', 'none', 'important');" +
+                "  /* 3. LIGHTWEIGHT CLEAN CONTROLLER (NO INFINITE LOOPS) */" +
+                "  function applyGuards() {" +
+                "    if (location.pathname.indexOf('/project/') === -1) {" +
+                "      /* Hide Recent projects headings on home page */" +
+                "      document.querySelectorAll('h1, h2, h3, h4, h5').forEach(function(h) {" +
+                "        var t = (h.textContent || '').trim().toLowerCase();" +
+                "        if (t === 'recent projects' || t === 'your projects' || t === 'recent' || t === 'projects') {" +
+                "          h.style.setProperty('display', 'none', 'important');" +
                 "        }" +
-                "      }" +
-                "    });" +
+                "      });" +
+                "    }" +
                 "" +
-                "    /* Hide projects if on Home page */" +
-                "    if (isHome) {" +
-                "      document.querySelectorAll('a[href*=\"/project/\"]').forEach(function(a) {" +
-                "        var txt = (a.textContent || '').toLowerCase();" +
-                "        if (txt.includes('new') || txt.includes('create') || txt.includes('+')) return;" +
-                "        var card = a.closest('article') || a.closest('li') || a.closest('[role=\"gridcell\"]');" +
-                "        if (!card) {" +
-                "          var cur = a;" +
-                "          for (var i = 0; i < 6 && cur && cur.parentElement && cur.parentElement !== document.body; i++) {" +
-                "            cur = cur.parentElement;" +
-                "            if (cur.parentElement && cur.parentElement.children.length > 3) { card = cur; break; }" +
+                "    /* Hide Google account avatar button in header */" +
+                "    var header = document.querySelector('header') || document.querySelector('nav');" +
+                "    if (header) {" +
+                "      var btns = header.querySelectorAll('button, [role=\"button\"]');" +
+                "      btns.forEach(function(b) {" +
+                "        var aria = (b.getAttribute('aria-label') || '').toLowerCase();" +
+                "        if (aria.includes('account') || aria.includes('profile') || aria.includes('google')) {" +
+                "          b.style.setProperty('display', 'none', 'important');" +
+                "          b.style.setProperty('pointer-events', 'none', 'important');" +
+                "          return;" +
+                "        }" +
+                "        var txt = b.textContent.trim();" +
+                "        if (txt.length >= 1 && txt.length <= 2 && !b.querySelector('svg')) {" +
+                "          var rect = b.getBoundingClientRect();" +
+                "          if (rect.top < 100 && rect.width > 20 && rect.width < 60) {" +
+                "            b.style.setProperty('display', 'none', 'important');" +
+                "            b.style.setProperty('pointer-events', 'none', 'important');" +
                 "          }" +
                 "        }" +
-                "        if (card) {" +
-                "          card.style.setProperty('display', 'none', 'important');" +
-                "          card.style.setProperty('visibility', 'hidden', 'important');" +
-                "        }" +
-                "        a.style.setProperty('display', 'none', 'important');" +
                 "      });" +
                 "    }" +
                 "  }" +
                 "" +
-                "  applyHidingRules();" +
-                "  setInterval(applyHidingRules, 600);" +
+                "  applyGuards();" +
+                "  document.addEventListener('DOMContentLoaded', applyGuards);" +
+                "  window.addEventListener('popstate', applyGuards);" +
                 "" +
-                "  /* 3. BLOCK SIGN OUT / LOGOUT CLICKS */" +
+                "  var _t = null;" +
+                "  var observer = new MutationObserver(function() {" +
+                "    if (_t) return;" +
+                "    _t = setTimeout(function() {" +
+                "      _t = null;" +
+                "      applyGuards();" +
+                "    }, 350);" +
+                "  });" +
+                "  observer.observe(document.documentElement, { childList: true, subtree: true });" +
+                "" +
+                "  /* 4. BLOCK GOOGLE SIGN-OUT CLICKS ONLY */" +
                 "  document.addEventListener('click', function(e) {" +
                 "    var el = e.target;" +
                 "    for (var i = 0; i < 8 && el; i++) {" +
