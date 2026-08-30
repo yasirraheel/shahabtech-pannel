@@ -100,11 +100,13 @@ public class MainActivity extends AppCompatActivity
     private LinearLayout containerValidity;
     private ProgressBar accountsProgress;
     private LinearLayout containerAccountList;
+    private LinearLayout cardNoAccounts;
 
     // Saved Projects Elements
     private LinearLayout containerProjectsList;
     private TextView txtProjectsCount;
     private TextView txtNoProjects;
+    private LinearLayout cardNoProjects;
 
     // WebView Elements
     private TextView txtActiveAccountName;
@@ -188,9 +190,12 @@ public class MainActivity extends AppCompatActivity
         txtNoAccounts = findViewById(R.id.txt_no_accounts);
         accountsProgress = findViewById(R.id.accounts_progress);
         containerAccountList = findViewById(R.id.container_account_list);
+        cardNoAccounts = findViewById(R.id.card_no_accounts);
+
         containerProjectsList = findViewById(R.id.container_projects_list);
         txtProjectsCount = findViewById(R.id.txt_projects_count);
         txtNoProjects = findViewById(R.id.txt_no_projects);
+        cardNoProjects = findViewById(R.id.card_no_projects);
 
         txtActiveAccountName = findViewById(R.id.txt_active_account_name);
         btnSwitchAccount = findViewById(R.id.btn_switch_account);
@@ -239,8 +244,7 @@ public class MainActivity extends AppCompatActivity
         // WebView navigation buttons
         btnSwitchAccount.setOnClickListener(v -> {
             showScreen("ACCOUNTS");
-            renderCachedAccounts();
-            loadAssignedAccounts();
+            refreshDashboardData();
         });
 
         btnRefreshWebview.setOnClickListener(v -> {
@@ -261,6 +265,11 @@ public class MainActivity extends AppCompatActivity
         drawerToggle.syncState();
         drawerToggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.on_primary, getTheme()));
 
+        toolbar.setOnClickListener(v -> {
+            Toast.makeText(this, "Refreshing dashboard...", Toast.LENGTH_SHORT).show();
+            refreshDashboardData();
+        });
+
         navigationView.setNavigationItemSelectedListener(this);
     }
 
@@ -269,8 +278,7 @@ public class MainActivity extends AppCompatActivity
             int id = item.getItemId();
             if (id == R.id.bottom_home || id == R.id.bottom_accounts) {
                 showScreen("ACCOUNTS");
-                renderCachedAccounts();
-                loadAssignedAccounts();
+                refreshDashboardData();
                 return true;
             } else if (id == R.id.bottom_settings) {
                 Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
@@ -286,8 +294,7 @@ public class MainActivity extends AppCompatActivity
 
         if (id == R.id.nav_home || id == R.id.nav_accounts) {
             showScreen("ACCOUNTS");
-            renderCachedAccounts();
-            loadAssignedAccounts();
+            refreshDashboardData();
         } else if (id == R.id.nav_settings) {
             Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
         } else if (id == R.id.nav_logout) {
@@ -354,7 +361,7 @@ public class MainActivity extends AppCompatActivity
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
             // Primary Indigo status bar (#6366F1) matching MaterialToolbar
             updateStatusBarColor(0xFF6366F1, true);
-            renderSavedProjects();
+            refreshDashboardData();
         } else if ("WEBVIEW".equals(screen)) {
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
             // Dark Slate status bar (#1E293B) matching WebView Header bar
@@ -547,7 +554,8 @@ public class MainActivity extends AppCompatActivity
                 containerAccountList.removeAllViews();
 
                 if (platforms != null && platforms.length() > 0) {
-                    txtNoAccounts.setVisibility(View.GONE);
+                    if (cardNoAccounts != null) cardNoAccounts.setVisibility(View.GONE);
+                    containerAccountList.setVisibility(View.VISIBLE);
                     for (int i = 0; i < platforms.length(); i++) {
                         JSONObject platform = platforms.getJSONObject(i);
                         String platformName = platform.optString("name", "Google Flow");
@@ -559,8 +567,13 @@ public class MainActivity extends AppCompatActivity
                         addAccountCard(displayName, platformName, platformId, accountId, targetUrl);
                     }
                 } else {
-                    txtNoAccounts.setText(response.optString("message", "No assigned accounts found.\nContact your administrator."));
-                    txtNoAccounts.setVisibility(View.VISIBLE);
+                    containerAccountList.removeAllViews();
+                    containerAccountList.setVisibility(View.GONE);
+                    if (cardNoAccounts != null) {
+                        String msg = response.optString("message", "No active accounts assigned yet.\nPlease contact your administrator to get access.");
+                        if (txtNoAccounts != null) txtNoAccounts.setText(msg);
+                        cardNoAccounts.setVisibility(View.VISIBLE);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -724,12 +737,14 @@ public class MainActivity extends AppCompatActivity
         try {
             JSONArray arr = new JSONArray(json);
             if (arr.length() == 0) {
-                if (txtNoProjects != null) txtNoProjects.setVisibility(View.VISIBLE);
+                if (cardNoProjects != null) cardNoProjects.setVisibility(View.VISIBLE);
+                if (containerProjectsList != null) containerProjectsList.setVisibility(View.GONE);
                 if (txtProjectsCount != null) txtProjectsCount.setText("0 Projects");
                 return;
             }
 
-            if (txtNoProjects != null) txtNoProjects.setVisibility(View.GONE);
+            if (cardNoProjects != null) cardNoProjects.setVisibility(View.GONE);
+            if (containerProjectsList != null) containerProjectsList.setVisibility(View.VISIBLE);
             if (txtProjectsCount != null) txtProjectsCount.setText(arr.length() + (arr.length() == 1 ? " Project" : " Projects"));
 
             int dp8 = dpToPx(8);
@@ -858,6 +873,14 @@ public class MainActivity extends AppCompatActivity
 
         mWebView.loadUrl(projectUrl);
         fetchCookiesInBackground(savedPlatformId, savedAccountId, projectUrl);
+    }
+
+    public void refreshDashboardData() {
+        if (accountsProgress != null) {
+            accountsProgress.setVisibility(View.VISIBLE);
+        }
+        renderSavedProjects();
+        loadAssignedAccounts();
     }
 
     /**
@@ -1674,6 +1697,14 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (layoutAccounts != null && layoutAccounts.getVisibility() == View.VISIBLE) {
+            refreshDashboardData();
+        }
+    }
+
+    @Override
     public void onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
@@ -1682,8 +1713,7 @@ public class MainActivity extends AppCompatActivity
                 mWebView.goBack();
             } else {
                 showScreen("ACCOUNTS");
-                renderCachedAccounts();
-                loadAssignedAccounts();
+                refreshDashboardData();
             }
         } else if (layoutAccounts.getVisibility() == View.VISIBLE) {
             super.onBackPressed();

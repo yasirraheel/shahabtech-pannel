@@ -294,24 +294,60 @@
 
                         <ProgressBar
                             android:id="@+id/accounts_progress"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
                             android:layout_gravity="center"
-                            android:layout_marginTop="40dp"
+                            android:layout_marginVertical="12dp"
                             android:indeterminateTint="@color/primary"
                             android:visibility="gone" />
 
-                        <TextView
-                            android:id="@+id/txt_no_accounts"
+                        <!-- Empty State for Assigned Accounts -->
+                        <LinearLayout
+                            android:id="@+id/card_no_accounts"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="40dp"
+                            android:layout_marginTop="4dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="@drawable/bg_card"
                             android:gravity="center"
-                            android:text="No assigned accounts found.\nContact your administrator."
-                            android:textColor="@color/text_muted"
-                            android:textSize="14sp"
-                            android:lineSpacingExtra="4dp"
-                            android:visibility="gone" />
+                            android:orientation="vertical"
+                            android:padding="24dp"
+                            android:visibility="gone">
+
+                            <FrameLayout
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:background="@drawable/bg_badge_validity">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:text="🔒"
+                                    android:textSize="20sp" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:id="@+id/txt_no_accounts_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:text="No Assigned Accounts"
+                                android:textColor="@color/text_primary"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_no_accounts"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:lineSpacingExtra="3dp"
+                                android:text="No active accounts assigned yet.\nPlease contact your administrator to get access."
+                                android:textColor="@color/text_muted"
+                                android:textSize="13sp" />
+                        </LinearLayout>
 
                         <!-- Dynamic Account Cards Container -->
                         <LinearLayout
@@ -359,19 +395,52 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical" />
 
-                        <TextView
-                            android:id="@+id/txt_no_projects"
+                        <!-- Empty State for My Flow Projects -->
+                        <LinearLayout
+                            android:id="@+id/card_no_projects"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:layout_marginBottom="24dp"
                             android:background="@drawable/bg_card"
-                            android:padding="16dp"
                             android:gravity="center"
-                            android:text="No saved projects yet.\nOpen Google Flow to create your first project."
-                            android:textColor="@color/text_muted"
-                            android:textSize="13sp"
-                            android:lineSpacingExtra="3dp" />
+                            android:orientation="vertical"
+                            android:padding="24dp"
+                            android:visibility="visible">
+
+                            <FrameLayout
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:background="@drawable/bg_avatar_circle">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:text="📁"
+                                    android:textSize="20sp" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:text="No Saved Projects Yet"
+                                android:textColor="@color/text_primary"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_no_projects"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:lineSpacingExtra="3dp"
+                                android:text="Personal projects created in Google Flow will automatically appear here."
+                                android:textColor="@color/text_muted"
+                                android:textSize="13sp" />
+                        </LinearLayout>
 
                     </LinearLayout>
                 </ScrollView>
