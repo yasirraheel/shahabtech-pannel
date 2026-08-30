@@ -1098,21 +1098,43 @@ public class MainActivity extends AppCompatActivity
                 "        return false;" +
                 "      }" +
                 "" +
-                "      /* Handle Download Button Clicks */" +
-                "      if (txt === 'download' || txt.includes('download') || aria.includes('download')) {" +
+                "      /* Handle Download Button Clicks & Quality Options (1K, 2K, 4K, Original size, Upscaled) */" +
+                "      var clean = txt.replace(/\\s+/g, ' ');" +
+                "      var isDownloadAction = false;" +
+                "      if (clean.includes('download') || aria.includes('download') ||" +
+                "          clean.includes('original size') || clean.includes('upscaled') ||" +
+                "          clean === '1k' || clean === '2k' || clean === '4k' ||" +
+                "          clean.startsWith('1k') || clean.startsWith('2k') || clean.startsWith('4k') ||" +
+                "          (el.getAttribute('role') === 'menuitem' && (clean.includes('1k') || clean.includes('2k') || clean.includes('4k')))) {" +
+                "        isDownloadAction = true;" +
+                "      }" +
+                "" +
+                "      if (isDownloadAction) {" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
+                "          window.AndroidBridge.onActionStarted('Downloading media...');" +
+                "        }" +
                 "        setTimeout(function() {" +
-                "          var media = document.querySelector('[role=\"dialog\"] video, [role=\"dialog\"] img');" +
+                "          var media = document.querySelector('img[src*=\"getMediaUrlRedirect\"], video[src*=\"getMediaUrlRedirect\"], [role=\"dialog\"] img, [role=\"dialog\"] video');" +
                 "          if (!media) {" +
-                "            var imgs = Array.from(document.querySelectorAll('img[src*=\"getMediaUrlRedirect\"], video[src*=\"getMediaUrlRedirect\"], video, img[src*=\"googleusercontent.com/fife\"]'));" +
-                "            imgs = imgs.filter(function(m) { return m.getBoundingClientRect().width > 120; });" +
+                "            var imgs = Array.from(document.querySelectorAll('img[src*=\"getMediaUrlRedirect\"], video[src*=\"getMediaUrlRedirect\"], video, img'));" +
+                "            imgs = imgs.filter(function(m) {" +
+                "              var r = m.getBoundingClientRect();" +
+                "              return r.width > 100 && r.height > 100 && m.src && !m.src.includes('googleusercontent.com/a/');" +
+                "            });" +
                 "            if (imgs.length > 0) media = imgs[imgs.length - 1];" +
                 "          }" +
                 "          if (media && media.src) {" +
                 "            var isVid = media.tagName === 'VIDEO' || media.src.includes('.mp4');" +
-                "            var fn = (isVid ? 'flow_video_' : 'flow_image_') + Date.now() + (isVid ? '.mp4' : '.png');" +
+                "            var ext = isVid ? '.mp4' : '.jpg';" +
+                "            var prefix = clean.includes('4k') ? 'flow_4k_' : (clean.includes('2k') ? 'flow_2k_' : (isVid ? 'flow_video_' : 'flow_image_'));" +
+                "            var fn = prefix + Date.now() + ext;" +
                 "            handleMediaDownload(media.src, fn);" +
                 "          }" +
-                "        }, 150);" +
+                "        }, 120);" +
+                "" +
+                "        if (clean.includes('original size') || clean.includes('upscaled') || clean.startsWith('1k') || clean.startsWith('2k') || clean.startsWith('4k')) {" +
+                "          break;" +
+                "        }" +
                 "      }" +
                 "" +
                 "      /* Trigger in-app action loader for New Project click */" +
