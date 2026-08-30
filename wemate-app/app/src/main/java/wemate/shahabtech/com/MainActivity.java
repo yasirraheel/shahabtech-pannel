@@ -10,10 +10,11 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
-import android.webkit.DownloadListener;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -28,7 +29,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -45,6 +45,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
     private static final int PERMISSION_REQUEST_CODE = 1002;
 
+    // Hardcoded Server URL
+    public static final String SERVER_URL = "https://panel.shahabtech.com";
+
     private SharedPreferences prefs;
 
     // UI Layout Containers
@@ -53,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout layoutWebview;
 
     // Login Elements
-    private EditText inputServerUrl, inputUsername, inputPassword;
+    private EditText inputUsername, inputPassword;
     private Button btnLogin;
     private ProgressBar loginProgress;
 
@@ -70,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private WebView mWebView;
 
     private ValueCallback<Uri[]> mFilePathCallback;
-    private String currentServerUrl = "https://panel.shahabtech.com";
+    private boolean isWarmingUp = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,17 +86,15 @@ public class MainActivity extends AppCompatActivity {
         setupWebView();
         checkPermissions();
 
-        // Restore saved server URL & credentials
-        String savedServer = prefs.getString("server_url", "https://panel.shahabtech.com");
+        // Warm up WebView by loading the panel domain so Hostinger CDN clearance is obtained
+        mWebView.loadUrl(SERVER_URL + "/login");
+
         String savedUser = prefs.getString("username", "");
         String savedPass = prefs.getString("password", "");
-
-        inputServerUrl.setText(savedServer);
         inputUsername.setText(savedUser);
         inputPassword.setText(savedPass);
 
         if (prefs.getBoolean("is_logged_in", false) && !savedUser.isEmpty() && !savedPass.isEmpty()) {
-            currentServerUrl = savedServer;
             performLogin(savedUser, savedPass, true);
         } else {
             showScreen("LOGIN");
@@ -105,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
         layoutAccounts = findViewById(R.id.layout_accounts);
         layoutWebview = findViewById(R.id.layout_webview);
 
-        inputServerUrl = findViewById(R.id.input_server_url);
         inputUsername = findViewById(R.id.input_username);
         inputPassword = findViewById(R.id.input_password);
         btnLogin = findViewById(R.id.btn_login);
@@ -124,26 +124,19 @@ public class MainActivity extends AppCompatActivity {
         mWebView = findViewById(R.id.webview);
 
         btnLogin.setOnClickListener(v -> {
-            String server = inputServerUrl.getText().toString().trim();
             String user = inputUsername.getText().toString().trim();
             String pass = inputPassword.getText().toString().trim();
 
-            if (server.isEmpty() || user.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Please enter Server URL, Username and Password", Toast.LENGTH_SHORT).show();
+            if (user.isEmpty() || pass.isEmpty()) {
+                Toast.makeText(this, "Please enter Username/Email and Password", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            if (server.endsWith("/")) {
-                server = server.substring(0, server.length() - 1);
-            }
-            currentServerUrl = server;
 
             performLogin(user, pass, false);
         });
 
         btnLogout.setOnClickListener(v -> {
             prefs.edit().clear().apply();
-            NetworkUtils.clearSession();
             CookieManager.getInstance().removeAllCookies(null);
             showScreen("LOGIN");
             Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
@@ -168,55 +161,38 @@ public class MainActivity extends AppCompatActivity {
         layoutWebview.setVisibility("WEBVIEW".equals(screen) ? View.VISIBLE : View.GONE);
     }
 
+    /**
+     * Executes login request via WebView Chromium engine to bypass Hostinger CDN bot challenge
+     */
     private void performLogin(String user, String pass, boolean isAutoLogin) {
         if (!isAutoLogin) {
             loginProgress.setVisibility(View.VISIBLE);
             btnLogin.setEnabled(false);
         }
 
-        JSONObject body = new JSONObject();
-        try {
-            body.put("username", user);
-            body.put("password", pass);
-        } catch (Exception ignored) {}
+        // JavaScript to execute in WebView
+        String js = "(function() {" +
+                "  fetch('" + SERVER_URL + "/api/extension/login', {" +
+                "    method: 'POST'," +
+                "    headers: {" +
+                "      'Content-Type': 'application/json'," +
+                "      'Accept': 'application/json'" +
+                "    }," +
+                "    body: JSON.stringify({" +
+                "      username: " + JSONObject.quote(user) + "," +
+                "      password: " + JSONObject.quote(pass) +
+                "    })" +
+                "  })" +
+                "  .then(function(r) { return r.json(); })" +
+                "  .then(function(data) {" +
+                "    window.AndroidBridge.onLoginResult(JSON.stringify(data), " + JSONObject.quote(user) + ", " + JSONObject.quote(pass) + ");" +
+                "  })" +
+                "  .catch(function(err) {" +
+                "    window.AndroidBridge.onApiError('Login failed: ' + err.message);" +
+                "  });" +
+                "})();";
 
-        String endpoint = currentServerUrl + "/api/extension/login";
-
-        NetworkUtils.postRequest(endpoint, body.toString(), new NetworkUtils.ApiCallback() {
-            @Override
-            public void onSuccess(JSONObject response) {
-                loginProgress.setVisibility(View.GONE);
-                btnLogin.setEnabled(true);
-
-                if (response.optBoolean("success", false)) {
-                    JSONObject userObj = response.optJSONObject("user");
-                    String fullname = userObj != null ? userObj.optString("name", user) : user;
-
-                    prefs.edit()
-                            .putString("server_url", currentServerUrl)
-                            .putString("username", user)
-                            .putString("password", pass)
-                            .putBoolean("is_logged_in", true)
-                            .apply();
-
-                    txtUserName.setText("Welcome, " + fullname + "!");
-                    showScreen("ACCOUNTS");
-                    loadAssignedAccounts();
-                } else {
-                    String msg = response.optString("message", "Login failed");
-                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
-                    showScreen("LOGIN");
-                }
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                loginProgress.setVisibility(View.GONE);
-                btnLogin.setEnabled(true);
-                Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
-                showScreen("LOGIN");
-            }
-        });
+        mWebView.post(() -> mWebView.evaluateJavascript(js, null));
     }
 
     private void loadAssignedAccounts() {
@@ -224,84 +200,21 @@ public class MainActivity extends AppCompatActivity {
         txtNoAccounts.setVisibility(View.GONE);
         containerAccountList.removeAllViews();
 
-        String endpoint = currentServerUrl + "/api/extension/platforms";
+        String js = "(function() {" +
+                "  fetch('" + SERVER_URL + "/api/extension/platforms', {" +
+                "    method: 'GET'," +
+                "    headers: { 'Accept': 'application/json' }" +
+                "  })" +
+                "  .then(function(r) { return r.json(); })" +
+                "  .then(function(data) {" +
+                "    window.AndroidBridge.onPlatformsResult(JSON.stringify(data));" +
+                "  })" +
+                "  .catch(function(err) {" +
+                "    window.AndroidBridge.onApiError('Failed to fetch accounts: ' + err.message);" +
+                "  });" +
+                "})();";
 
-        NetworkUtils.getRequest(endpoint, new NetworkUtils.ApiCallback() {
-            @Override
-            public void onSuccess(JSONObject response) {
-                accountsProgress.setVisibility(View.GONE);
-
-                if (response.optBoolean("success", false)) {
-                    JSONArray platforms = response.optJSONArray("platforms");
-
-                    if (platforms != null && platforms.length() > 0) {
-                        for (int i = 0; i < platforms.length(); i++) {
-                            try {
-                                JSONObject platform = platforms.getJSONObject(i);
-                                String platformName = platform.optString("name", "Google Flow");
-                                String displayName = platform.optString("display_name", platformName);
-                                int platformId = platform.optInt("id", 3);
-                                int accountId = platform.optInt("account_id", 0);
-                                String targetUrl = platform.optString("url", "https://labs.google/fx/tools/flow");
-
-                                addAccountCard(displayName, platformName, platformId, accountId, targetUrl);
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error parsing platform: " + e.getMessage());
-                            }
-                        }
-                    } else {
-                        txtNoAccounts.setText(response.optString("message", "No assigned accounts found. Contact Administrator."));
-                        txtNoAccounts.setVisibility(View.VISIBLE);
-                    }
-                } else {
-                    txtNoAccounts.setText(response.optString("message", "Failed to fetch accounts"));
-                    txtNoAccounts.setVisibility(View.VISIBLE);
-                }
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                accountsProgress.setVisibility(View.GONE);
-                txtNoAccounts.setText("Error: " + errorMessage);
-                txtNoAccounts.setVisibility(View.VISIBLE);
-            }
-        });
-    }
-
-    private void addAccountCard(String displayName, String platformName, int platformId, int accountId, String targetUrl) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(24, 24, 24, 24);
-
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        params.setMargins(0, 0, 0, 16);
-        card.setLayoutParams(params);
-        card.setBackgroundColor(0xFFFFFFFF);
-        card.setElevation(4f);
-        card.setClickable(true);
-        card.setFocusable(true);
-
-        TextView title = new TextView(this);
-        title.setText(displayName);
-        title.setTextSize(16);
-        title.setTextColor(0xFF0F172A);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-
-        TextView subtitle = new TextView(this);
-        subtitle.setText("Platform: " + platformName + "  •  Click to Launch");
-        subtitle.setTextSize(12);
-        subtitle.setTextColor(0xFF64748B);
-        subtitle.setPadding(0, 8, 0, 0);
-
-        card.addView(title);
-        card.addView(subtitle);
-
-        card.setOnClickListener(v -> openAccountInWebView(displayName, platformId, accountId, targetUrl));
-
-        containerAccountList.addView(card);
+        mWebView.post(() -> mWebView.evaluateJavascript(js, null));
     }
 
     private void openAccountInWebView(String displayName, int platformId, int accountId, String targetUrl) {
@@ -309,42 +222,59 @@ public class MainActivity extends AppCompatActivity {
         showScreen("WEBVIEW");
         webviewProgress.setVisibility(View.VISIBLE);
 
-        String endpoint = currentServerUrl + "/api/extension/cookies/" + platformId + (accountId > 0 ? "/" + accountId : "");
+        String endpoint = SERVER_URL + "/api/extension/cookies/" + platformId + (accountId > 0 ? "/" + accountId : "");
 
-        NetworkUtils.getRequest(endpoint, new NetworkUtils.ApiCallback() {
-            @Override
-            public void onSuccess(JSONObject response) {
-                if (response.optBoolean("success", false)) {
-                    JSONArray cookies = response.optJSONArray("cookies");
-                    JSONObject platformObj = response.optJSONObject("platform");
+        String js = "(function() {" +
+                "  fetch('" + endpoint + "', {" +
+                "    method: 'GET'," +
+                "    headers: { 'Accept': 'application/json' }" +
+                "  })" +
+                "  .then(function(r) { return r.json(); })" +
+                "  .then(function(data) {" +
+                "    window.AndroidBridge.onCookiesResult(JSON.stringify(data), " + JSONObject.quote(targetUrl) + ");" +
+                "  })" +
+                "  .catch(function(err) {" +
+                "    window.AndroidBridge.onApiError('Failed to fetch cookies: ' + err.message);" +
+                "  });" +
+                "})();";
 
-                    String urlToLoad = targetUrl;
-                    if (platformObj != null && platformObj.has("url")) {
-                        urlToLoad = platformObj.optString("url", targetUrl);
-                    }
-                    if (urlToLoad == null || urlToLoad.isEmpty()) {
-                        urlToLoad = "https://labs.google/fx/tools/flow";
-                    }
+        mWebView.post(() -> mWebView.evaluateJavascript(js, null));
+    }
 
-                    // Inject Cookies into Android CookieManager
-                    CookieInjector.injectCookies(MainActivity.this, mWebView, cookies, urlToLoad);
+    private void addAccountCard(String displayName, String platformName, int platformId, int accountId, String targetUrl) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(32, 28, 32, 28);
 
-                    // Load platform URL
-                    mWebView.loadUrl(urlToLoad);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(0, 0, 0, 20);
+        card.setLayoutParams(params);
+        card.setBackgroundColor(0xFFFFFFFF);
+        card.setElevation(6f);
+        card.setClickable(true);
+        card.setFocusable(true);
 
-                } else {
-                    webviewProgress.setVisibility(View.GONE);
-                    String msg = response.optString("message", "Failed to fetch account cookies");
-                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
-                }
-            }
+        TextView title = new TextView(this);
+        title.setText(displayName);
+        title.setTextSize(17);
+        title.setTextColor(0xFF0F172A);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
 
-            @Override
-            public void onError(String errorMessage) {
-                webviewProgress.setVisibility(View.GONE);
-                Toast.makeText(MainActivity.this, "Cookie fetch error: " + errorMessage, Toast.LENGTH_LONG).show();
-            }
-        });
+        TextView subtitle = new TextView(this);
+        subtitle.setText("Platform: " + platformName + "  •  Click to Open");
+        subtitle.setTextSize(13);
+        subtitle.setTextColor(0xFF64748B);
+        subtitle.setPadding(0, 10, 0, 0);
+
+        card.addView(title);
+        card.addView(subtitle);
+
+        card.setOnClickListener(v -> openAccountInWebView(displayName, platformId, accountId, targetUrl));
+
+        containerAccountList.addView(card);
     }
 
     private void setupWebView() {
@@ -360,14 +290,19 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setDisplayZoomControls(false);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
 
-        // Modern Chrome User Agent for smooth rendering on mobile
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(mWebView, true);
+
+        // Modern Chrome Mobile User-Agent
         String defaultUA = webSettings.getUserAgentString();
         webSettings.setUserAgentString(defaultUA.replace("Android", "Android 14").replace("Mobile", "Mobile"));
+
+        mWebView.addJavascriptInterface(new WebAppInterface(), "AndroidBridge");
 
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String url = request.getUrl().toString();
                 return false;
             }
 
@@ -375,6 +310,9 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 webviewProgress.setVisibility(View.GONE);
+                if (isWarmingUp) {
+                    isWarmingUp = false;
+                }
             }
         });
 
@@ -388,7 +326,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // File Chooser Handler for uploading image prompts to Google Flow
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 if (mFilePathCallback != null) {
@@ -408,7 +345,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Intercept video download triggers and download directly to device storage
         mWebView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             try {
                 DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
@@ -441,6 +377,127 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Download failed: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    /**
+     * JavaScript Bridge Interface connected to WebView Chromium Engine
+     */
+    public class WebAppInterface {
+
+        @JavascriptInterface
+        public void onLoginResult(String jsonStr, String user, String pass) {
+            runOnUiThread(() -> {
+                loginProgress.setVisibility(View.GONE);
+                btnLogin.setEnabled(true);
+
+                try {
+                    JSONObject response = new JSONObject(jsonStr);
+                    if (response.optBoolean("success", false)) {
+                        JSONObject userObj = response.optJSONObject("user");
+                        String fullname = userObj != null ? userObj.optString("name", user) : user;
+
+                        prefs.edit()
+                                .putString("username", user)
+                                .putString("password", pass)
+                                .putBoolean("is_logged_in", true)
+                                .apply();
+
+                        txtUserName.setText("Welcome, " + fullname + "!");
+                        showScreen("ACCOUNTS");
+                        loadAssignedAccounts();
+                    } else {
+                        String msg = response.optString("message", "Login failed");
+                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                        showScreen("LOGIN");
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Response parse error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    showScreen("LOGIN");
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void onPlatformsResult(String jsonStr) {
+            runOnUiThread(() -> {
+                accountsProgress.setVisibility(View.GONE);
+
+                try {
+                    JSONObject response = new JSONObject(jsonStr);
+                    if (response.optBoolean("success", false)) {
+                        JSONArray platforms = response.optJSONArray("platforms");
+
+                        if (platforms != null && platforms.length() > 0) {
+                            for (int i = 0; i < platforms.length(); i++) {
+                                JSONObject platform = platforms.getJSONObject(i);
+                                String platformName = platform.optString("name", "Google Flow");
+                                String displayName = platform.optString("display_name", platformName);
+                                int platformId = platform.optInt("id", 3);
+                                int accountId = platform.optInt("account_id", 0);
+                                String targetUrl = platform.optString("url", "https://labs.google/fx/tools/flow");
+
+                                addAccountCard(displayName, platformName, platformId, accountId, targetUrl);
+                            }
+                        } else {
+                            txtNoAccounts.setText(response.optString("message", "No assigned accounts found. Contact Administrator."));
+                            txtNoAccounts.setVisibility(View.VISIBLE);
+                        }
+                    } else {
+                        txtNoAccounts.setText(response.optString("message", "Failed to fetch accounts"));
+                        txtNoAccounts.setVisibility(View.VISIBLE);
+                    }
+                } catch (Exception e) {
+                    txtNoAccounts.setText("Error parsing accounts");
+                    txtNoAccounts.setVisibility(View.VISIBLE);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void onCookiesResult(String jsonStr, String targetUrl) {
+            runOnUiThread(() -> {
+                try {
+                    JSONObject response = new JSONObject(jsonStr);
+                    if (response.optBoolean("success", false)) {
+                        JSONArray cookies = response.optJSONArray("cookies");
+                        JSONObject platformObj = response.optJSONObject("platform");
+
+                        String urlToLoad = targetUrl;
+                        if (platformObj != null && platformObj.has("url")) {
+                            urlToLoad = platformObj.optString("url", targetUrl);
+                        }
+                        if (urlToLoad == null || urlToLoad.isEmpty()) {
+                            urlToLoad = "https://labs.google/fx/tools/flow";
+                        }
+
+                        // Inject Cookies into Android CookieManager for labs.google and .google.com
+                        CookieInjector.injectCookies(MainActivity.this, mWebView, cookies, urlToLoad);
+
+                        // Load Google Flow
+                        mWebView.loadUrl(urlToLoad);
+                    } else {
+                        webviewProgress.setVisibility(View.GONE);
+                        String msg = response.optString("message", "Failed to load account session");
+                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                    }
+                } catch (Exception e) {
+                    webviewProgress.setVisibility(View.GONE);
+                    Toast.makeText(MainActivity.this, "Cookie parse error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void onApiError(String errorMsg) {
+            runOnUiThread(() -> {
+                loginProgress.setVisibility(View.GONE);
+                btnLogin.setEnabled(true);
+                accountsProgress.setVisibility(View.GONE);
+                webviewProgress.setVisibility(View.GONE);
+
+                Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+            });
+        }
     }
 
     private void checkPermissions() {
