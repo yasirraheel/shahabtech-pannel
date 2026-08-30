@@ -1,30 +1,45 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- Top Arch Handle -->
     <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:fillColor="#00FF95"
+        android:fillType="evenOdd"
+        android:pathData="M33,38 C33,28 41,23 54,23 C67,23 75,28 75,38 L75,52 L68.5,52 L68.5,38 C68.5,31 62,29.5 54,29.5 C46,29.5 39.5,31 39.5,38 L39.5,52 L33,52 Z" />
+
+    <!-- Center Camera / Lens Ring -->
+    <path
+        android:fillColor="#00FF95"
+        android:fillType="evenOdd"
+        android:pathData="M54,31 C58.7,31 62.5,34.8 62.5,39.5 C62.5,44.2 58.7,48 54,48 C49.3,48 45.5,44.2 45.5,39.5 C45.5,34.8 49.3,31 54,31 Z M54,35.3 C51.7,35.3 49.8,37.2 49.8,39.5 C49.8,41.8 51.7,43.7 54,43.7 C56.3,43.7 58.2,41.8 58.2,39.5 C58.2,37.2 56.3,35.3 54,35.3 Z" />
+
+    <!-- Horizontal Divider Bar with rounded ends -->
+    <path
+        android:fillColor="#00FF95"
+        android:pathData="M30,49.5 L78,49.5 C79.7,49.5 81,50.8 81,52.5 C81,54.2 79.7,55.5 78,55.5 L30,55.5 C28.3,55.5 27,54.2 27,52.5 C27,50.8 28.3,49.5 30,49.5 Z" />
+
+    <!-- Basket Container Body -->
+    <path
+        android:fillColor="#00FF95"
+        android:pathData="M31.5,54.5 L76.5,54.5 L70.5,74 C70,76.5 68,78 65.5,78 L42.5,78 C40,78 38,76.5 37.5,74 L31.5,54.5 Z" />
+
+    <!-- Three Vertical Slits (Dark Cutouts matching background) -->
+    <!-- Left Slit -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M43,59.5 C44,59.5 44.8,60.3 44.8,61.3 L44.8,71.7 C44.8,72.7 44,73.5 43,73.5 C42,73.5 41.2,72.7 41.2,71.7 L41.2,61.3 C41.2,60.3 42,59.5 43,59.5 Z" />
+
+    <!-- Center Slit -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M54,59.5 C55,59.5 55.8,60.3 55.8,61.3 L55.8,71.7 C55.8,72.7 55,73.5 54,73.5 C53,73.5 52.2,72.7 52.2,71.7 L52.2,61.3 C52.2,60.3 53,59.5 54,59.5 Z" />
+
+    <!-- Right Slit -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M65,59.5 C66,59.5 66.8,60.3 66.8,61.3 L66.8,71.7 C66.8,72.7 66,73.5 65,73.5 C64,73.5 63.2,72.7 63.2,71.7 L63.2,61.3 C63.2,60.3 64,59.5 65,59.5 Z" />
+
 </vector>
