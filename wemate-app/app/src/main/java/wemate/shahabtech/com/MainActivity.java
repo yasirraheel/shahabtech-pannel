@@ -293,6 +293,7 @@ public class MainActivity extends AppCompatActivity
             int id = item.getItemId();
             if (id == R.id.bottom_home || id == R.id.bottom_accounts) {
                 showScreen("ACCOUNTS");
+                Toast.makeText(this, "Refreshing accounts...", Toast.LENGTH_SHORT).show();
                 refreshDashboardData();
                 return true;
             } else if (id == R.id.bottom_settings) {
@@ -300,6 +301,17 @@ public class MainActivity extends AppCompatActivity
                 return true;
             }
             return false;
+        });
+
+        bottomNav.setOnItemReselectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.bottom_home || id == R.id.bottom_accounts) {
+                showScreen("ACCOUNTS");
+                Toast.makeText(this, "Refreshing accounts...", Toast.LENGTH_SHORT).show();
+                refreshDashboardData();
+            } else if (id == R.id.bottom_settings) {
+                Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -489,7 +501,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void loadAssignedAccounts() {
-        if (accountsProgress != null && containerAccountList.getChildCount() == 0) {
+        if (accountsProgress != null) {
             accountsProgress.setVisibility(View.VISIBLE);
         }
         if (txtNoAccounts != null) {
@@ -932,10 +944,7 @@ public class MainActivity extends AppCompatActivity
     public void refreshDashboardData() {
         renderSavedProjects();
 
-        if (isRefreshingAccounts) return;
-        isRefreshingAccounts = true;
-
-        if (accountsProgress != null && containerAccountList.getChildCount() == 0) {
+        if (accountsProgress != null) {
             accountsProgress.setVisibility(View.VISIBLE);
         }
 
