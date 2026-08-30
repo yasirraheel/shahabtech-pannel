@@ -21,10 +21,6 @@ public class CookieInjector {
             cookieManager.setAcceptThirdPartyCookies(webView, true);
         }
 
-        // Remove old cookies to ensure clean session switching
-        cookieManager.removeAllCookies(null);
-        cookieManager.flush();
-
         if (cookiesArray == null || cookiesArray.length() == 0) {
             Log.w(TAG, "No cookies provided for injection.");
             return;

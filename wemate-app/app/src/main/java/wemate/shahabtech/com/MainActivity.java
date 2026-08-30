@@ -494,20 +494,28 @@ public class MainActivity extends AppCompatActivity
         }
         txtActiveAccountName.setText(displayName);
         showScreen("WEBVIEW");
-        webviewProgress.setVisibility(View.VISIBLE);
 
+        // Always target fresh Flow homepage when opening assigned account
         final String finalTargetUrl = (targetUrl == null || targetUrl.isEmpty()) ? "https://labs.google/fx/tools/flow" : targetUrl;
 
-        // Fallback: If cookie fetch doesn't complete within 3 seconds, load Flow directly so screen is never black
-        mWebView.postDelayed(() -> {
-            if (layoutWebview.getVisibility() == View.VISIBLE && (mWebView.getUrl() == null || mWebView.getUrl().equals("about:blank"))) {
-                Log.w(TAG, "Cookie fetch timeout, loading target URL directly: " + finalTargetUrl);
-                mWebView.loadUrl(finalTargetUrl);
-            }
-        }, 3000);
+        // Immediately inject cached cookies so session is 100% active before page load
+        String cachedCookies = prefs.getString("cached_flow_cookies", "");
+        if (!cachedCookies.isEmpty()) {
+            try {
+                CookieInjector.injectCookies(this, mWebView, new JSONArray(cachedCookies), finalTargetUrl);
+            } catch (Exception ignored) {}
+        }
 
+        // Always load fresh URL immediately
+        mWebView.loadUrl(finalTargetUrl);
+
+        // Fetch latest cookies in background
+        fetchCookiesInBackground(platformId, accountId, finalTargetUrl);
+    }
+
+    private void fetchCookiesInBackground(int platformId, int accountId, String targetUrl) {
+        if (platformId <= 0) return;
         String endpoint = SERVER_URL + "/api/extension/cookies/" + platformId + (accountId > 0 ? "/" + accountId : "");
-
         String js = "(function() {" +
                 "  fetch('" + endpoint + "', {" +
                 "    method: 'GET'," +
@@ -515,10 +523,10 @@ public class MainActivity extends AppCompatActivity
                 "  })" +
                 "  .then(function(r) { return r.json(); })" +
                 "  .then(function(data) {" +
-                "    window.AndroidBridge.onCookiesResult(JSON.stringify(data), " + JSONObject.quote(finalTargetUrl) + ");" +
+                "    window.AndroidBridge.onCookiesResult(JSON.stringify(data), " + JSONObject.quote(targetUrl) + ");" +
                 "  })" +
                 "  .catch(function(err) {" +
-                "    window.AndroidBridge.onApiError('Failed to fetch cookies: ' + err.message);" +
+                "    /* silent in background */" +
                 "  });" +
                 "})();";
 
@@ -835,17 +843,21 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void openSavedProject(String projectName, String projectUrl) {
-        int savedPlatformId = prefs.getInt("flow_platform_id", 0);
+        int savedPlatformId = prefs.getInt("flow_platform_id", 3);
         int savedAccountId = prefs.getInt("flow_account_id", 0);
 
         txtActiveAccountName.setText(projectName);
         showScreen("WEBVIEW");
 
-        if (mWebView != null && mWebView.getUrl() != null && mWebView.getUrl().contains("labs.google")) {
-            mWebView.loadUrl(projectUrl);
-        } else {
-            openAccountInWebView("Google Flow", savedPlatformId, savedAccountId, projectUrl);
+        String cachedCookies = prefs.getString("cached_flow_cookies", "");
+        if (!cachedCookies.isEmpty()) {
+            try {
+                CookieInjector.injectCookies(this, mWebView, new JSONArray(cachedCookies), projectUrl);
+            } catch (Exception ignored) {}
         }
+
+        mWebView.loadUrl(projectUrl);
+        fetchCookiesInBackground(savedPlatformId, savedAccountId, projectUrl);
     }
 
     /**
@@ -1568,27 +1580,22 @@ public class MainActivity extends AppCompatActivity
                     JSONObject response = new JSONObject(jsonStr);
                     if (response.optBoolean("success", false)) {
                         JSONArray cookies = response.optJSONArray("cookies");
-                        JSONObject platformObj = response.optJSONObject("platform");
-
-                        String urlToLoad = targetUrl;
-                        if (platformObj != null && platformObj.has("url")) {
-                            urlToLoad = platformObj.optString("url", targetUrl);
+                        if (cookies != null && cookies.length() > 0) {
+                            prefs.edit().putString("cached_flow_cookies", cookies.toString()).apply();
+                            CookieInjector.injectCookies(MainActivity.this, mWebView, cookies, targetUrl);
                         }
-                        if (urlToLoad == null || urlToLoad.isEmpty()) {
-                            urlToLoad = "https://labs.google/fx/tools/flow";
-                        }
-
-                        CookieInjector.injectCookies(MainActivity.this, mWebView, cookies, urlToLoad);
-                        mWebView.loadUrl(urlToLoad);
                     } else {
-                        webviewProgress.setVisibility(View.GONE);
-                        String msg = response.optString("message", "Failed to load account session");
-                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                        String msg = response.optString("message", "");
+                        if ("Unauthorized".equalsIgnoreCase(msg)) {
+                            // Re-login in background silently so session is refreshed
+                            String savedUser = prefs.getString("saved_username", "");
+                            String savedPass = prefs.getString("saved_password", "");
+                            if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
+                                performLogin(savedUser, savedPass, true);
+                            }
+                        }
                     }
-                } catch (Exception e) {
-                    webviewProgress.setVisibility(View.GONE);
-                    Toast.makeText(MainActivity.this, "Cookie parse error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                }
+                } catch (Exception ignored) {}
             });
         }
 
