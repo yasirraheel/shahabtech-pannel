@@ -101,6 +101,11 @@ public class MainActivity extends AppCompatActivity
     private ProgressBar accountsProgress;
     private LinearLayout containerAccountList;
 
+    // Saved Projects Elements
+    private LinearLayout containerProjectsList;
+    private TextView txtProjectsCount;
+    private TextView txtNoProjects;
+
     // WebView Elements
     private TextView txtActiveAccountName;
     private ImageButton btnSwitchAccount, btnRefreshWebview;
@@ -183,6 +188,9 @@ public class MainActivity extends AppCompatActivity
         txtNoAccounts = findViewById(R.id.txt_no_accounts);
         accountsProgress = findViewById(R.id.accounts_progress);
         containerAccountList = findViewById(R.id.container_account_list);
+        containerProjectsList = findViewById(R.id.container_projects_list);
+        txtProjectsCount = findViewById(R.id.txt_projects_count);
+        txtNoProjects = findViewById(R.id.txt_no_projects);
 
         txtActiveAccountName = findViewById(R.id.txt_active_account_name);
         btnSwitchAccount = findViewById(R.id.btn_switch_account);
@@ -346,6 +354,7 @@ public class MainActivity extends AppCompatActivity
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
             // Primary Indigo status bar (#6366F1) matching MaterialToolbar
             updateStatusBarColor(0xFF6366F1, true);
+            renderSavedProjects();
         } else if ("WEBVIEW".equals(screen)) {
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
             // Dark Slate status bar (#1E293B) matching WebView Header bar
@@ -480,6 +489,9 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void openAccountInWebView(String displayName, int platformId, int accountId, String targetUrl) {
+        if (platformId > 0) {
+            prefs.edit().putInt("flow_platform_id", platformId).putInt("flow_account_id", accountId).apply();
+        }
         txtActiveAccountName.setText(displayName);
         showScreen("WEBVIEW");
         webviewProgress.setVisibility(View.VISIBLE);
@@ -644,6 +656,196 @@ public class MainActivity extends AppCompatActivity
                 TypedValue.COMPLEX_UNIT_DIP, dp,
                 getResources().getDisplayMetrics()
         );
+    }
+
+    public void saveUserProject(String projectId, String projectName, String projectUrl) {
+        if (projectId == null || projectId.isEmpty() || projectUrl == null || projectUrl.isEmpty()) return;
+        try {
+            String json = prefs.getString("flow_saved_projects", "[]");
+            JSONArray arr = new JSONArray(json);
+            JSONArray updated = new JSONArray();
+
+            String name = (projectName != null && !projectName.trim().isEmpty() && !projectName.equalsIgnoreCase("Google Flow")) ? projectName.trim() : "Untitled Project";
+
+            JSONObject newObj = new JSONObject();
+            newObj.put("id", projectId);
+            newObj.put("name", name);
+            newObj.put("url", projectUrl);
+            newObj.put("updatedAt", System.currentTimeMillis());
+
+            updated.put(newObj);
+
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                if (!projectId.equals(obj.optString("id"))) {
+                    updated.put(obj);
+                }
+            }
+
+            prefs.edit().putString("flow_saved_projects", updated.toString()).apply();
+            runOnUiThread(this::renderSavedProjects);
+        } catch (Exception e) {
+            Log.e(TAG, "Save project error: ", e);
+        }
+    }
+
+    public void deleteSavedProject(String projectId) {
+        try {
+            String json = prefs.getString("flow_saved_projects", "[]");
+            JSONArray arr = new JSONArray(json);
+            JSONArray updated = new JSONArray();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                if (!projectId.equals(obj.optString("id"))) {
+                    updated.put(obj);
+                }
+            }
+            prefs.edit().putString("flow_saved_projects", updated.toString()).apply();
+            renderSavedProjects();
+            Toast.makeText(this, "Project removed from local list", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e(TAG, "Delete project error: ", e);
+        }
+    }
+
+    public void renderSavedProjects() {
+        if (containerProjectsList == null) return;
+        containerProjectsList.removeAllViews();
+
+        String json = prefs.getString("flow_saved_projects", "[]");
+        try {
+            JSONArray arr = new JSONArray(json);
+            if (arr.length() == 0) {
+                if (txtNoProjects != null) txtNoProjects.setVisibility(View.VISIBLE);
+                if (txtProjectsCount != null) txtProjectsCount.setText("0 Projects");
+                return;
+            }
+
+            if (txtNoProjects != null) txtNoProjects.setVisibility(View.GONE);
+            if (txtProjectsCount != null) txtProjectsCount.setText(arr.length() + (arr.length() == 1 ? " Project" : " Projects"));
+
+            int dp8 = dpToPx(8);
+            int dp10 = dpToPx(10);
+            int dp12 = dpToPx(12);
+            int dp14 = dpToPx(14);
+            int dp16 = dpToPx(16);
+            int dp4 = dpToPx(4);
+
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, yyyy  •  hh:mm a", java.util.Locale.getDefault());
+
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject proj = arr.getJSONObject(i);
+                String pid = proj.optString("id");
+                String pname = proj.optString("name", "Untitled Project");
+                String purl = proj.optString("url");
+                long time = proj.optLong("updatedAt", System.currentTimeMillis());
+
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.HORIZONTAL);
+                card.setGravity(Gravity.CENTER_VERTICAL);
+                card.setBackgroundResource(R.drawable.bg_card);
+                card.setPadding(dp16, dp14, dp16, dp14);
+
+                LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+                cardParams.setMargins(0, 0, 0, dp10);
+                card.setLayoutParams(cardParams);
+                card.setClickable(true);
+                card.setFocusable(true);
+
+                // Initial icon box
+                FrameLayout iconFrame = new FrameLayout(this);
+                LinearLayout.LayoutParams iconFrameParams = new LinearLayout.LayoutParams(dpToPx(42), dpToPx(42));
+                iconFrame.setLayoutParams(iconFrameParams);
+                GradientDrawable iconBg = new GradientDrawable();
+                iconBg.setCornerRadius(dpToPx(10));
+                iconBg.setColor(Color.parseColor("#EEF2FF"));
+                iconFrame.setBackground(iconBg);
+
+                TextView iconTxt = new TextView(this);
+                iconTxt.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+                iconTxt.setGravity(Gravity.CENTER);
+                String initial = pname.isEmpty() ? "P" : pname.substring(0, 1).toUpperCase();
+                iconTxt.setText(initial);
+                iconTxt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+                iconTxt.setTextColor(Color.parseColor("#4F46E5"));
+                iconTxt.setTypeface(null, android.graphics.Typeface.BOLD);
+                iconFrame.addView(iconTxt);
+
+                // Text column (Name & Date)
+                LinearLayout textCol = new LinearLayout(this);
+                textCol.setOrientation(LinearLayout.VERTICAL);
+                LinearLayout.LayoutParams textColParams = new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f
+                );
+                textColParams.setMarginStart(dp14);
+                textCol.setLayoutParams(textColParams);
+
+                TextView title = new TextView(this);
+                title.setText(pname);
+                title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                title.setTextColor(getResources().getColor(R.color.text_primary, getTheme()));
+                title.setTypeface(null, android.graphics.Typeface.BOLD);
+                title.setMaxLines(1);
+                title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+
+                TextView subtitle = new TextView(this);
+                subtitle.setText(sdf.format(new java.util.Date(time)));
+                subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                subtitle.setTextColor(getResources().getColor(R.color.text_muted, getTheme()));
+                subtitle.setPadding(0, dp4, 0, 0);
+
+                textCol.addView(title);
+                textCol.addView(subtitle);
+
+                // Open button badge
+                TextView btnOpen = new TextView(this);
+                btnOpen.setText("Open");
+                btnOpen.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                btnOpen.setTextColor(Color.parseColor("#4F46E5"));
+                btnOpen.setPadding(dp12, dp4 + 2, dp12, dp4 + 2);
+                GradientDrawable openBg = new GradientDrawable();
+                openBg.setColor(Color.parseColor("#EEF2FF"));
+                openBg.setCornerRadius(dpToPx(6));
+                btnOpen.setBackground(openBg);
+                btnOpen.setTypeface(null, android.graphics.Typeface.BOLD);
+
+                // Delete button
+                TextView btnDelete = new TextView(this);
+                btnDelete.setText("✕");
+                btnDelete.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                btnDelete.setTextColor(Color.parseColor("#9CA3AF"));
+                btnDelete.setPadding(dp10, dp4, dp4, dp4);
+                btnDelete.setOnClickListener(v -> deleteSavedProject(pid));
+
+                card.addView(iconFrame);
+                card.addView(textCol);
+                card.addView(btnOpen);
+                card.addView(btnDelete);
+
+                card.setOnClickListener(v -> openSavedProject(pname, purl));
+
+                containerProjectsList.addView(card);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Render saved projects error: ", e);
+        }
+    }
+
+    private void openSavedProject(String projectName, String projectUrl) {
+        int savedPlatformId = prefs.getInt("flow_platform_id", 0);
+        int savedAccountId = prefs.getInt("flow_account_id", 0);
+
+        txtActiveAccountName.setText(projectName);
+        showScreen("WEBVIEW");
+
+        if (mWebView != null && mWebView.getUrl() != null && mWebView.getUrl().contains("labs.google")) {
+            mWebView.loadUrl(projectUrl);
+        } else {
+            openAccountInWebView("Google Flow", savedPlatformId, savedAccountId, projectUrl);
+        }
     }
 
     /**
@@ -1127,7 +1329,42 @@ public class MainActivity extends AppCompatActivity
                 "  if (window.__wemate_guard_injected__) return;" +
                 "  window.__wemate_guard_injected__ = true;" +
                 "" +
-                "  /* 4. LIGHTWEIGHT PROJECT CARD CONTROLLER */" +
+                "  /* 4. LIGHTWEIGHT PROJECT CARD CONTROLLER & PROJECT AUTO-SAVE */" +
+                "  function detectAndSaveProject() {" +
+                "    var path = location.pathname;" +
+                "    var m = path.match(/\\/project\\/([a-zA-Z0-9_-]+)/);" +
+                "    if (m && m[1]) {" +
+                "      var pid = m[1];" +
+                "      var purl = 'https://labs.google/fx/tools/flow/project/' + pid;" +
+                "" +
+                "      var name = '';" +
+                "      var titleInput = document.querySelector('header input, input[placeholder*=\"Untitled\" i], [data-testid=\"project-title\"]');" +
+                "      if (titleInput && titleInput.value) {" +
+                "        name = titleInput.value.trim();" +
+                "      }" +
+                "      if (!name) {" +
+                "        var h = document.querySelector('header h1, header h2, [data-testid=\"project-name\"]');" +
+                "        if (h && h.textContent) name = h.textContent.trim();" +
+                "      }" +
+                "      if (!name) {" +
+                "        name = (document.title || '').replace(/^Google\\s*Flow\\s*[-–—]\\s*/i, '').trim();" +
+                "      }" +
+                "      if (!name || name.toLowerCase() === 'google flow') {" +
+                "        name = 'Untitled Project';" +
+                "      }" +
+                "" +
+                "      if (window.AndroidBridge && window.AndroidBridge.saveUserProject) {" +
+                "        window.AndroidBridge.saveUserProject(pid, name, purl);" +
+                "      }" +
+                "    }" +
+                "  }" +
+                "" +
+                "  document.addEventListener('input', function(e) {" +
+                "    if (location.pathname.indexOf('/project/') !== -1) {" +
+                "      detectAndSaveProject();" +
+                "    }" +
+                "  }, true);" +
+                "" +
                 "  function applyGuards() {" +
                 "    var isHome = location.pathname.indexOf('/project/') === -1;" +
                 "    if (isHome) {" +
@@ -1139,6 +1376,7 @@ public class MainActivity extends AppCompatActivity
                 "      });" +
                 "    } else {" +
                 "      document.documentElement.removeAttribute('data-flow-home');" +
+                "      detectAndSaveProject();" +
                 "    }" +
                 "" +
                 "    /* Disable clicks on account menu button in header */" +
@@ -1392,6 +1630,13 @@ public class MainActivity extends AppCompatActivity
         @JavascriptInterface
         public void downloadFromUrl(String url, String filename) {
             downloadUrlDirectly(url, filename);
+        }
+
+        @JavascriptInterface
+        public void saveUserProject(String projectId, String projectName, String projectUrl) {
+            runOnUiThread(() -> {
+                MainActivity.this.saveUserProject(projectId, projectName, projectUrl);
+            });
         }
     }
 

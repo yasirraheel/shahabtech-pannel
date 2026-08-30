@@ -320,6 +320,59 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical" />
 
+                        <!-- My Saved Projects Section Header -->
+                        <LinearLayout
+                            android:id="@+id/container_projects_header"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="24dp"
+                            android:layout_marginBottom="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="My Flow Projects"
+                                android:textColor="@color/text_primary"
+                                android:textSize="17sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/txt_projects_count"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_badge_validity"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="2dp"
+                                android:text="0 Projects"
+                                android:textColor="#B45309"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- Dynamic Saved Projects Container -->
+                        <LinearLayout
+                            android:id="@+id/container_projects_list"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+
+                        <TextView
+                            android:id="@+id/txt_no_projects"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:layout_marginBottom="24dp"
+                            android:background="@drawable/bg_card"
+                            android:padding="16dp"
+                            android:gravity="center"
+                            android:text="No saved projects yet.\nOpen Google Flow to create your first project."
+                            android:textColor="@color/text_muted"
+                            android:textSize="13sp"
+                            android:lineSpacingExtra="3dp" />
+
                     </LinearLayout>
                 </ScrollView>
             </FrameLayout>
