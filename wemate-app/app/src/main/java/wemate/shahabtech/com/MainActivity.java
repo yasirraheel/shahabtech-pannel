@@ -281,7 +281,6 @@ public class MainActivity extends AppCompatActivity
         drawerToggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.on_primary, getTheme()));
 
         toolbar.setOnClickListener(v -> {
-            Toast.makeText(this, "Refreshing dashboard...", Toast.LENGTH_SHORT).show();
             refreshDashboardData();
         });
 
@@ -293,7 +292,6 @@ public class MainActivity extends AppCompatActivity
             int id = item.getItemId();
             if (id == R.id.bottom_home || id == R.id.bottom_accounts) {
                 showScreen("ACCOUNTS");
-                Toast.makeText(this, "Refreshing accounts...", Toast.LENGTH_SHORT).show();
                 refreshDashboardData();
                 return true;
             } else if (id == R.id.bottom_settings) {
@@ -307,7 +305,6 @@ public class MainActivity extends AppCompatActivity
             int id = item.getItemId();
             if (id == R.id.bottom_home || id == R.id.bottom_accounts) {
                 showScreen("ACCOUNTS");
-                Toast.makeText(this, "Refreshing accounts...", Toast.LENGTH_SHORT).show();
                 refreshDashboardData();
             } else if (id == R.id.bottom_settings) {
                 Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
