@@ -2,6 +2,8 @@ package wemate.shahabtech.com;
 
 import android.Manifest;
 import android.app.DownloadManager;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,6 +14,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
+import java.io.File;
+import java.io.OutputStream;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -797,36 +802,112 @@ public class MainActivity extends AppCompatActivity
 
         mWebView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             try {
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-                request.setMimeType(mimetype);
-
-                String cookies = CookieManager.getInstance().getCookie(url);
-                request.addRequestHeader("cookie", cookies);
-                request.addRequestHeader("User-Agent", userAgent);
-
-                String filename = URLDecoder.decode(url.substring(url.lastIndexOf("/") + 1), "UTF-8");
-                if (filename.contains("?")) {
-                    filename = filename.substring(0, filename.indexOf("?"));
+                String filename = "flow_" + System.currentTimeMillis();
+                if (url != null && url.contains("/")) {
+                    String sub = url.substring(url.lastIndexOf("/") + 1);
+                    if (sub.contains("?")) sub = sub.substring(0, sub.indexOf("?"));
+                    if (!sub.isEmpty()) filename = URLDecoder.decode(sub, "UTF-8");
                 }
-                if (!filename.toLowerCase().endsWith(".mp4") && (mimetype.contains("video") || mimetype.contains("mp4"))) {
-                    filename = "video_" + System.currentTimeMillis() + ".mp4";
+                boolean isVid = (mimetype != null && mimetype.contains("video")) || (url != null && url.contains(".mp4"));
+                if (!filename.contains(".")) {
+                    filename += isVid ? ".mp4" : ".png";
                 }
-
-                request.setDescription("Downloading video file...");
-                request.setTitle(filename);
-                request.allowScanningByMediaScanner();
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename);
-
-                DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-                if (dm != null) {
-                    dm.enqueue(request);
-                    Toast.makeText(getApplicationContext(), "Downloading " + filename + " to Downloads folder...", Toast.LENGTH_LONG).show();
-                }
+                showActionLoader("Downloading " + filename + "...");
+                downloadUrlDirectly(url, filename);
             } catch (Exception e) {
-                Toast.makeText(getApplicationContext(), "Download failed: " + e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "Download error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    /**
+     * Saves media (image or video) directly into device Gallery/Movies/Pictures via MediaStore
+     */
+    public void saveMediaToStorage(String base64Data, String filename, String mimeType) {
+        new Thread(() -> {
+            try {
+                byte[] bytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT);
+                boolean isVideo = (mimeType != null && (mimeType.contains("video") || mimeType.contains("mp4"))) || filename.toLowerCase().endsWith(".mp4");
+                String finalMime = isVideo ? "video/mp4" : (mimeType != null && !mimeType.isEmpty() ? mimeType : "image/png");
+
+                ContentResolver resolver = getContentResolver();
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
+                contentValues.put(MediaStore.MediaColumns.MIME_TYPE, finalMime);
+
+                Uri contentUri;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, isVideo ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES);
+                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                    contentUri = resolver.insert(isVideo ? MediaStore.Video.Media.EXTERNAL_CONTENT_URI : MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+                } else {
+                    File dir = Environment.getExternalStoragePublicDirectory(isVideo ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES);
+                    if (!dir.exists()) dir.mkdirs();
+                    File file = new File(dir, filename);
+                    contentValues.put(MediaStore.MediaColumns.DATA, file.getAbsolutePath());
+                    contentUri = resolver.insert(isVideo ? MediaStore.Video.Media.EXTERNAL_CONTENT_URI : MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+                }
+
+                if (contentUri != null) {
+                    try (OutputStream out = resolver.openOutputStream(contentUri)) {
+                        if (out != null) {
+                            out.write(bytes);
+                            out.flush();
+                        }
+                    }
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        contentValues.clear();
+                        contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                        resolver.update(contentUri, contentValues, null, null);
+                    }
+
+                    runOnUiThread(() -> {
+                        hideActionLoader();
+                        Toast.makeText(MainActivity.this, "Saved to Gallery: " + filename, Toast.LENGTH_LONG).show();
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Save media error: ", e);
+                runOnUiThread(() -> {
+                    hideActionLoader();
+                    Toast.makeText(MainActivity.this, "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    public void downloadUrlDirectly(String url, String filename) {
+        new Thread(() -> {
+            try {
+                String cookie = CookieManager.getInstance().getCookie(url);
+                java.net.URL u = new java.net.URL(url);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) u.openConnection();
+                conn.setInstanceFollowRedirects(true);
+                if (cookie != null) conn.setRequestProperty("Cookie", cookie);
+                conn.setRequestProperty("User-Agent", mWebView.getSettings().getUserAgentString());
+                conn.connect();
+
+                String mime = conn.getContentType();
+                java.io.InputStream in = conn.getInputStream();
+                java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+                byte[] data = new byte[8192];
+                int nRead;
+                while ((nRead = in.read(data, 0, data.length)) != -1) {
+                    buffer.write(data, 0, nRead);
+                }
+                buffer.flush();
+                byte[] fileBytes = buffer.toByteArray();
+                String base64 = android.util.Base64.encodeToString(fileBytes, android.util.Base64.NO_WRAP);
+                saveMediaToStorage(base64, filename, mime);
+            } catch (Exception e) {
+                Log.e(TAG, "Download URL error: ", e);
+                runOnUiThread(() -> {
+                    hideActionLoader();
+                    Toast.makeText(MainActivity.this, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
     }
 
     /**
@@ -836,17 +917,75 @@ public class MainActivity extends AppCompatActivity
      * 3. Guarantees "+ New Project" button and its creation panel/drawer work 100%
      * 4. Disables and blocks any Sign-out / Logout clicks
      * 5. Triggers custom in-app action loader when clicking New Project or Generate
+     * 6. Intercepts blob & image/video downloads and saves directly to Android Gallery
      */
     private void injectExtensionGuards(WebView view) {
         String js = "(function() {" +
-                "  /* 1. SAFE WINDOW.OPEN PROXY — KEEPS NAVIGATION INSIDE THE SAME WEBVIEW */" +
+                "  /* 1. DIRECT MEDIA DOWNLOAD HELPER (SAVES TO GALLERY VIA BRIDGE) */" +
+                "  function handleMediaDownload(url, filename) {" +
+                "    if (!url || typeof url !== 'string') return;" +
+                "    if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
+                "      window.AndroidBridge.onActionStarted('Downloading media...');" +
+                "    }" +
+                "    fetch(url)" +
+                "      .then(function(res) { return res.blob(); })" +
+                "      .then(function(blob) {" +
+                "        var mime = blob.type || (filename && filename.endsWith('.mp4') ? 'video/mp4' : 'image/png');" +
+                "        var reader = new FileReader();" +
+                "        reader.onloadend = function() {" +
+                "          var base64 = (reader.result || '').split(',')[1];" +
+                "          if (base64 && window.AndroidBridge && window.AndroidBridge.saveMediaBase64) {" +
+                "            var isVid = mime.includes('video') || (filename && filename.endsWith('.mp4'));" +
+                "            var finalName = filename || ((isVid ? 'flow_video_' : 'flow_image_') + Date.now() + (isVid ? '.mp4' : '.png'));" +
+                "            window.AndroidBridge.saveMediaBase64(base64, finalName, mime);" +
+                "          }" +
+                "        };" +
+                "        reader.readAsDataURL(blob);" +
+                "      })" +
+                "      .catch(function() {" +
+                "        if (window.AndroidBridge && window.AndroidBridge.downloadFromUrl) {" +
+                "          window.AndroidBridge.downloadFromUrl(url, filename || ('flow_' + Date.now()));" +
+                "        }" +
+                "      });" +
+                "  }" +
+                "" +
+                "  /* 2. SAFE WINDOW.OPEN & ANCHOR DOWNLOAD INTERCEPTOR */" +
                 "  try {" +
+                "    var _origAnchorClick = HTMLAnchorElement.prototype.click;" +
+                "    HTMLAnchorElement.prototype.click = function() {" +
+                "      var href = this.href || '';" +
+                "      var dl = this.download || this.getAttribute('download');" +
+                "      if (dl !== null && dl !== undefined || href.includes('getMediaUrlRedirect') || href.startsWith('blob:') || href.startsWith('data:')) {" +
+                "        handleMediaDownload(href, dl || ('flow_' + Date.now()));" +
+                "        return;" +
+                "      }" +
+                "      return _origAnchorClick.apply(this, arguments);" +
+                "    };" +
+                "" +
                 "    var _proxyWin = {" +
                 "      location: {" +
-                "        set href(val) { if (val) window.location.href = val; }," +
+                "        set href(val) {" +
+                "          if (val && (val.includes('getMediaUrlRedirect') || val.includes('.mp4') || val.includes('.png') || val.startsWith('blob:') || val.startsWith('data:'))) {" +
+                "            handleMediaDownload(val, 'flow_' + Date.now());" +
+                "            return;" +
+                "          }" +
+                "          if (val) window.location.href = val;" +
+                "        }," +
                 "        get href() { return window.location.href; }," +
-                "        replace: function(val) { if (val) window.location.replace(val); }," +
-                "        assign: function(val) { if (val) window.location.assign(val); }" +
+                "        replace: function(val) {" +
+                "          if (val && (val.includes('getMediaUrlRedirect') || val.includes('.mp4') || val.includes('.png') || val.startsWith('blob:') || val.startsWith('data:'))) {" +
+                "            handleMediaDownload(val, 'flow_' + Date.now());" +
+                "            return;" +
+                "          }" +
+                "          if (val) window.location.replace(val);" +
+                "        }," +
+                "        assign: function(val) {" +
+                "          if (val && (val.includes('getMediaUrlRedirect') || val.includes('.mp4') || val.includes('.png') || val.startsWith('blob:') || val.startsWith('data:'))) {" +
+                "            handleMediaDownload(val, 'flow_' + Date.now());" +
+                "            return;" +
+                "          }" +
+                "          if (val) window.location.assign(val);" +
+                "        }" +
                 "      }," +
                 "      focus: function() {}," +
                 "      close: function() {}," +
@@ -854,13 +993,17 @@ public class MainActivity extends AppCompatActivity
                 "    };" +
                 "    window.open = function(url) {" +
                 "      if (url && typeof url === 'string') {" +
+                "        if (url.includes('getMediaUrlRedirect') || url.includes('.mp4') || url.includes('.png') || url.startsWith('blob:') || url.startsWith('data:')) {" +
+                "          handleMediaDownload(url, 'flow_' + Date.now());" +
+                "          return _proxyWin;" +
+                "        }" +
                 "        window.location.href = url;" +
                 "      }" +
                 "      return _proxyWin;" +
                 "    };" +
                 "  } catch(_) {}" +
                 "" +
-                "  /* 2. TARGETED CSS (HIDES GOOGLE AVATAR & MARKED PROJECT CARDS ONLY) */" +
+                "  /* 3. TARGETED CSS (HIDES GOOGLE AVATAR & SHARED PROJECTS ONLY) */" +
                 "  if (!document.getElementById('__wemate_guard_style__')) {" +
                 "    var style = document.createElement('style');" +
                 "    style.id = '__wemate_guard_style__';" +
@@ -912,7 +1055,7 @@ public class MainActivity extends AppCompatActivity
                 "  if (window.__wemate_guard_injected__) return;" +
                 "  window.__wemate_guard_injected__ = true;" +
                 "" +
-                "  /* 3. LIGHTWEIGHT PROJECT CARD CONTROLLER */" +
+                "  /* 4. LIGHTWEIGHT PROJECT CARD CONTROLLER */" +
                 "  function applyGuards() {" +
                 "    var isHome = location.pathname.indexOf('/project/') === -1;" +
                 "    if (isHome) {" +
@@ -937,7 +1080,7 @@ public class MainActivity extends AppCompatActivity
                 "" +
                 "  applyGuards();" +
                 "" +
-                "  /* 4. ACTION LOADER & GOOGLE LOGOUT BLOCKER */" +
+                "  /* 5. ACTION LOADER, DOWNLOAD CLICK HANDLER & GOOGLE LOGOUT BLOCKER */" +
                 "  document.addEventListener('click', function(e) {" +
                 "    var el = e.target;" +
                 "    for (var i = 0; i < 6 && el; i++) {" +
@@ -953,6 +1096,23 @@ public class MainActivity extends AppCompatActivity
                 "        e.stopPropagation();" +
                 "        e.stopImmediatePropagation();" +
                 "        return false;" +
+                "      }" +
+                "" +
+                "      /* Handle Download Button Clicks */" +
+                "      if (txt === 'download' || txt.includes('download') || aria.includes('download')) {" +
+                "        setTimeout(function() {" +
+                "          var media = document.querySelector('[role=\"dialog\"] video, [role=\"dialog\"] img');" +
+                "          if (!media) {" +
+                "            var imgs = Array.from(document.querySelectorAll('img[src*=\"getMediaUrlRedirect\"], video[src*=\"getMediaUrlRedirect\"], video, img[src*=\"googleusercontent.com/fife\"]'));" +
+                "            imgs = imgs.filter(function(m) { return m.getBoundingClientRect().width > 120; });" +
+                "            if (imgs.length > 0) media = imgs[imgs.length - 1];" +
+                "          }" +
+                "          if (media && media.src) {" +
+                "            var isVid = media.tagName === 'VIDEO' || media.src.includes('.mp4');" +
+                "            var fn = (isVid ? 'flow_video_' : 'flow_image_') + Date.now() + (isVid ? '.mp4' : '.png');" +
+                "            handleMediaDownload(media.src, fn);" +
+                "          }" +
+                "        }, 150);" +
                 "      }" +
                 "" +
                 "      /* Trigger in-app action loader for New Project click */" +
@@ -985,7 +1145,7 @@ public class MainActivity extends AppCompatActivity
                 "    }" +
                 "  }, true);" +
                 "" +
-                "  /* 5. MUTATION OBSERVER WITH 400ms DEBOUNCE */" +
+                "  /* 6. MUTATION OBSERVER WITH 400ms DEBOUNCE */" +
                 "  var _t = null;" +
                 "  var observer = new MutationObserver(function() {" +
                 "    if (_t) return;" +
@@ -1130,6 +1290,16 @@ public class MainActivity extends AppCompatActivity
         @JavascriptInterface
         public void onActionFinished() {
             hideActionLoader();
+        }
+
+        @JavascriptInterface
+        public void saveMediaBase64(String base64Data, String filename, String mimeType) {
+            saveMediaToStorage(base64Data, filename, mimeType);
+        }
+
+        @JavascriptInterface
+        public void downloadFromUrl(String url, String filename) {
+            downloadUrlDirectly(url, filename);
         }
     }
 
