@@ -722,11 +722,9 @@ public class MainActivity extends AppCompatActivity
                     return true;
                 }
 
-                // UNIVERSAL FILE DOWNLOAD DETECTION ON NAVIGATION
-                if (url.endsWith(".mp4") || url.endsWith(".png") || url.endsWith(".jpg") ||
-                        url.endsWith(".jpeg") || url.endsWith(".webp") || url.endsWith(".gif") ||
-                        url.endsWith(".zip") || url.endsWith(".pdf") || url.contains("getmediaurlredirect")) {
-                    String fn = "flow_" + System.currentTimeMillis();
+                // Only intercept direct file download navigations (e.g. standalone files)
+                if (url.endsWith(".zip") || url.endsWith(".pdf") || url.endsWith(".tar") || url.endsWith(".apk")) {
+                    String fn = "download_" + System.currentTimeMillis();
                     if (url.contains("/")) {
                         String sub = url.substring(url.lastIndexOf("/") + 1);
                         if (sub.contains("?")) sub = sub.substring(0, sub.indexOf("?"));
@@ -948,8 +946,12 @@ public class MainActivity extends AppCompatActivity
     private void injectExtensionGuards(WebView view) {
         String js = "(function() {" +
                 "  /* 1. UNIVERSAL MEDIA & FILE DOWNLOAD HELPER */" +
+                "  var _downloadLock = false;" +
                 "  function handleMediaDownload(url, filename) {" +
                 "    if (!url || typeof url !== 'string') return;" +
+                "    if (_downloadLock) return;" +
+                "    _downloadLock = true;" +
+                "    setTimeout(function() { _downloadLock = false; }, 3000);" +
                 "    if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
                 "      window.AndroidBridge.onActionStarted('Downloading file...');" +
                 "    }" +
@@ -1168,18 +1170,19 @@ public class MainActivity extends AppCompatActivity
                 "        return false;" +
                 "      }" +
                 "" +
-                "      /* Handle Download Button Clicks & Quality Options (1K, 2K, 4K, Original size, Upscaled) */" +
+                "      /* Only trigger on actual quality resolution selections (1K, 2K, 4K, Original size, Upscaled) */" +
                 "      var clean = txt.replace(/\\s+/g, ' ');" +
-                "      var isDownloadAction = false;" +
-                "      if (clean.includes('download') || aria.includes('download') ||" +
-                "          clean.includes('original size') || clean.includes('upscaled') ||" +
-                "          clean === '1k' || clean === '2k' || clean === '4k' ||" +
-                "          clean.startsWith('1k') || clean.startsWith('2k') || clean.startsWith('4k') ||" +
-                "          (el.getAttribute('role') === 'menuitem' && (clean.includes('1k') || clean.includes('2k') || clean.includes('4k')))) {" +
-                "        isDownloadAction = true;" +
-                "      }" +
+                "      var isResolutionAction = (el.getAttribute('role') === 'menuitem' || el.tagName === 'BUTTON') &&" +
+                "          (clean === '1k' || clean === '2k' || clean === '4k' ||" +
+                "           clean.includes('1k original') || clean.includes('original size') ||" +
+                "           clean.includes('2k upscaled') || clean.includes('4k upscaled') ||" +
+                "           clean.startsWith('1k') || clean.startsWith('2k') || clean.startsWith('4k'));" +
                 "" +
-                "      if (isDownloadAction) {" +
+                "      if (isResolutionAction) {" +
+                "        if (_downloadLock) break;" +
+                "        _downloadLock = true;" +
+                "        setTimeout(function() { _downloadLock = false; }, 3000);" +
+                "" +
                 "        if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
                 "          window.AndroidBridge.onActionStarted('Downloading media...');" +
                 "        }" +
@@ -1201,10 +1204,7 @@ public class MainActivity extends AppCompatActivity
                 "            handleMediaDownload(media.src, fn);" +
                 "          }" +
                 "        }, 120);" +
-                "" +
-                "        if (clean.includes('original size') || clean.includes('upscaled') || clean.startsWith('1k') || clean.startsWith('2k') || clean.startsWith('4k')) {" +
-                "          break;" +
-                "        }" +
+                "        break;" +
                 "      }" +
                 "" +
                 "      /* Trigger in-app action loader for New Project click */" +
