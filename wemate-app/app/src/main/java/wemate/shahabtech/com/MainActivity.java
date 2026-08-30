@@ -127,6 +127,7 @@ public class MainActivity extends AppCompatActivity
     private String currentUserName = "";
     private String currentValidityText = "";
     private boolean currentIsExpired = false;
+    private boolean isRefreshingAccounts = false;
 
     private boolean isApiWebViewReady = false;
     private final java.util.List<Runnable> pendingApiActions = new java.util.ArrayList<>();
@@ -375,7 +376,7 @@ public class MainActivity extends AppCompatActivity
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
             // Primary Indigo status bar (#6366F1) matching MaterialToolbar
             updateStatusBarColor(0xFF6366F1, true);
-            refreshDashboardData();
+            renderSavedProjects();
         } else if ("WEBVIEW".equals(screen)) {
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
             // Dark Slate status bar (#1E293B) matching WebView Header bar
@@ -488,7 +489,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void loadAssignedAccounts() {
-        if (accountsProgress != null) {
+        if (accountsProgress != null && containerAccountList.getChildCount() == 0) {
             accountsProgress.setVisibility(View.VISIBLE);
         }
         if (txtNoAccounts != null) {
@@ -929,18 +930,16 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void refreshDashboardData() {
-        if (accountsProgress != null) {
-            accountsProgress.setVisibility(View.VISIBLE);
-        }
         renderSavedProjects();
 
-        String savedUser = prefs.getString("saved_username", "");
-        String savedPass = prefs.getString("saved_password", "");
-        if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
-            performLogin(savedUser, savedPass, true);
-        } else {
-            loadAssignedAccounts();
+        if (isRefreshingAccounts) return;
+        isRefreshingAccounts = true;
+
+        if (accountsProgress != null && containerAccountList.getChildCount() == 0) {
+            accountsProgress.setVisibility(View.VISIBLE);
         }
+
+        loadAssignedAccounts();
     }
 
     /**
@@ -1632,7 +1631,10 @@ public class MainActivity extends AppCompatActivity
         @JavascriptInterface
         public void onPlatformsResult(String jsonStr) {
             runOnUiThread(() -> {
-                accountsProgress.setVisibility(View.GONE);
+                isRefreshingAccounts = false;
+                if (accountsProgress != null) {
+                    accountsProgress.setVisibility(View.GONE);
+                }
 
                 try {
                     JSONObject response = new JSONObject(jsonStr);
@@ -1698,9 +1700,12 @@ public class MainActivity extends AppCompatActivity
         @JavascriptInterface
         public void onApiError(String errorMsg) {
             runOnUiThread(() -> {
+                isRefreshingAccounts = false;
                 loginProgress.setVisibility(View.GONE);
                 btnLogin.setEnabled(true);
-                accountsProgress.setVisibility(View.GONE);
+                if (accountsProgress != null) {
+                    accountsProgress.setVisibility(View.GONE);
+                }
                 webviewProgress.setVisibility(View.GONE);
 
                 // If accounts are already displayed from cache, don't disturb the user with a toast
