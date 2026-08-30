@@ -317,7 +317,10 @@ function getFileExt($key)
 
 function diffForHumans($date)
 {
-    $lang = session()->get('lang');
+    if (!$date) {
+        return '-';
+    }
+    $lang = session()->get('lang') ?: 'en';
     Carbon::setlocale($lang);
     return Carbon::parse($date)->diffForHumans();
 }
@@ -328,7 +331,7 @@ function showDateTime($date, $format = 'Y-m-d h:i A')
     if (!$date) {
         return '-';
     }
-    $lang = session()->get('lang');
+    $lang = session()->get('lang') ?: 'en';
     Carbon::setlocale($lang);
     return Carbon::parse($date)->translatedFormat($format);
 }

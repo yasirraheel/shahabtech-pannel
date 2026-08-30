@@ -42,21 +42,21 @@
                 <button type="button" class="primary--layer notification-bell" data-bs-toggle="dropdown" data-display="static"
                     aria-haspopup="true" aria-expanded="false">
                     <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="@lang('Unread Notifications')">
-                        <i class="las la-bell @if($adminNotificationCount > 0) icon-left-right @endif"></i>
+                        <i class="las la-bell @if(!empty($adminNotificationCount) && $adminNotificationCount > 0) icon-left-right @endif"></i>
                     </span>
-                    @if($adminNotificationCount > 0)
+                    @if(!empty($adminNotificationCount) && $adminNotificationCount > 0)
                     <span class="notification-count">{{ $adminNotificationCount <= 9 ? $adminNotificationCount : '9+'}}</span>
                     @endif
                 </button>
                 <div class="dropdown-menu dropdown-menu--md p-0 border-0 box--shadow1 dropdown-menu-right">
                     <div class="dropdown-menu__header">
                         <span class="caption">@lang('Notification')</span>
-                        @if($adminNotificationCount > 0)
+                        @if(!empty($adminNotificationCount) && $adminNotificationCount > 0)
                             <p>@lang('You have') {{ $adminNotificationCount }} @lang('unread notification')</p>
                         @endif
                     </div>
-                    <div class="dropdown-menu__body @if(blank($adminNotifications)) d-flex justify-content-center align-items-center @endif">
-                        @forelse($adminNotifications as $notification)
+                    <div class="dropdown-menu__body @if(empty($adminNotifications) || blank($adminNotifications)) d-flex justify-content-center align-items-center @endif">
+                        @forelse($adminNotifications ?? [] as $notification)
                             <a href="{{ route('admin.notification.read',$notification->id) }}"
                                 class="dropdown-menu__item">
                                 <div class="navbar-notifi">
@@ -89,9 +89,9 @@
                 <button type="button" data-bs-toggle="dropdown" data-display="static" aria-haspopup="true"
                     aria-expanded="false">
                     <span class="navbar-user">
-                        <span class="navbar-user__thumb"><img src="{{ getImage(getFilePath('adminProfile').'/'. auth()->guard('admin')->user()->image,getFileSize('adminProfile'))}}" alt="image"></span>
+                        <span class="navbar-user__thumb"><img src="{{ getImage(getFilePath('adminProfile').'/'. (auth()->guard('admin')->user()->image ?? ''), getFileSize('adminProfile'))}}" alt="image"></span>
                         <span class="navbar-user__info">
-                            <span class="navbar-user__name">{{ auth()->guard('admin')->user()->username }}</span>
+                            <span class="navbar-user__name">{{ auth()->guard('admin')->user()->username ?? '' }}</span>
                         </span>
                         <span class="icon"><i class="las la-chevron-circle-down"></i></span>
                     </span>
