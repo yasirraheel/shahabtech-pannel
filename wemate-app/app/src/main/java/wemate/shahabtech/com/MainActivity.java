@@ -878,12 +878,20 @@ public class MainActivity extends AppCompatActivity
                 "        width: 0 !important;" +
                 "        height: 0 !important;" +
                 "      }" +
-                "      /* HIDE MARKED SHARED PROJECT CARDS (NEVER THE SCROLLER OR NEW PROJECT) */" +
-                "      [data-bf-hide] {" +
-                "        display: none !important;" +
+                "      /* HIDE SHARED PROJECT CARDS ON HOME PAGE WITHOUT BREAKING MEASUREMENTS */" +
+                "      html[data-flow-home='1'] [data-testid='virtuoso-item-list']," +
+                "      html[data-flow-home='1'] div:has(> a[href*='/project/']) {" +
                 "        visibility: hidden !important;" +
-                "        height: 0 !important;" +
-                "        overflow: hidden !important;" +
+                "        opacity: 0 !important;" +
+                "        pointer-events: none !important;" +
+                "      }" +
+                "      /* HIDE SECTION HEADERS ON HOME PAGE */" +
+                "      html[data-flow-home='1'] h1," +
+                "      html[data-flow-home='1'] h2," +
+                "      html[data-flow-home='1'] h3," +
+                "      html[data-flow-home='1'] h4," +
+                "      html[data-flow-home='1'] h5 {" +
+                "        display: none !important;" +
                 "      }" +
                 "      /* ALWAYS PRESERVE NEW PROJECT BUTTON & CREATION DIALOGS */" +
                 "      button," +
@@ -894,6 +902,8 @@ public class MainActivity extends AppCompatActivity
                 "      input," +
                 "      textarea {" +
                 "        opacity: 1 !important;" +
+                "        visibility: visible !important;" +
+                "        pointer-events: auto !important;" +
                 "      }" +
                 "    `;" +
                 "    (document.head || document.documentElement).appendChild(style);" +
@@ -906,26 +916,14 @@ public class MainActivity extends AppCompatActivity
                 "  function applyGuards() {" +
                 "    var isHome = location.pathname.indexOf('/project/') === -1;" +
                 "    if (isHome) {" +
-                "      /* Hide Recent projects headings on home page */" +
-                "      document.querySelectorAll('h1, h2, h3, h4, h5').forEach(function(h) {" +
-                "        var t = (h.textContent || '').trim().toLowerCase();" +
-                "        if (t === 'recent projects' || t === 'your projects' || t === 'recent' || t === 'projects') {" +
-                "          h.style.setProperty('display', 'none', 'important');" +
-                "        }" +
+                "      document.documentElement.setAttribute('data-flow-home', '1');" +
+                "      document.querySelectorAll('div:has(> a[href*=\"/project/\"]), [data-testid=\"virtuoso-item-list\"]').forEach(function(el) {" +
+                "        el.style.setProperty('visibility', 'hidden', 'important');" +
+                "        el.style.setProperty('opacity', '0', 'important');" +
+                "        el.style.setProperty('pointer-events', 'none', 'important');" +
                 "      });" +
-                "      /* Hide individual project cards (never New Project button) */" +
-                "      document.querySelectorAll('a[href*=\"/project/\"]').forEach(function(a) {" +
-                "        if (a.dataset.bfSeen) return;" +
-                "        a.dataset.bfSeen = '1';" +
-                "        var txt = (a.textContent || '').toLowerCase();" +
-                "        if (txt.includes('new') || txt.includes('create') || txt.includes('+')) return;" +
-                "        var card = a.closest('article') || a.closest('li') || a.closest('[role=\"gridcell\"]');" +
-                "        if (card) {" +
-                "          card.setAttribute('data-bf-hide', '1');" +
-                "        } else {" +
-                "          a.setAttribute('data-bf-hide', '1');" +
-                "        }" +
-                "      });" +
+                "    } else {" +
+                "      document.documentElement.removeAttribute('data-flow-home');" +
                 "    }" +
                 "" +
                 "    /* Disable clicks on account menu button in header */" +
