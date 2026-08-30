@@ -16,6 +16,7 @@ Route::get('cron/cookie-check', 'CronController@cookieCheck')->name('cron.cookie
 // Extension API Routes (Session-based via normal auth)
 Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->group(function () {
     Route::get('version', 'ExtensionController@version')->name('version');
+    Route::post('login', 'ExtensionController@mobileLogin')->name('mobile.login');
     Route::middleware('auth')->group(function () {
         Route::get('me', 'ExtensionController@me')->name('me');
         Route::get('platforms', 'ExtensionController@platforms')->name('platforms');

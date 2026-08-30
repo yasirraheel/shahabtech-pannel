@@ -13,6 +13,50 @@ use App\Http\Controllers\Controller;
 class ExtensionController extends Controller
 {
     /**
+     * Mobile App Login endpoint
+     */
+    public function mobileLogin(Request $request)
+    {
+        $request->validate([
+            'username' => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $loginType = filter_var($request->username, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        
+        if (!auth()->attempt([$loginType => $request->username, 'password' => $request->password])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid username/email or password',
+            ], 401);
+        }
+
+        $user = auth()->user();
+
+        if ($user->status == Status::USER_BAN) {
+            auth()->logout();
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been banned by administrator.',
+            ], 403);
+        }
+
+        $expiryDate = $user->expires_at ?: $user->created_at->addDays(30);
+        $isExpired = now()->greaterThanOrEqualTo($expiryDate);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'user'    => [
+                'id'       => $user->id,
+                'name'     => $user->fullname,
+                'username' => $user->username,
+                'email'    => $user->email,
+                'expired'  => $isExpired,
+            ],
+        ]);
+    }
+    /**
      * Get all platforms the user has access to via their plan
      */
     public function platforms(Request $request)
