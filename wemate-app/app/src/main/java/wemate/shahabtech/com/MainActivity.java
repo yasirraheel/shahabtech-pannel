@@ -1614,6 +1614,19 @@ public class MainActivity extends AppCompatActivity
                 "        break;" +
                 "      }" +
                 "" +
+                "      /* Trigger in-app action loader for New Project click */" +
+                "      if (txt.includes('new project') || txt.includes('create new') || aria.includes('new project')) {" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
+                "          window.AndroidBridge.onActionStarted('Creating new project...');" +
+                "        }" +
+                "        setTimeout(function() {" +
+                "          if (window.AndroidBridge && window.AndroidBridge.onActionFinished) {" +
+                "            window.AndroidBridge.onActionFinished();" +
+                "          }" +
+                "        }, 4500);" +
+                "        break;" +
+                "      }" +
+                "" +
                 "      /* Trigger in-app action loader for Generate video click */" +
                 "      if (txt === 'generate' || aria.includes('generate')) {" +
                 "        if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
