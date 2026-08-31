@@ -501,9 +501,11 @@ public class MainActivity extends AppCompatActivity
             String js = "(function() {" +
                     "  fetch('" + SERVER_URL + "/api/extension/login', {" +
                     "    method: 'POST'," +
+                    "    credentials: 'include'," +
                     "    headers: {" +
                     "      'Content-Type': 'application/json'," +
-                    "      'Accept': 'application/json'" +
+                    "      'Accept': 'application/json'," +
+                    "      'X-Requested-With': 'XMLHttpRequest'" +
                     "    }," +
                     "    body: JSON.stringify({" +
                     "      username: " + JSONObject.quote(user) + "," +
@@ -546,6 +548,7 @@ public class MainActivity extends AppCompatActivity
                     "    credentials: 'include'," +
                     "    headers: {" +
                     "      'Accept': 'application/json'," +
+                    "      'X-Requested-With': 'XMLHttpRequest'," +
                     "      'Cache-Control': 'no-cache, no-store, must-revalidate'," +
                     "      'Pragma': 'no-cache'" +
                     "    }" +
@@ -562,6 +565,7 @@ public class MainActivity extends AppCompatActivity
             mApiWebView.post(() -> mApiWebView.evaluateJavascript(js, null));
         });
     }
+
 
 
 
@@ -980,16 +984,19 @@ public class MainActivity extends AppCompatActivity
             accountsProgress.setVisibility(View.VISIBLE);
         }
 
-        // Re-login silently to get a fresh session cookie, then fetch live real-time accounts
-        String savedUser = prefs.getString("saved_username", "");
-        String savedPass = prefs.getString("saved_password", "");
-        if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
-            isApiLoggedIn = false; // Reset gate so login will fire loadAssignedAccounts() after confirming session
-            performLogin(savedUser, savedPass, true);
-        } else {
+        if (isApiLoggedIn) {
             loadAssignedAccounts();
+        } else {
+            String savedUser = prefs.getString("saved_username", "");
+            String savedPass = prefs.getString("saved_password", "");
+            if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
+                performLogin(savedUser, savedPass, true);
+            } else {
+                loadAssignedAccounts();
+            }
         }
     }
+
 
 
     /**
@@ -1776,10 +1783,16 @@ public class MainActivity extends AppCompatActivity
                 }
                 webviewProgress.setVisibility(View.GONE);
 
-                // If accounts are already displayed from cache, don't disturb the user with a toast
-                if (containerAccountList.getChildCount() == 0) {
-                    Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                // Show clean in-layout error message without any Toast popups
+                if (containerAccountList != null && containerAccountList.getChildCount() == 0) {
+                    if (txtNoAccounts != null) {
+                        txtNoAccounts.setText("Unable to load accounts.\nTap refresh to try again.");
+                    }
+                    if (cardNoAccounts != null) {
+                        cardNoAccounts.setVisibility(View.VISIBLE);
+                    }
                 }
+
 
                 // If currently showing webview and it's empty, fallback load Google Flow directly
                 if (layoutWebview.getVisibility() == View.VISIBLE && (mWebView.getUrl() == null || mWebView.getUrl().equals("about:blank"))) {

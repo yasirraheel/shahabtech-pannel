@@ -113,8 +113,16 @@ class ExtensionController extends Controller
     public function platforms(Request $request)
     {
         $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'status'  => 401,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
 
         $validity = $this->getUserValidity($user);
+
 
         if (!$user->plan_id && empty($user->account_ids)) {
             return response()->json([
@@ -221,7 +229,11 @@ class ExtensionController extends Controller
     public function getCookies(Request $request, $platformId, $accountId = null)
     {
         $user = $request->user();
-        $isAdmin = auth()->guard('admin')->check() || session()->get('is_admin_testing') === true || (bool) $user->is_tester;
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+        $isAdmin = auth()->guard('admin')->check() || session()->get('is_admin_testing') === true || (bool) ($user->is_tester ?? false);
+
 
         if (!$isAdmin && !$user->plan_id && empty($user->account_ids)) {
             return response()->json(['success' => false, 'message' => 'No active plan or accounts'], 403);
