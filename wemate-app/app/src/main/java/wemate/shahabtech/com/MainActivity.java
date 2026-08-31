@@ -1614,6 +1614,19 @@ public class MainActivity extends AppCompatActivity
                 "        break;" +
                 "      }" +
                 "" +
+                "      /* Trigger in-app action loader for Generate video click */" +
+                "      if (txt === 'generate' || aria.includes('generate')) {" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onActionStarted) {" +
+                "          window.AndroidBridge.onActionStarted('Generating video...');" +
+                "        }" +
+                "        setTimeout(function() {" +
+                "          if (window.AndroidBridge && window.AndroidBridge.onActionFinished) {" +
+                "            window.AndroidBridge.onActionFinished();" +
+                "          }" +
+                "        }, 6000);" +
+                "        break;" +
+                "      }" +
+                "" +
                 "      el = el.parentElement;" +
                 "    }" +
                 "  }, true);" +
