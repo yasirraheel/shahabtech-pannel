@@ -158,12 +158,18 @@ public class MainActivity extends AppCompatActivity
     /** Called after a successful login to flush cookie and unblock pending requests */
     private void onApiLoginConfirmed() {
         CookieManager.getInstance().flush();
+        String panelCookies = CookieManager.getInstance().getCookie(SERVER_URL);
+        if (panelCookies != null && !panelCookies.isEmpty()) {
+            prefs.edit().putString("saved_panel_cookies", panelCookies).apply();
+            Log.d(TAG, "Saved panel session cookies: " + panelCookies);
+        }
         isApiLoggedIn = true;
         for (Runnable r : new java.util.ArrayList<>(pendingLoggedInActions)) {
             r.run();
         }
         pendingLoggedInActions.clear();
     }
+
 
 
     @Override
@@ -539,6 +545,23 @@ public class MainActivity extends AppCompatActivity
             cardNoAccounts.setVisibility(View.GONE);
         }
 
+        // Restore panel API session cookie to CookieManager before making API fetch
+        String savedPanelCookies = prefs.getString("saved_panel_cookies", "");
+        if (!savedPanelCookies.isEmpty()) {
+            try {
+                CookieManager cm = CookieManager.getInstance();
+                String[] parts = savedPanelCookies.split(";");
+                for (String part : parts) {
+                    if (!part.trim().isEmpty()) {
+                        cm.setCookie(SERVER_URL, part.trim());
+                    }
+                }
+                cm.flush();
+            } catch (Exception e) {
+                Log.e(TAG, "Error restoring panel cookies in loadAssignedAccounts: " + e.getMessage());
+            }
+        }
+
         // IMPORTANT: Only fire after login session cookie is confirmed — prevents 401 Unauthorized
         runWhenLoggedIn(() -> {
             String js = "(function() {" +
@@ -570,12 +593,6 @@ public class MainActivity extends AppCompatActivity
 
 
     private void openAccountInWebView(String displayName, int platformId, int accountId, String targetUrl) {
-        int previousAccountId = prefs.getInt("active_account_id", 0);
-        if (accountId > 0 && previousAccountId > 0 && previousAccountId != accountId) {
-            // Switching to a different account — wipe all current session cookies
-            CookieManager.getInstance().removeAllCookies(null);
-            CookieManager.getInstance().flush();
-        }
         if (accountId > 0) {
             prefs.edit().putInt("active_account_id", accountId).apply();
         }
@@ -596,6 +613,7 @@ public class MainActivity extends AppCompatActivity
         // Fetch FRESH cookies from server first — then inject and load the page
         fetchFreshCookiesThenLoad(platformId, accountId, finalTargetUrl);
     }
+
 
     /**
      * Fetches fresh cookies from panel server for the given account,
@@ -1733,13 +1751,15 @@ public class MainActivity extends AppCompatActivity
                         JSONArray cookies = response.optJSONArray("cookies");
                         if (cookies != null && cookies.length() > 0) {
                             Log.d(TAG, "Injecting " + cookies.length() + " fresh server cookies for platform " + platformId + " account " + accountId);
-                            // Clear old session cookies & WebStorage asynchronously, inject fresh cookies, THEN load URL
-                            CookieInjector.clearAndInjectCookies(MainActivity.this, mWebView, cookies, targetUrl, () -> {
+                            String savedPanelCookies = prefs.getString("saved_panel_cookies", "");
+                            // Clear old session cookies & WebStorage asynchronously, restore panel session cookies, inject fresh cookies, THEN load URL
+                            CookieInjector.clearAndInjectCookies(MainActivity.this, mWebView, cookies, targetUrl, savedPanelCookies, SERVER_URL, () -> {
                                 hideActionLoader();
                                 mWebView.loadUrl(targetUrl);
                             });
                             return;
                         }
+
                     } else {
                         String msg = response.optString("message", "");
                         Log.w(TAG, "Fresh cookie fetch failed: " + msg);

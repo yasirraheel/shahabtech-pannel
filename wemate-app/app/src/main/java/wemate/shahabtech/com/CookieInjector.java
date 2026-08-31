@@ -15,10 +15,11 @@ public class CookieInjector {
     private static final String TAG = "CookieInjector";
 
     /**
-     * Clears all old cookies and WebStorage asynchronously,
-     * then injects the new cookies and calls onComplete when done.
+     * Clears old Google session cookies & WebStorage asynchronously,
+     * restores panel API session cookies so API WebView never loses its session,
+     * then injects fresh target account cookies and calls onComplete.
      */
-    public static void clearAndInjectCookies(Context context, WebView webView, JSONArray cookiesArray, String targetUrl, Runnable onComplete) {
+    public static void clearAndInjectCookies(Context context, WebView webView, JSONArray cookiesArray, String targetUrl, String panelSessionCookies, String serverUrl, Runnable onComplete) {
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
 
@@ -36,12 +37,29 @@ public class CookieInjector {
             public void onReceiveValue(Boolean value) {
                 cookieManager.flush();
 
+                // 1. Restore panel API session cookie so API WebView stays logged in!
+                if (panelSessionCookies != null && !panelSessionCookies.isEmpty() && serverUrl != null) {
+                    try {
+                        String[] parts = panelSessionCookies.split(";");
+                        for (String part : parts) {
+                            if (!part.trim().isEmpty()) {
+                                cookieManager.setCookie(serverUrl, part.trim());
+                            }
+                        }
+                        cookieManager.flush();
+                        Log.i(TAG, "Restored panel session cookies to " + serverUrl);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error restoring panel cookies: " + e.getMessage());
+                    }
+                }
+
+                // 2. Inject fresh target account cookies for Google Flow / platform
                 if (cookiesArray != null && cookiesArray.length() > 0) {
                     injectCookiesInternal(cookieManager, cookiesArray, targetUrl);
                 }
 
                 cookieManager.flush();
-                Log.i(TAG, "Fresh cookies injected and flushed.");
+                Log.i(TAG, "Fresh account cookies injected and flushed.");
 
                 if (onComplete != null) {
                     onComplete.run();
@@ -106,4 +124,5 @@ public class CookieInjector {
         }
     }
 }
+
 
