@@ -208,8 +208,11 @@ class ExtensionController extends Controller
             'platforms'     => $accounts,
             'validity_text' => $validity['validity_text'],
             'is_expired'    => $validity['is_expired'],
-        ]);
+        ])->header('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+          ->header('Pragma', 'no-cache')
+          ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
+
 
     /**
      * Get cookies for a specific platform (by social_media_id)

@@ -291,8 +291,10 @@
                             @php
                                 $userAssignedAccountListings = $user->assignedAccountListings();
                                 $userAssignedAccountIds = $userAssignedAccountListings->pluck('id')->toArray();
-                                $userAssignedPlatformIds = $userAssignedAccountListings->pluck('social_media_id')->toArray();
+                                // Only pre-select platform_ids if specific accounts were NOT manually assigned
+                                $userAssignedPlatformIds = !empty($user->account_ids) ? [] : $userAssignedAccountListings->pluck('social_media_id')->toArray();
                             @endphp
+
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Assign Platforms (Auto Load-Balanced)')</label>
