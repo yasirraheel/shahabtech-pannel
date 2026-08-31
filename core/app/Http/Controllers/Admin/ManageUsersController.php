@@ -408,26 +408,25 @@ class ManageUsersController extends Controller
         $platformSectionSubmitted = $request->has('platform_ids_submitted');
         $accountSectionSubmitted  = $request->has('account_ids_submitted');
 
-        if ($platformSectionSubmitted && $request->filled('platform_ids')) {
-            // Platforms selected — sync with load-balancing
+        if ($accountSectionSubmitted && $request->filled('account_ids')) {
+            // SPECIFIC accounts selected → these are the ONLY accounts for this user.
+            // Specific manual override completely replaces any platform auto-balance.
+            $assignedAccountIds = array_map('intval', (array) $request->account_ids);
+
+        } elseif ($platformSectionSubmitted && $request->filled('platform_ids')) {
+            // No specific accounts — use platform auto load-balancing only
             $user->syncPlatformsWithLoadBalancing((array) $request->platform_ids);
             $assignedAccountIds = (array) ($user->account_ids ?? []);
-        }
-        // If platform_ids_submitted but platform_ids is empty → user cleared all platforms (no platform accounts)
 
-        if ($accountSectionSubmitted && $request->filled('account_ids')) {
-            // Specific accounts selected — merge on top of any platform-assigned ones
-            $specificIds = array_map('intval', (array) $request->account_ids);
-            $assignedAccountIds = array_merge($assignedAccountIds, $specificIds);
         }
-        // If account_ids_submitted but account_ids is empty → user cleared all specific accounts
-
-        // If neither sentinel is present (old form / direct POST), preserve existing
-        if (!$platformSectionSubmitted && !$accountSectionSubmitted) {
+        // If both sections submitted but both empty → clear all (admin removed everything)
+        // If neither sentinel present → preserve existing (safety fallback)
+        elseif (!$platformSectionSubmitted && !$accountSectionSubmitted) {
             $assignedAccountIds = (array) ($user->account_ids ?? []);
         }
 
         $user->account_ids = array_values(array_unique($assignedAccountIds));
+
 
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
