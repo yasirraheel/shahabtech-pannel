@@ -296,6 +296,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Assign Platforms (Auto Load-Balanced)')</label>
+                                    {{-- Sentinel: tells controller this field was submitted even if empty --}}
+                                    <input type="hidden" name="platform_ids_submitted" value="1">
                                     <select name="platform_ids[]" class="form-control select2" multiple="multiple" id="platform-selector">
                                         @foreach($socialMedias as $sm)
                                             <option value="{{ $sm->id }}" @selected(in_array($sm->id, $userAssignedPlatformIds))>{{ __($sm->name) }}</option>
@@ -308,6 +310,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Assign Specific Accounts (Manual Override)')</label>
+                                    {{-- Sentinel: tells controller this field was submitted even if empty --}}
+                                    <input type="hidden" name="account_ids_submitted" value="1">
                                     <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector">
                                         @foreach($accounts as $account)
                                             <option value="{{ $account->id }}" data-name="{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}" @selected(in_array($account->id, $userAssignedAccountIds))>{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
@@ -317,6 +321,7 @@
                                     <div id="account-prices-container" class="mt-2"></div>
                                 </div>
                             </div>
+
 
                             @if($userAssignedAccountListings->isNotEmpty())
                                 <div class="col-md-12 mb-3">

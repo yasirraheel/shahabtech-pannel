@@ -144,6 +144,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Assign Platforms (Auto Load-Balanced)')</label>
+                                    <input type="hidden" name="platform_ids_submitted" value="1">
                                     <select name="platform_ids[]" class="form-control select2" multiple="multiple" data-placeholder="@lang('Select Platforms (e.g. Google Flow, ChatGPT)')">
                                         @foreach($socialMedias as $sm)
                                             <option value="{{ $sm->id }}">{{ __($sm->name) }}</option>
@@ -156,6 +157,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Assign Specific Accounts (Manual Override)')</label>
+                                    <input type="hidden" name="account_ids_submitted" value="1">
                                     <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector" data-placeholder="@lang('Select Specific Account Instance')">
                                         @foreach($accounts as $account)
                                             <option value="{{ $account->id }}" data-name="{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}">{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
@@ -165,6 +167,7 @@
                                     <div id="account-prices-container" class="mt-2"></div>
                                 </div>
                             </div>
+
 
                             <div class="col-md-12">
                                 <button type="submit" class="btn btn--primary w-100 h-45">@lang('Submit')

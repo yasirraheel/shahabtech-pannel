@@ -219,6 +219,10 @@ class ManageUsersController extends Controller
         $user->account_prices = $request->account_prices ?: [];
 
         $assignedAccountIds = [];
+
+        $platformSectionSubmitted = $request->has('platform_ids_submitted');
+        $accountSectionSubmitted  = $request->has('account_ids_submitted');
+
         if ($request->filled('platform_ids')) {
             $user->syncPlatformsWithLoadBalancing((array) $request->platform_ids);
             $assignedAccountIds = (array) ($user->account_ids ?? []);
@@ -229,11 +233,8 @@ class ManageUsersController extends Controller
             $assignedAccountIds = array_merge($assignedAccountIds, $specificIds);
         }
 
-        if (!$request->filled('platform_ids') && !$request->filled('account_ids')) {
-            $assignedAccountIds = [];
-        }
-
         $user->account_ids = array_values(array_unique($assignedAccountIds));
+
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
         $user->is_exclusive = $request->has('is_exclusive') ? 1 : 0;
@@ -402,21 +403,32 @@ class ManageUsersController extends Controller
         $user->account_prices = $request->account_prices ?: [];
 
         $assignedAccountIds = [];
-        if ($request->filled('platform_ids')) {
+
+        // Check if the platform section was submitted (sentinel field tells us even when multi-select is empty)
+        $platformSectionSubmitted = $request->has('platform_ids_submitted');
+        $accountSectionSubmitted  = $request->has('account_ids_submitted');
+
+        if ($platformSectionSubmitted && $request->filled('platform_ids')) {
+            // Platforms selected — sync with load-balancing
             $user->syncPlatformsWithLoadBalancing((array) $request->platform_ids);
             $assignedAccountIds = (array) ($user->account_ids ?? []);
         }
+        // If platform_ids_submitted but platform_ids is empty → user cleared all platforms (no platform accounts)
 
-        if ($request->filled('account_ids')) {
+        if ($accountSectionSubmitted && $request->filled('account_ids')) {
+            // Specific accounts selected — merge on top of any platform-assigned ones
             $specificIds = array_map('intval', (array) $request->account_ids);
             $assignedAccountIds = array_merge($assignedAccountIds, $specificIds);
         }
+        // If account_ids_submitted but account_ids is empty → user cleared all specific accounts
 
-        if (!$request->filled('platform_ids') && !$request->filled('account_ids')) {
-            $assignedAccountIds = [];
+        // If neither sentinel is present (old form / direct POST), preserve existing
+        if (!$platformSectionSubmitted && !$accountSectionSubmitted) {
+            $assignedAccountIds = (array) ($user->account_ids ?? []);
         }
 
         $user->account_ids = array_values(array_unique($assignedAccountIds));
+
 
         $user->is_trial = $request->has('is_trial') ? 1 : 0;
         $user->is_tester = $request->has('is_tester') ? 1 : 0;
