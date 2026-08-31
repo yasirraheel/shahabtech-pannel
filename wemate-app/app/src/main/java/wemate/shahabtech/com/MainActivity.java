@@ -197,14 +197,15 @@ public class MainActivity extends AppCompatActivity
             updateUserInfo(currentUserName, prefs.getString("email", savedUser), currentValidityText, currentIsExpired);
 
             showScreen("ACCOUNTS");
-            // Render cached accounts instantly
-            renderCachedAccounts();
-            // Silently verify & update in background
+            // Clear existing list and show spinner for real-time load from server
+            if (containerAccountList != null) containerAccountList.removeAllViews();
+            if (accountsProgress != null) accountsProgress.setVisibility(View.VISIBLE);
             performLogin(savedUser, savedPass, true);
         } else {
             showScreen("LOGIN");
         }
     }
+
 
     private void initViews() {
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -523,11 +524,17 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void loadAssignedAccounts() {
+        if (containerAccountList != null) {
+            containerAccountList.removeAllViews();
+        }
         if (accountsProgress != null) {
             accountsProgress.setVisibility(View.VISIBLE);
         }
         if (txtNoAccounts != null) {
             txtNoAccounts.setVisibility(View.GONE);
+        }
+        if (cardNoAccounts != null) {
+            cardNoAccounts.setVisibility(View.GONE);
         }
 
         // IMPORTANT: Only fire after login session cookie is confirmed — prevents 401 Unauthorized
@@ -557,12 +564,6 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    private void renderCachedAccounts() {
-        String cached = prefs.getString("cached_platforms", "");
-        if (!cached.isEmpty()) {
-            displayPlatformsJson(cached);
-        }
-    }
 
     private void openAccountInWebView(String displayName, int platformId, int accountId, String targetUrl) {
         int previousAccountId = prefs.getInt("active_account_id", 0);
@@ -972,12 +973,14 @@ public class MainActivity extends AppCompatActivity
     public void refreshDashboardData() {
         renderSavedProjects();
 
+        if (containerAccountList != null) {
+            containerAccountList.removeAllViews();
+        }
         if (accountsProgress != null) {
             accountsProgress.setVisibility(View.VISIBLE);
         }
 
-        // Re-login silently to get a fresh session cookie, then fetch accounts
-        // This ensures the most up-to-date accounts are returned (e.g. newly assigned accounts)
+        // Re-login silently to get a fresh session cookie, then fetch live real-time accounts
         String savedUser = prefs.getString("saved_username", "");
         String savedPass = prefs.getString("saved_password", "");
         if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
@@ -987,6 +990,7 @@ public class MainActivity extends AppCompatActivity
             loadAssignedAccounts();
         }
     }
+
 
     /**
      * Configures the Google Flow browsing WebView with:
@@ -1660,7 +1664,6 @@ public class MainActivity extends AppCompatActivity
 
                         updateUserInfo(fullname, email, validity, isExpired);
                         showScreen("ACCOUNTS");
-                        renderCachedAccounts();
 
                         // Flush session cookie to CookieManager FIRST, then unlock platform requests
                         onApiLoginConfirmed();
@@ -1688,13 +1691,11 @@ public class MainActivity extends AppCompatActivity
                 try {
                     JSONObject response = new JSONObject(jsonStr);
                     if (response.optBoolean("success", false)) {
-                        // Cache platforms locally
-                        prefs.edit().putString("cached_platforms", jsonStr).apply();
                         displayPlatformsJson(jsonStr);
                     } else {
                         String msg = response.optString("message", "");
                         if ("Unauthorized".equalsIgnoreCase(msg) || response.optInt("status") == 401 || msg.contains("Unauthenticated")) {
-                            // Re-login in background
+                            isApiLoggedIn = false;
                             String savedUser = prefs.getString("saved_username", "");
                             String savedPass = prefs.getString("saved_password", "");
                             if (!savedUser.isEmpty() && !savedPass.isEmpty()) {
@@ -1702,15 +1703,15 @@ public class MainActivity extends AppCompatActivity
                             }
                         } else {
                             if (containerAccountList.getChildCount() == 0) {
-                                txtNoAccounts.setText(msg.isEmpty() ? "Failed to fetch accounts" : msg);
-                                txtNoAccounts.setVisibility(View.VISIBLE);
+                                if (txtNoAccounts != null) txtNoAccounts.setText(msg.isEmpty() ? "Failed to fetch accounts" : msg);
+                                if (cardNoAccounts != null) cardNoAccounts.setVisibility(View.VISIBLE);
                             }
                         }
                     }
                 } catch (Exception e) {
                     if (containerAccountList.getChildCount() == 0) {
-                        txtNoAccounts.setText("Error parsing accounts");
-                        txtNoAccounts.setVisibility(View.VISIBLE);
+                        if (txtNoAccounts != null) txtNoAccounts.setText("Error parsing accounts");
+                        if (cardNoAccounts != null) cardNoAccounts.setVisibility(View.VISIBLE);
                     }
                 }
             });
@@ -1719,30 +1720,23 @@ public class MainActivity extends AppCompatActivity
         @JavascriptInterface
         public void onFreshCookiesReady(String jsonStr, String targetUrl, int platformId, int accountId) {
             runOnUiThread(() -> {
-                hideActionLoader();
                 try {
                     JSONObject response = new JSONObject(jsonStr);
                     if (response.optBoolean("success", false)) {
                         JSONArray cookies = response.optJSONArray("cookies");
                         if (cookies != null && cookies.length() > 0) {
-                            // Save fresh cookies to cache for offline fallback
-                            String cookieKey = "cached_cookies_" + platformId + "_" + accountId;
-                            prefs.edit()
-                                    .putString(cookieKey, cookies.toString())
-                                    .putString("cached_flow_cookies", cookies.toString())
-                                    .apply();
-
-                            // Clear stale cookies, inject fresh ones, THEN load the page
-                            CookieManager.getInstance().removeAllCookies(null);
-                            CookieInjector.injectCookies(MainActivity.this, mWebView, cookies, targetUrl);
-                            CookieManager.getInstance().flush();
-                            Log.d(TAG, "Injected " + cookies.length() + " fresh cookies for platform " + platformId + " account " + accountId);
+                            Log.d(TAG, "Injecting " + cookies.length() + " fresh server cookies for platform " + platformId + " account " + accountId);
+                            // Clear old session cookies & WebStorage asynchronously, inject fresh cookies, THEN load URL
+                            CookieInjector.clearAndInjectCookies(MainActivity.this, mWebView, cookies, targetUrl, () -> {
+                                hideActionLoader();
+                                mWebView.loadUrl(targetUrl);
+                            });
+                            return;
                         }
                     } else {
                         String msg = response.optString("message", "");
                         Log.w(TAG, "Fresh cookie fetch failed: " + msg);
                         if ("Unauthorized".equalsIgnoreCase(msg) || msg.contains("Unauthenticated")) {
-                            // Session expired — re-login then retry
                             isApiLoggedIn = false;
                             String savedUser = prefs.getString("saved_username", "");
                             String savedPass = prefs.getString("saved_password", "");
@@ -1750,43 +1744,25 @@ public class MainActivity extends AppCompatActivity
                                 performLogin(savedUser, savedPass, true);
                             }
                         }
-                        // Fall back to cached cookies if any
-                        String cookieKey = "cached_cookies_" + platformId + "_" + accountId;
-                        String cached = prefs.getString(cookieKey, prefs.getString("cached_flow_cookies", ""));
-                        if (!cached.isEmpty()) {
-                            try { CookieInjector.injectCookies(MainActivity.this, mWebView, new JSONArray(cached), targetUrl); } catch (Exception ignored) {}
-                        }
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "onFreshCookiesReady parse error: " + e.getMessage());
-                    // Fall back to cached cookies on parse error
-                    String cookieKey = "cached_cookies_" + platformId + "_" + accountId;
-                    String cached = prefs.getString(cookieKey, prefs.getString("cached_flow_cookies", ""));
-                    if (!cached.isEmpty()) {
-                        try { CookieInjector.injectCookies(MainActivity.this, mWebView, new JSONArray(cached), targetUrl); } catch (Exception ignored2) {}
-                    }
                 }
-                // Always load the target URL after cookies are handled
+
+                hideActionLoader();
                 mWebView.loadUrl(targetUrl);
             });
         }
 
         @JavascriptInterface
         public void onFreshCookiesFailed(String targetUrl) {
-            // Network error — fall back to cached cookies and load anyway
             runOnUiThread(() -> {
                 hideActionLoader();
-                int platformId = prefs.getInt("flow_platform_id", 3);
-                int accountId = prefs.getInt("flow_account_id", 0);
-                String cookieKey = "cached_cookies_" + platformId + "_" + accountId;
-                String cached = prefs.getString(cookieKey, prefs.getString("cached_flow_cookies", ""));
-                if (!cached.isEmpty()) {
-                    try { CookieInjector.injectCookies(MainActivity.this, mWebView, new JSONArray(cached), targetUrl); } catch (Exception ignored) {}
-                }
                 mWebView.loadUrl(targetUrl);
-                Log.w(TAG, "Cookie fetch failed, loaded with cached cookies (fallback)");
+                Log.w(TAG, "Cookie fetch network error, proceeding with URL load");
             });
         }
+
 
 
         @JavascriptInterface
