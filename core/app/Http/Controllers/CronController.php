@@ -425,7 +425,8 @@ class CronController extends Controller
     public static function recordAutoBuyCheck($entry, $orderData = null)
     {
         $state = self::getAutoBuyState();
-        $state['last_check']   = now()->toDateTimeString();
+        $tz = config('app.timezone', 'Asia/Karachi');
+        $state['last_check']   = now()->timezone($tz)->format('Y-m-d h:i:s A');
         $state['last_status']  = $entry['message'] ?? 'Checked';
         $state['last_stock']   = $entry['stock'] ?? 0;
         $state['total_checks'] = ($state['total_checks'] ?? 0) + 1;
@@ -469,7 +470,7 @@ class CronController extends Controller
             $balance = floatval($accountRes['wallet_balance'] ?? 0);
             if ($balance <= 0) {
                 self::recordAutoBuyCheck([
-                    'time'    => now()->format('h:i:s A'),
+                    'time'    => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('h:i:s A'),
                     'date'    => now()->format('Y-m-d'),
                     'stock'   => 0,
                     'balance' => 0,
@@ -480,7 +481,7 @@ class CronController extends Controller
                     'status'     => 'insufficient_balance',
                     'message'    => 'Wallet balance is $0.00. Please top up your wallet first.',
                     'balance'    => 0,
-                    'checked_at' => now()->toDateTimeString(),
+                    'checked_at' => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('Y-m-d h:i:s A'),
                 ]);
             }
 
@@ -500,7 +501,7 @@ class CronController extends Controller
 
             if (!$gemini) {
                 self::recordAutoBuyCheck([
-                    'time'    => now()->format('h:i:s A'),
+                    'time'    => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('h:i:s A'),
                     'date'    => now()->format('Y-m-d'),
                     'stock'   => 0,
                     'balance' => $balance,
@@ -510,7 +511,7 @@ class CronController extends Controller
                 return response()->json([
                     'status'     => 'error',
                     'message'    => 'Gemini AI Pro 18M product not found in Warzone API services list.',
-                    'checked_at' => now()->toDateTimeString(),
+                    'checked_at' => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('Y-m-d h:i:s A'),
                 ], 404);
             }
 
@@ -521,7 +522,7 @@ class CronController extends Controller
             // 3. Check stock availability
             if ($stock <= 0 || !$orderable) {
                 self::recordAutoBuyCheck([
-                    'time'    => now()->format('h:i:s A'),
+                    'time'    => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('h:i:s A'),
                     'date'    => now()->format('Y-m-d'),
                     'stock'   => $stock,
                     'balance' => $balance,
@@ -534,7 +535,7 @@ class CronController extends Controller
                     'stock'      => $stock,
                     'balance'    => $balance,
                     'orderable'  => $orderable,
-                    'checked_at' => now()->toDateTimeString(),
+                    'checked_at' => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('Y-m-d h:i:s A'),
                 ]);
             }
 
@@ -560,7 +561,7 @@ class CronController extends Controller
 
             if ($maxToBuy < 1) {
                 self::recordAutoBuyCheck([
-                    'time'    => now()->format('h:i:s A'),
+                    'time'    => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('h:i:s A'),
                     'date'    => now()->format('Y-m-d'),
                     'stock'   => $stock,
                     'balance' => $balance,
@@ -572,7 +573,7 @@ class CronController extends Controller
                     'message'    => "Stock is available ({$stock}), but current balance (\${$balance}) is less than unit price (\${$basePrice}).",
                     'stock'      => $stock,
                     'balance'    => $balance,
-                    'checked_at' => now()->toDateTimeString(),
+                    'checked_at' => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('Y-m-d h:i:s A'),
                 ]);
             }
 
@@ -609,14 +610,14 @@ class CronController extends Controller
             }
 
             self::recordAutoBuyCheck([
-                'time'    => now()->format('h:i:s A'),
+                'time'    => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('h:i:s A'),
                 'date'    => now()->format('Y-m-d'),
                 'stock'   => $stock,
                 'balance' => $balance,
                 'status'  => 'ordered',
                 'message' => "SUCCESS: Placed order for {$maxToBuy} Gemini Pro accounts!",
             ], [
-                'time'             => now()->toDateTimeString(),
+                'time'             => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('Y-m-d h:i:s A'),
                 'quantity'         => $maxToBuy,
                 'service_id'       => $serviceId,
                 'order_result'     => $orderRes,
@@ -629,7 +630,7 @@ class CronController extends Controller
                 'quantity_bought'=> $maxToBuy,
                 'balance_before' => $balance,
                 'order_result'   => $orderRes,
-                'executed_at'    => now()->toDateTimeString(),
+                'executed_at'    => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('Y-m-d h:i:s A'),
             ]);
 
         } catch (\Exception $e) {
