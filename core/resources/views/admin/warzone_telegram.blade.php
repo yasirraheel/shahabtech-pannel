@@ -34,6 +34,17 @@
                                 <span>Telegram ID: <code class="tg-code">{{ $account['chat_id'] ?? '6976455363' }}</code></span>
                                 <span>👤 {{ $account['first_name'] ?? 'Shahab' }}</span>
                             </div>
+
+                            <!-- Live Auto-Buy Cron Status Widget -->
+                            <div class="p-2 rounded mt-2 border border-info d-flex align-items-center justify-content-between" style="background: rgba(14, 165, 233, 0.1);">
+                                <div>
+                                    <span class="text-white small fw-bold d-block">🤖 Auto-Buy: Gemini Pro 18M</span>
+                                    <span class="text-white-50" style="font-size: 10px;">🟢 30s Cron Running &bull; Stock: {{ $autobuyState['last_stock'] ?? 0 }}</span>
+                                </div>
+                                <button type="button" class="btn btn-xs btn-outline-info tg-action-btn" data-action="autobuy" title="View Auto-Buy Log">
+                                    Logs 👁️
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -46,6 +57,10 @@
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="shop">
                                 <span class="text-white fw-bold"><i class="las la-shopping-cart fs-5 me-2 text-info"></i> 🛒 Shop Products</span>
                                 <i class="las la-angle-right text-info"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn border-info" data-action="autobuy">
+                                <span class="text-white fw-bold"><i class="las la-robot fs-5 me-2 text-info"></i> 🤖 Auto-Buy Monitor</span>
+                                <span class="badge bg-success" style="font-size: 10px;">30s Live</span>
                             </button>
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="wallet">
                                 <span class="text-white fw-bold"><i class="las la-wallet fs-5 me-2 text-warning"></i> 💰 Wallet & Balance</span>
@@ -93,11 +108,15 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-warning py-1 px-2 tg-action-btn" data-action="autobuy" title="Open Auto-Buy Monitor">
+                                <i class="las la-robot me-1"></i> Auto-Buy
+                            </button>
                             <button class="btn btn-sm btn-outline-info py-1 px-3 tg-action-btn" data-action="start">
                                 <i class="las la-redo-alt me-1"></i> /start
                             </button>
                         </div>
                     </div>
+
 
                     <!-- Chat Scrollable Feed -->
                     <div class="tg-chat-feed p-3 flex-grow-1 overflow-y-auto" id="chatFeed">
@@ -634,13 +653,14 @@
             $('#tgMessageInput').val('');
 
             let action = inputVal.toLowerCase().replace('/', '');
-            if (action === 'start' || action === 'shop' || action === 'wallet' || action === 'orders' || action === 'profile' || action === 'api_key' || action === 'stats') {
+            if (action === 'start' || action === 'shop' || action === 'wallet' || action === 'orders' || action === 'profile' || action === 'api_key' || action === 'stats' || action === 'autobuy' || action === 'sniper' || action === 'check_now') {
                 sendActionRequest(action, { user_text: inputVal });
             } else {
                 // Default to menu if unrecognized command
                 sendActionRequest('start', { user_text: inputVal });
             }
         });
+
 
         window.copyApiKey = function() {
             const copyText = document.getElementById("apiKeyInput");

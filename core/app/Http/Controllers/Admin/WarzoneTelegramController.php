@@ -39,7 +39,9 @@ class WarzoneTelegramController extends Controller
         $pageTitle = 'Warzone Telegram';
         $account = $this->makeApiRequest('me');
         $stats = $this->makeApiRequest('stats');
-        return view('admin.warzone_telegram', compact('pageTitle', 'account', 'stats'));
+        $autobuyState = \App\Http\Controllers\CronController::getAutoBuyState();
+        return view('admin.warzone_telegram', compact('pageTitle', 'account', 'stats', 'autobuyState'));
+
     }
 
     public function action(Request $request)
@@ -172,6 +174,33 @@ class WarzoneTelegramController extends Controller
                     'type'    => 'support',
                     'html'    => view('admin.partials.warzone_support_response')->render(),
                 ]);
+
+            case 'autobuy':
+            case 'sniper':
+            case 'monitor':
+                $autobuyState = \App\Http\Controllers\CronController::getAutoBuyState();
+                $account = $this->makeApiRequest('me');
+                return response()->json([
+                    'success' => true,
+                    'type'    => 'autobuy',
+                    'data'    => $autobuyState,
+                    'account' => $account,
+                    'html'    => view('admin.partials.warzone_autobuy_response', compact('autobuyState', 'account'))->render(),
+                ]);
+
+            case 'check_now':
+                $cronController = new \App\Http\Controllers\CronController();
+                $cronController->warzoneAutoBuyGemini();
+                $autobuyState = \App\Http\Controllers\CronController::getAutoBuyState();
+                $account = $this->makeApiRequest('me');
+                return response()->json([
+                    'success' => true,
+                    'type'    => 'autobuy',
+                    'data'    => $autobuyState,
+                    'account' => $account,
+                    'html'    => view('admin.partials.warzone_autobuy_response', compact('autobuyState', 'account'))->render(),
+                ]);
+
 
             default:
                 return response()->json([

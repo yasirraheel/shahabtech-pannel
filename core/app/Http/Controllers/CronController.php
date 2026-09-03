@@ -397,6 +397,59 @@ class CronController extends Controller
         return ['valid' => true, 'error' => null, 'account_name' => is_string($extractedName) ? trim($extractedName) : null];
     }
 
+    public static function getAutoBuyState()
+    {
+        $state = \Illuminate\Support\Facades\Cache::get('warzone_gemini_autobuy_state');
+        if (!$state) {
+            $filePath = storage_path('app/warzone_autobuy.json');
+            if (file_exists($filePath)) {
+                $state = json_decode(@file_get_contents($filePath), true);
+            }
+        }
+        if (!$state) {
+            $state = [
+                'target_product' => 'Gemini AI Pro 18M (S_01)',
+                'is_active'      => true,
+                'last_check'     => null,
+                'last_status'    => 'Initialized - awaiting next cron cycle',
+                'last_stock'     => 0,
+                'total_checks'   => 0,
+                'total_bought'   => 0,
+                'recent_checks'  => [],
+                'orders'         => [],
+            ];
+        }
+        return $state;
+    }
+
+    public static function recordAutoBuyCheck($entry, $orderData = null)
+    {
+        $state = self::getAutoBuyState();
+        $state['last_check']   = now()->toDateTimeString();
+        $state['last_status']  = $entry['message'] ?? 'Checked';
+        $state['last_stock']   = $entry['stock'] ?? 0;
+        $state['total_checks'] = ($state['total_checks'] ?? 0) + 1;
+
+        if (!isset($state['recent_checks']) || !is_array($state['recent_checks'])) {
+            $state['recent_checks'] = [];
+        }
+        array_unshift($state['recent_checks'], $entry);
+        $state['recent_checks'] = array_slice($state['recent_checks'], 0, 20);
+
+        if ($orderData) {
+            if (!isset($state['orders']) || !is_array($state['orders'])) {
+                $state['orders'] = [];
+            }
+            array_unshift($state['orders'], $orderData);
+            $state['total_bought'] = ($state['total_bought'] ?? 0) + ($orderData['quantity'] ?? 0);
+        }
+
+        \Illuminate\Support\Facades\Cache::put('warzone_gemini_autobuy_state', $state, now()->addDays(30));
+        @file_put_contents(storage_path('app/warzone_autobuy.json'), json_encode($state, JSON_PRETTY_PRINT));
+
+        return $state;
+    }
+
     /**
      * Auto-buy Gemini AI Pro 18M from Warzone API as soon as stock is available.
      * Buys the maximum affordable quantity with the current wallet balance.
@@ -415,6 +468,14 @@ class CronController extends Controller
 
             $balance = floatval($accountRes['wallet_balance'] ?? 0);
             if ($balance <= 0) {
+                self::recordAutoBuyCheck([
+                    'time'    => now()->format('h:i:s A'),
+                    'date'    => now()->format('Y-m-d'),
+                    'stock'   => 0,
+                    'balance' => 0,
+                    'status'  => 'insufficient_balance',
+                    'message' => 'Wallet balance is $0.00. Please top up.',
+                ]);
                 return response()->json([
                     'status'     => 'insufficient_balance',
                     'message'    => 'Wallet balance is $0.00. Please top up your wallet first.',
@@ -438,6 +499,14 @@ class CronController extends Controller
             }
 
             if (!$gemini) {
+                self::recordAutoBuyCheck([
+                    'time'    => now()->format('h:i:s A'),
+                    'date'    => now()->format('Y-m-d'),
+                    'stock'   => 0,
+                    'balance' => $balance,
+                    'status'  => 'error',
+                    'message' => 'Gemini AI Pro 18M product not found in Warzone API services list.',
+                ]);
                 return response()->json([
                     'status'     => 'error',
                     'message'    => 'Gemini AI Pro 18M product not found in Warzone API services list.',
@@ -451,6 +520,14 @@ class CronController extends Controller
 
             // 3. Check stock availability
             if ($stock <= 0 || !$orderable) {
+                self::recordAutoBuyCheck([
+                    'time'    => now()->format('h:i:s A'),
+                    'date'    => now()->format('Y-m-d'),
+                    'stock'   => $stock,
+                    'balance' => $balance,
+                    'status'  => 'waiting',
+                    'message' => "Out of Stock (Stock: {$stock}). Standing by for stock...",
+                ]);
                 return response()->json([
                     'status'     => 'waiting',
                     'message'    => "Gemini AI Pro 18M is currently Out of Stock (Stock: {$stock}). Standing by for stock...",
@@ -482,6 +559,14 @@ class CronController extends Controller
             }
 
             if ($maxToBuy < 1) {
+                self::recordAutoBuyCheck([
+                    'time'    => now()->format('h:i:s A'),
+                    'date'    => now()->format('Y-m-d'),
+                    'stock'   => $stock,
+                    'balance' => $balance,
+                    'status'  => 'insufficient_funds',
+                    'message' => "Stock available ({$stock}), but balance (\${$balance}) < unit price (\${$basePrice}).",
+                ]);
                 return response()->json([
                     'status'     => 'insufficient_funds',
                     'message'    => "Stock is available ({$stock}), but current balance (\${$balance}) is less than unit price (\${$basePrice}).",
@@ -503,6 +588,20 @@ class CronController extends Controller
             ])->timeout(20)->post("$baseUrl/order", $orderPayload)->json();
 
             \Illuminate\Support\Facades\Log::info("Warzone Auto Buy Gemini Triggered: Qty: {$maxToBuy}, Balance: \${$balance}, Response: " . json_encode($orderRes));
+
+            self::recordAutoBuyCheck([
+                'time'    => now()->format('h:i:s A'),
+                'date'    => now()->format('Y-m-d'),
+                'stock'   => $stock,
+                'balance' => $balance,
+                'status'  => 'ordered',
+                'message' => "SUCCESS: Placed order for {$maxToBuy} Gemini Pro accounts!",
+            ], [
+                'time'             => now()->toDateTimeString(),
+                'quantity'         => $maxToBuy,
+                'service_id'       => $serviceId,
+                'order_result'     => $orderRes,
+            ]);
 
             return response()->json([
                 'status'         => 'ordered',
