@@ -337,4 +337,47 @@
         });
     })(jQuery);
 </script>
+@push('style')
+<style>
+    .badge--success {
+        background-color: rgba(40, 199, 111, 0.15) !important;
+        border: 1px solid #28c76f !important;
+        color: #28c76f !important;
+    }
+    .badge--primary {
+        background-color: rgba(115, 103, 240, 0.15) !important;
+        border: 1px solid #7367f0 !important;
+        color: #7367f0 !important;
+    }
+    .badge--warning {
+        background-color: rgba(255, 159, 67, 0.15) !important;
+        border: 1px solid #ff9f43 !important;
+        color: #ff9f43 !important;
+    }
+    .badge--danger {
+        background-color: rgba(234, 84, 85, 0.15) !important;
+        border: 1px solid #ea5455 !important;
+        color: #ea5455 !important;
+    }
+    .badge--dark {
+        background-color: rgba(40, 40, 40, 0.15) !important;
+        border: 1px solid #4a4a4a !important;
+        color: #333333 !important;
+    }
+    .badge--info {
+        background-color: rgba(0, 207, 232, 0.15) !important;
+        border: 1px solid #00cfe8 !important;
+        color: #00cfe8 !important;
+    }
+    .badge {
+        font-weight: 600 !important;
+        letter-spacing: 0.3px;
+        display: inline-flex !important;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px !important;
+        font-size: 11px !important;
+    }
+</style>
 @endpush
+

@@ -20,20 +20,44 @@ class WarzonePurchasedLink extends Model
         'status'       => 'integer',
     ];
 
-    public function getStatusBadgeAttribute()
+    public function statusBadge(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
-        switch ($this->status) {
+        return new \Illuminate\Database\Eloquent\Casts\Attribute(
+            get: fn () => $this->badgeData(),
+        );
+    }
+
+    public function badgeData()
+    {
+        switch ((int) $this->status) {
             case self::STATUS_AVAILABLE:
-                return '<span class="badge badge--success">Available</span>';
+                return '<span class="badge badge--success"><i class="las la-check-circle"></i> Available</span>';
             case self::STATUS_ACTIVE:
-                return '<span class="badge badge--primary">Active</span>';
+                return '<span class="badge badge--primary"><i class="las la-clock"></i> Active</span>';
             case self::STATUS_USED:
-                return '<span class="badge badge--secondary">Used</span>';
+                return '<span class="badge badge--warning"><i class="las la-check-double"></i> Used</span>';
             case self::STATUS_EXPIRED:
-                return '<span class="badge badge--danger">Expired</span>';
+                return '<span class="badge badge--danger"><i class="las la-times-circle"></i> Expired</span>';
             default:
                 return '<span class="badge badge--dark">Unknown</span>';
         }
+    }
+
+    public function getStatusBadgeAttribute()
+    {
+        return $this->badgeData();
+    }
+
+    public function sourceBadge(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return new \Illuminate\Database\Eloquent\Casts\Attribute(
+            get: function () {
+                if ($this->source === 'bot' || $this->source === 'manual_bot') {
+                    return '<span class="badge badge--info"><i class="lab la-telegram"></i> Bot Purchase</span>';
+                }
+                return '<span class="badge badge--dark"><i class="las la-user-edit"></i> Manual Entry</span>';
+            }
+        );
     }
 
     public function getSourceBadgeAttribute()
@@ -43,6 +67,7 @@ class WarzonePurchasedLink extends Model
         }
         return '<span class="badge badge--dark"><i class="las la-user-edit"></i> Manual Entry</span>';
     }
+
 
     public function scopeAvailable($query)
     {
