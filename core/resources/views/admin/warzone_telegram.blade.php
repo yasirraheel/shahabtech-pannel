@@ -44,36 +44,36 @@
                         </div>
                         <div class="d-flex flex-column gap-2">
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="shop">
-                                <span><i class="las la-shopping-cart fs-5 me-2"></i> 🛒 Shop Products</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-shopping-cart fs-5 me-2 text-info"></i> 🛒 Shop Products</span>
+                                <i class="las la-angle-right text-info"></i>
                             </button>
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="wallet">
-                                <span><i class="las la-wallet fs-5 me-2"></i> 💰 Wallet & Balance</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-wallet fs-5 me-2 text-warning"></i> 💰 Wallet & Balance</span>
+                                <i class="las la-angle-right text-info"></i>
                             </button>
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="orders">
-                                <span><i class="las la-receipt fs-5 me-2"></i> 📃 Order History</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-receipt fs-5 me-2 text-success"></i> 📃 Order History</span>
+                                <i class="las la-angle-right text-info"></i>
                             </button>
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="orders">
-                                <span><i class="las la-undo-alt fs-5 me-2"></i> 💸 Recover Order</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-undo-alt fs-5 me-2 text-primary"></i> 💸 Recover Order</span>
+                                <i class="las la-angle-right text-info"></i>
                             </button>
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="profile">
-                                <span><i class="las la-user-shield fs-5 me-2"></i> 🛡️ Account Profile</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-user-shield fs-5 me-2 text-info"></i> 🛡️ Account Profile</span>
+                                <i class="las la-angle-right text-info"></i>
                             </button>
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="api_key">
-                                <span><i class="las la-key fs-5 me-2"></i> 📱 API Key</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-key fs-5 me-2 text-warning"></i> 📱 API Key</span>
+                                <i class="las la-angle-right text-info"></i>
                             </button>
                             <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="stats">
-                                <span><i class="las la-chart-bar fs-5 me-2"></i> 📊 Account Stats</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-chart-bar fs-5 me-2 text-success"></i> 📊 Account Stats</span>
+                                <i class="las la-angle-right text-info"></i>
                             </button>
                             <button type="button" class="btn tg-btn-green w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="support">
-                                <span><i class="las la-headset fs-5 me-2"></i> 🤫 Warzone Support</span>
-                                <i class="las la-angle-right text-white-50"></i>
+                                <span class="text-white fw-bold"><i class="las la-headset fs-5 me-2 text-white"></i> 🤫 Warzone Support</span>
+                                <i class="las la-angle-right text-white"></i>
                             </button>
                         </div>
                     </div>
@@ -112,11 +112,11 @@
 
                     <!-- Bottom Message Input Bar -->
                     <div class="tg-input-bar d-flex align-items-center gap-2 p-3 border-top border-dark">
-                        <button type="button" class="btn btn-outline-secondary text-white py-2 px-3 tg-action-btn" data-action="start" title="Main Menu">
+                        <button type="button" class="btn btn-outline-secondary text-white py-2 px-3 tg-action-btn" data-action="start" title="Main Menu" style="flex-shrink: 0;">
                             <i class="las la-bars fs-5"></i>
                         </button>
                         <input type="text" class="form-control tg-msg-input py-2 px-3" id="tgMessageInput" placeholder="Send a command (e.g. /shop, /orders, /wallet, /start)..." autocomplete="off">
-                        <button type="button" class="btn btn-primary text-white py-2 px-4 rounded-pill d-flex align-items-center gap-2" id="tgSendBtn">
+                        <button type="button" class="btn btn-primary text-white fw-bold py-2 px-3 rounded-pill d-inline-flex align-items-center justify-content-center gap-1 tg-send-btn" id="tgSendBtn" style="flex-shrink: 0; min-width: 90px; white-space: nowrap;">
                             <span>Send</span>
                             <i class="las la-paper-plane fs-6"></i>
                         </button>
@@ -126,6 +126,7 @@
         </div>
     </div>
 </div>
+
 
 @endsection
 
@@ -139,11 +140,22 @@
         height: calc(100vh - 170px);
         min-height: 520px;
         max-height: 720px;
+        display: flex;
+        flex-direction: column;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .tg-desktop-app > .row {
+        flex: 1 1 0;
+        min-height: 0;
+        height: 100%;
+        margin: 0;
     }
     .tg-sidebar-pane {
         background-color: #151e27;
         height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
     }
     .tg-sidebar-header {
@@ -151,7 +163,24 @@
         flex-shrink: 0;
     }
     .tg-sidebar-menu {
-        overflow-y: auto;
+        flex: 1 1 0;
+        min-height: 0;
+        overflow-y: auto !important;
+        scrollbar-width: thin;
+        scrollbar-color: #2b5278 #111822;
+    }
+    .tg-sidebar-menu::-webkit-scrollbar,
+    .tg-chat-feed::-webkit-scrollbar {
+        width: 6px;
+    }
+    .tg-sidebar-menu::-webkit-scrollbar-track,
+    .tg-chat-feed::-webkit-scrollbar-track {
+        background: #111822;
+    }
+    .tg-sidebar-menu::-webkit-scrollbar-thumb,
+    .tg-chat-feed::-webkit-scrollbar-thumb {
+        background: #2b5278;
+        border-radius: 4px;
     }
     .tg-status-dot {
         width: 8px;
@@ -175,6 +204,9 @@
     .tg-chat-pane {
         background-color: #0e1621;
         height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
     }
     .tg-chat-header {
@@ -182,6 +214,12 @@
         flex-shrink: 0;
     }
     .tg-chat-feed {
+        flex: 1 1 0 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+        scrollbar-color: #2b5278 #111822;
         background: #0e1621 url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2F1b2733' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
     }
     .tg-msg-row {
@@ -262,33 +300,54 @@
         color: #4ade80 !important;
     }
     .tg-btn-blue {
-        background-color: #20354b !important;
+        background-color: #204169 !important;
         color: #ffffff !important;
-        border: 1px solid #29425d !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
+        border: 1px solid #325f94 !important;
+        font-weight: 700 !important;
+        font-size: 13.5px !important;
         border-radius: 8px;
         transition: all 0.2s;
     }
+    .tg-btn-blue *, .tg-btn-blue span, .tg-btn-blue i {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
     .tg-btn-blue:hover {
-        background-color: #2b4967 !important;
+        background-color: #2b5688 !important;
         border-color: #38bdf8 !important;
+    }
+    .tg-btn-blue:hover *, .tg-btn-blue:hover span, .tg-btn-blue:hover i {
         color: #ffffff !important;
     }
     .tg-btn-green {
-        background-color: #17472c !important;
+        background-color: #174d2b !important;
         color: #ffffff !important;
-        border: 1px solid #205e3b !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
+        border: 1px solid #247543 !important;
+        font-weight: 700 !important;
+        font-size: 13.5px !important;
         border-radius: 8px;
         transition: all 0.2s;
     }
+    .tg-btn-green *, .tg-btn-green span, .tg-btn-green i {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
     .tg-btn-green:hover {
-        background-color: #1e5a38 !important;
+        background-color: #1e6237 !important;
         border-color: #4ade80 !important;
+    }
+    .tg-btn-green:hover *, .tg-btn-green:hover span, .tg-btn-green:hover i {
         color: #ffffff !important;
     }
+    .tg-send-btn {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        min-width: 90px !important;
+        height: 38px !important;
+        font-weight: bold !important;
+        color: #ffffff !important;
+    }
+
     .tg-btn-prod-stock {
         background-color: #166534 !important;
         border: 1px solid #22c55e !important;
@@ -417,9 +476,14 @@
         }
 
         function scrollToBottom() {
-            const feed = document.getElementById('chatFeed');
-            feed.scrollTop = feed.scrollHeight;
+            setTimeout(function() {
+                const feed = document.getElementById('chatFeed');
+                if (feed) {
+                    feed.scrollTop = feed.scrollHeight;
+                }
+            }, 50);
         }
+
 
         function appendUserMessage(text) {
             const timeStr = getCurrentTime();
