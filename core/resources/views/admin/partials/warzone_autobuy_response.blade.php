@@ -94,14 +94,23 @@
                             <strong>Order Date: {{ $ord['time'] ?? 'N/A' }}</strong>
                             <span class="badge bg-success">Qty: {{ $ord['quantity'] ?? 1 }}</span>
                         </div>
-                        @if(!empty($ord['order_result']['delivered_products']))
+                        @php
+                            $deliveredKeys = $ord['order_result']['products'] ?? ($ord['order_result']['delivered_products'] ?? []);
+                        @endphp
+                        @if(!empty($deliveredKeys))
                             <div class="mt-2">
-                                <div class="text-white-50 small mb-1">Delivered Key(s):</div>
-                                @foreach($ord['order_result']['delivered_products'] as $deliv)
-                                    <code class="tg-code d-block text-break mb-1">{{ $deliv }}</code>
+                                <div class="text-white-50 small mb-1">Delivered Activation Link(s):</div>
+                                @foreach($deliveredKeys as $deliv)
+                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                        <code class="tg-code flex-grow-1 text-break" style="font-size: 11px;">{{ $deliv }}</code>
+                                        <a href="{{ $deliv }}" target="_blank" class="btn btn-xs btn-outline-info py-0 px-2" title="Open Link">
+                                            <i class="las la-external-link-alt"></i>
+                                        </a>
+                                    </div>
                                 @endforeach
                             </div>
                         @endif
+
                     </div>
                 @endforeach
             </div>

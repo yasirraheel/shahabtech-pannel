@@ -99,24 +99,28 @@ class WarzoneTelegramController extends Controller
                 ]);
 
                 // Save delivered products / links to database
-                if (!empty($result['delivered_products']) && is_array($result['delivered_products'])) {
+                $products = $result['products'] ?? ($result['delivered_products'] ?? []);
+                if (!empty($products) && is_array($products)) {
                     $serviceName = $result['service'] ?? ($result['name'] ?? 'Warzone Product');
-                    foreach ($result['delivered_products'] as $item) {
+                    foreach ($products as $item) {
                         try {
-                            \App\Models\WarzonePurchasedLink::create([
-                                'product_name' => $serviceName,
-                                'service_id'   => $serviceId,
-                                'order_id'     => $result['order_id'] ?? null,
-                                'link'         => trim($item),
-                                'source'       => 'bot',
-                                'status'       => \App\Models\WarzonePurchasedLink::STATUS_AVAILABLE,
-                                'purchased_at' => now(),
-                            ]);
+                            \App\Models\WarzonePurchasedLink::firstOrCreate(
+                                ['link' => trim($item)],
+                                [
+                                    'product_name' => $serviceName,
+                                    'service_id'   => $serviceId,
+                                    'order_id'     => $result['order_id'] ?? null,
+                                    'source'       => 'bot',
+                                    'status'       => \App\Models\WarzonePurchasedLink::STATUS_AVAILABLE,
+                                    'purchased_at' => now(),
+                                ]
+                            );
                         } catch (\Exception $e) {
                             \Illuminate\Support\Facades\Log::error('Failed to store purchased link: ' . $e->getMessage());
                         }
                     }
                 }
+
 
                 // Re-fetch updated account info
                 $account = $this->makeApiRequest('me');

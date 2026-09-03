@@ -591,23 +591,27 @@ class CronController extends Controller
             \Illuminate\Support\Facades\Log::info("Warzone Auto Buy Gemini Triggered: Qty: {$maxToBuy}, Balance: \${$balance}, Response: " . json_encode($orderRes));
 
             // Save delivered products / links to WarzonePurchasedLink database table
-            if (!empty($orderRes['delivered_products']) && is_array($orderRes['delivered_products'])) {
-                foreach ($orderRes['delivered_products'] as $delivItem) {
+            $products = $orderRes['products'] ?? ($orderRes['delivered_products'] ?? []);
+            if (!empty($products) && is_array($products)) {
+                foreach ($products as $delivItem) {
                     try {
-                        \App\Models\WarzonePurchasedLink::create([
-                            'product_name' => $gemini['name'] ?? 'Gemini AI Pro 18M',
-                            'service_id'   => $serviceId,
-                            'order_id'     => $orderRes['order_id'] ?? null,
-                            'link'         => trim($delivItem),
-                            'source'       => 'bot',
-                            'status'       => \App\Models\WarzonePurchasedLink::STATUS_AVAILABLE,
-                            'purchased_at' => now(),
-                        ]);
+                        \App\Models\WarzonePurchasedLink::firstOrCreate(
+                            ['link' => trim($delivItem)],
+                            [
+                                'product_name' => $gemini['name'] ?? 'Gemini AI Pro 18M',
+                                'service_id'   => $serviceId,
+                                'order_id'     => $orderRes['order_id'] ?? null,
+                                'source'       => 'bot',
+                                'status'       => \App\Models\WarzonePurchasedLink::STATUS_AVAILABLE,
+                                'purchased_at' => now(),
+                            ]
+                        );
                     } catch (\Exception $linkEx) {
                         \Illuminate\Support\Facades\Log::error("Failed to store purchased link: " . $linkEx->getMessage());
                     }
                 }
             }
+
 
             self::recordAutoBuyCheck([
                 'time'    => now()->timezone(config('app.timezone', 'Asia/Karachi'))->format('h:i:s A'),

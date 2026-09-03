@@ -53,9 +53,9 @@ class WarzonePurchasedLink extends Model
         return new \Illuminate\Database\Eloquent\Casts\Attribute(
             get: function () {
                 if ($this->source === 'bot' || $this->source === 'manual_bot') {
-                    return '<span class="badge badge--info"><i class="lab la-telegram"></i> Bot Purchase</span>';
+                    return '<span class="badge badge--info"><i class="las la-robot"></i> Auto Buy</span>';
                 }
-                return '<span class="badge badge--dark"><i class="las la-user-edit"></i> Manual Entry</span>';
+                return '<span class="badge badge--dark"><i class="las la-user-edit"></i> Manual</span>';
             }
         );
     }
@@ -63,10 +63,11 @@ class WarzonePurchasedLink extends Model
     public function getSourceBadgeAttribute()
     {
         if ($this->source === 'bot' || $this->source === 'manual_bot') {
-            return '<span class="badge badge--info"><i class="lab la-telegram"></i> Bot Purchase</span>';
+            return '<span class="badge badge--info"><i class="las la-robot"></i> Auto Buy</span>';
         }
-        return '<span class="badge badge--dark"><i class="las la-user-edit"></i> Manual Entry</span>';
+        return '<span class="badge badge--dark"><i class="las la-user-edit"></i> Manual</span>';
     }
+
 
 
     public function scopeAvailable($query)
