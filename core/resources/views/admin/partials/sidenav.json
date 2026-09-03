@@ -27,12 +27,25 @@
         "menu_active": "admin.dashboard"
     },
     "warzone_telegram": {
-        "keyword": ["Warzone", "Telegram", "Warzone Telegram", "Bot", "Orders", "Shop"],
         "title": "Warzone Telegram",
         "icon": "lab la-telegram",
-        "route_name": "admin.warzone.telegram.index",
-        "menu_active": "admin.warzone.telegram*"
+        "menu_active": "admin.warzone*",
+        "submenu": [
+            {
+                "keyword": ["Warzone", "Telegram", "Bot", "Orders", "Shop"],
+                "title": "Telegram Bot Chat",
+                "route_name": "admin.warzone.telegram.index",
+                "menu_active": "admin.warzone.telegram*"
+            },
+            {
+                "keyword": ["Purchased Links", "Gemini Links", "Warzone Links", "Keys", "Delivered Accounts"],
+                "title": "Purchased Links",
+                "route_name": "admin.warzone.links.index",
+                "menu_active": "admin.warzone.links*"
+            }
+        ]
     },
+
     "account_listing": {
 
         "keyword": ["Manage accounts","Shared accounts","Account access"],

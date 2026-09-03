@@ -98,6 +98,26 @@ class WarzoneTelegramController extends Controller
                     'quantity'   => $quantity,
                 ]);
 
+                // Save delivered products / links to database
+                if (!empty($result['delivered_products']) && is_array($result['delivered_products'])) {
+                    $serviceName = $result['service'] ?? ($result['name'] ?? 'Warzone Product');
+                    foreach ($result['delivered_products'] as $item) {
+                        try {
+                            \App\Models\WarzonePurchasedLink::create([
+                                'product_name' => $serviceName,
+                                'service_id'   => $serviceId,
+                                'order_id'     => $result['order_id'] ?? null,
+                                'link'         => trim($item),
+                                'source'       => 'bot',
+                                'status'       => \App\Models\WarzonePurchasedLink::STATUS_AVAILABLE,
+                                'purchased_at' => now(),
+                            ]);
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to store purchased link: ' . $e->getMessage());
+                        }
+                    }
+                }
+
                 // Re-fetch updated account info
                 $account = $this->makeApiRequest('me');
 
@@ -107,6 +127,7 @@ class WarzoneTelegramController extends Controller
                     'account' => $account,
                     'html'    => view('admin.partials.warzone_order_result_response', compact('result', 'account'))->render(),
                 ]);
+
 
             case 'orders':
             case 'order_history':

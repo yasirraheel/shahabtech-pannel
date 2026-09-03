@@ -256,6 +256,15 @@ Route::middleware('admin')->group(function () {
         Route::post('action', 'action')->name('action');
     });
 
+    // Warzone Purchased Links
+    Route::controller('WarzoneLinkController')->prefix('warzone-links')->name('warzone.links.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('store/{id?}', 'store')->name('store');
+        Route::post('status/{id}', 'updateStatus')->name('status');
+        Route::post('delete/{id}', 'delete')->name('delete');
+    });
+
+
 
     Route::controller('GeneralSettingController')->group(function(){
 
