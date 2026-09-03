@@ -2,31 +2,31 @@
 
 @section('panel')
 <div class="row justify-content-center">
-    <div class="col-xl-6 col-lg-8 col-md-10 col-12">
+    <div class="col-xl-4 col-lg-5 col-md-7 col-sm-9 col-12">
         <div class="tg-app-container shadow-lg">
             <!-- Telegram App Header -->
-            <div class="tg-app-header d-flex align-items-center justify-content-between px-3 py-2">
+            <div class="tg-app-header d-flex align-items-center justify-content-between px-3 py-1">
                 <div class="d-flex align-items-center gap-2">
                     <div class="tg-bot-avatar">
-                        <img src="https://ui-avatars.com/api/?name=Warzone+Shop&background=2b5278&color=fff&size=48&font-size=0.4" alt="Warzone Shop" class="rounded-circle">
+                        <img src="https://ui-avatars.com/api/?name=Warzone+Shop&background=2b5278&color=fff&size=36&font-size=0.4" alt="Warzone Shop" class="rounded-circle">
                     </div>
                     <div>
-                        <h6 class="tg-bot-name mb-0 text-white fw-bold">Warzone Shop</h6>
-                        <span class="tg-bot-subtext text-white-50 small" style="font-size: 12px;">13,071 monthly users</span>
+                        <h6 class="tg-bot-name mb-0 text-white fw-bold" style="font-size: 13px;">Warzone Shop</h6>
+                        <span class="tg-bot-subtext text-white-50" style="font-size: 10px;">13,071 monthly users</span>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-success px-2 py-1" id="topBalanceBadge">💰 Balance: ${{ number_format($account['wallet_balance'] ?? 17.7, 2) }}</span>
-                    <button class="btn btn-sm btn-outline-light border-0 py-1 px-2 tg-action-btn" data-action="start" title="Refresh Feed">
-                        <i class="las la-sync"></i>
+                <div class="d-flex align-items-center gap-1">
+                    <span class="badge bg-success px-2 py-1" id="topBalanceBadge" style="font-size: 10.5px;">💰 ${{ number_format($account['wallet_balance'] ?? 17.7, 2) }}</span>
+                    <button class="btn btn-sm btn-outline-light border-0 py-0 px-1 tg-action-btn" data-action="start" title="Refresh Feed">
+                        <i class="las la-sync fs-6"></i>
                     </button>
                 </div>
             </div>
 
             <!-- Chat Scrollable Feed -->
-            <div class="tg-chat-feed p-3" id="chatFeed">
+            <div class="tg-chat-feed p-2" id="chatFeed">
                 <!-- Initial Welcome Bot Message -->
-                <div class="tg-msg-row tg-msg-bot-row mb-3">
+                <div class="tg-msg-row tg-msg-bot-row mb-2">
                     <div class="tg-msg-bot">
                         @include('admin.partials.warzone_menu_response', ['account' => $account])
                         <span class="tg-msg-time">8:56 AM</span>
@@ -35,8 +35,8 @@
             </div>
 
             <!-- Telegram Keyboard Grid Panel -->
-            <div class="tg-keyboard-container p-2" id="keyboardContainer">
-                <div class="row g-2">
+            <div class="tg-keyboard-container p-1" id="keyboardContainer">
+                <div class="row g-1">
                     <div class="col-6">
                         <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="shop">
                             🛒 Shop
@@ -86,13 +86,13 @@
             </div>
 
             <!-- Bottom Message Input Bar -->
-            <div class="tg-input-bar d-flex align-items-center gap-2 p-2">
-                <button type="button" class="btn text-white p-1" id="toggleKeyboardBtn" title="Toggle Keyboard">
-                    <i class="las la-bars fs-4"></i> Menu
+            <div class="tg-input-bar d-flex align-items-center gap-1 p-1">
+                <button type="button" class="btn text-white p-1" id="toggleKeyboardBtn" title="Toggle Keyboard" style="font-size: 11px;">
+                    <i class="las la-bars"></i> Menu
                 </button>
                 <input type="text" class="form-control tg-msg-input" id="tgMessageInput" placeholder="Message..." autocomplete="off">
-                <button type="button" class="btn btn-primary text-white py-1 px-3 rounded-circle" id="tgSendBtn">
-                    <i class="las la-paper-plane fs-5"></i>
+                <button type="button" class="btn btn-primary text-white p-1 rounded-circle d-flex align-items-center justify-content-center" id="tgSendBtn" style="width: 32px; height: 32px; min-width: 32px;">
+                    <i class="las la-paper-plane" style="font-size: 14px;"></i>
                 </button>
             </div>
         </div>
@@ -109,17 +109,25 @@
         overflow: hidden;
         border: 1px solid #17212b;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        max-width: 390px;
+        margin: 0 auto;
+        height: calc(100vh - 165px);
+        max-height: 570px;
+        min-height: 430px;
+        display: flex;
+        flex-direction: column;
     }
     .tg-app-header {
         background-color: #17212b;
         border-bottom: 1px solid #0e1621;
+        flex-shrink: 0;
     }
     .tg-bot-avatar img {
-        width: 38px;
-        height: 38px;
+        width: 32px;
+        height: 32px;
     }
     .tg-chat-feed {
-        height: 440px;
+        flex: 1 1 auto;
         overflow-y: auto;
         background: #0e1621 url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2F1b2733' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
     }
@@ -134,87 +142,142 @@
         justify-content: flex-end;
     }
     .tg-msg-bot {
-        background-color: #182533;
-        color: #ffffff;
-        border-radius: 12px 12px 12px 2px;
-        max-width: 88%;
-        padding: 10px 12px;
+        background-color: #182533 !important;
+        color: #ffffff !important;
+        border-radius: 10px 10px 10px 2px;
+        max-width: 90%;
+        padding: 8px 10px;
         position: relative;
         box-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
     .tg-msg-user {
-        background-color: #2b5278;
-        color: #ffffff;
-        border-radius: 12px 12px 2px 12px;
-        max-width: 75%;
-        padding: 8px 12px;
+        background-color: #24527a !important;
+        color: #ffffff !important;
+        border-radius: 10px 10px 2px 10px;
+        max-width: 80%;
+        padding: 6px 10px;
         position: relative;
-        font-size: 14px;
+        font-size: 12px;
         box-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
+    .tg-msg-user span {
+        color: #ffffff !important;
+        font-weight: 500;
+    }
+    .tg-msg-user .tg-msg-time {
+        color: #93c5fd !important;
+    }
     .tg-msg-time {
-        font-size: 10px;
-        color: rgba(255,255,255,0.5);
+        font-size: 9.5px;
+        color: #94a3b8 !important;
         float: right;
         margin-top: 4px;
-        margin-left: 8px;
+        margin-left: 6px;
     }
     .tg-bot-card {
-        font-size: 13px;
-        line-height: 1.5;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #ffffff !important;
+    }
+    .tg-bot-card * {
+        color: #ffffff;
     }
     .tg-card-header {
-        font-size: 15px;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-        padding-bottom: 6px;
+        font-size: 13px;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+        padding-bottom: 4px;
+        color: #ffffff !important;
     }
     .tg-info-box {
-        background-color: rgba(0,0,0,0.25);
-        padding: 8px 12px;
-        border-radius: 8px;
-        border-left: 3px solid #2b5278;
+        background-color: rgba(0,0,0,0.35) !important;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border-left: 3px solid #38bdf8;
+    }
+    .tg-info-box * {
+        color: #f8fafc !important;
+    }
+    .tg-info-box code, .tg-bot-card code {
+        color: #38bdf8 !important;
+        background: rgba(0,0,0,0.5) !important;
+        padding: 2px 5px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 11px;
+    }
+    .tg-info-box .text-success, .tg-bot-card .text-success {
+        color: #4ade80 !important;
     }
     .tg-keyboard-container {
         background-color: #17212b;
         border-top: 1px solid #0e1621;
+        flex-shrink: 0;
     }
     .tg-btn-blue {
-        background-color: #2b5278 !important;
+        background-color: #24466b !important;
         color: #ffffff !important;
         border: none !important;
-        font-weight: 500;
-        font-size: 13px;
-        padding: 9px;
-        border-radius: 8px;
-        transition: all 0.2s;
+        font-weight: 600 !important;
+        font-size: 11.5px !important;
+        padding: 5px 8px !important;
+        border-radius: 6px;
+        transition: all 0.15s;
     }
     .tg-btn-blue:hover {
-        background-color: #366593 !important;
+        background-color: #2e5988 !important;
+        color: #ffffff !important;
     }
     .tg-btn-green {
-        background-color: #26804a !important;
+        background-color: #1b6339 !important;
         color: #ffffff !important;
         border: none !important;
-        font-weight: 500;
-        font-size: 13px;
-        padding: 9px;
-        border-radius: 8px;
-        transition: all 0.2s;
+        font-weight: 600 !important;
+        font-size: 11.5px !important;
+        padding: 5px 8px !important;
+        border-radius: 6px;
+        transition: all 0.15s;
     }
     .tg-btn-green:hover {
-        background-color: #2fa15d !important;
+        background-color: #24824b !important;
+        color: #ffffff !important;
+    }
+    .tg-btn-prod-stock {
+        background-color: #166534 !important;
+        border: 1px solid #22c55e !important;
+        color: #ffffff !important;
+        border-radius: 6px;
+    }
+    .tg-btn-prod-stock:hover {
+        background-color: #15803d !important;
+    }
+    .tg-btn-prod-stock span {
+        color: #ffffff !important;
+    }
+    .tg-btn-prod-nostock {
+        background-color: #991b1b !important;
+        border: 1px solid #ef4444 !important;
+        color: #ffffff !important;
+        border-radius: 6px;
+    }
+    .tg-btn-prod-nostock:hover {
+        background-color: #b91c1c !important;
+    }
+    .tg-btn-prod-nostock span {
+        color: #ffffff !important;
     }
     .tg-input-bar {
         background-color: #17212b;
         border-top: 1px solid #0e1621;
+        flex-shrink: 0;
     }
     .tg-msg-input {
         background-color: #0e1621 !important;
         border: 1px solid #2b5278 !important;
         color: #ffffff !important;
-        border-radius: 20px !important;
-        padding: 6px 14px !important;
-        font-size: 13px !important;
+        border-radius: 18px !important;
+        padding: 4px 10px !important;
+        font-size: 11.5px !important;
+        height: 30px !important;
     }
     .tg-msg-input::placeholder {
         color: rgba(255,255,255,0.4) !important;

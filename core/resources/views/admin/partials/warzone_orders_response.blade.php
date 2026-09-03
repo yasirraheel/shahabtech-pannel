@@ -11,7 +11,7 @@
             </div>
         @endif
 
-        <div class="d-flex flex-column gap-2 overflow-y-auto pr-1" style="max-height: 320px;">
+        <div class="d-flex flex-column gap-1 overflow-y-auto pr-1" style="max-height: 200px;">
             @forelse($orders as $ord)
                 @php
                     $badgeClass = $ord['status'] === 'success' ? 'bg-success' : ($ord['status'] === 'cancelled' ? 'bg-danger' : 'bg-warning');
