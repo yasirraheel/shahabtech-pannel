@@ -1,99 +1,127 @@
 @extends('admin.layouts.app')
 
 @section('panel')
-<div class="row justify-content-center">
-    <div class="col-xl-4 col-lg-5 col-md-7 col-sm-9 col-12">
-        <div class="tg-app-container shadow-lg">
-            <!-- Telegram App Header -->
-            <div class="tg-app-header d-flex align-items-center justify-content-between px-3 py-1">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="tg-bot-avatar">
-                        <img src="https://ui-avatars.com/api/?name=Warzone+Shop&background=2b5278&color=fff&size=36&font-size=0.4" alt="Warzone Shop" class="rounded-circle">
-                    </div>
-                    <div>
-                        <h6 class="tg-bot-name mb-0 text-white fw-bold" style="font-size: 13px;">Warzone Shop</h6>
-                        <span class="tg-bot-subtext text-white-50" style="font-size: 10px;">13,071 monthly users</span>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-1">
-                    <span class="badge bg-success px-2 py-1" id="topBalanceBadge" style="font-size: 10.5px;">💰 ${{ number_format($account['wallet_balance'] ?? 17.7, 2) }}</span>
-                    <button class="btn btn-sm btn-outline-light border-0 py-0 px-1 tg-action-btn" data-action="start" title="Refresh Feed">
-                        <i class="las la-sync fs-6"></i>
-                    </button>
-                </div>
-            </div>
+<div class="row g-0 justify-content-center">
+    <div class="col-12">
+        <div class="tg-desktop-app shadow-lg">
+            <div class="row g-0 h-100">
+                <!-- Left Control / Navigation Pane -->
+                <div class="col-lg-4 col-md-5 tg-sidebar-pane d-flex flex-column border-end border-dark">
+                    <!-- Bot Info & Balance Card -->
+                    <div class="tg-sidebar-header p-3 border-bottom border-dark">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="tg-bot-avatar">
+                                <img src="https://ui-avatars.com/api/?name=Warzone+Shop&background=2b5278&color=fff&size=52&font-size=0.4" alt="Warzone Shop" class="rounded-circle shadow">
+                            </div>
+                            <div>
+                                <h5 class="mb-0 text-white fw-bold">Warzone Shop</h5>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <span class="tg-status-dot"></span>
+                                    <span class="text-white-50 small">Bot • 13,071 users</span>
+                                </div>
+                            </div>
+                        </div>
 
-            <!-- Chat Scrollable Feed -->
-            <div class="tg-chat-feed p-2" id="chatFeed">
-                <!-- Initial Welcome Bot Message -->
-                <div class="tg-msg-row tg-msg-bot-row mb-2">
-                    <div class="tg-msg-bot">
-                        @include('admin.partials.warzone_menu_response', ['account' => $account])
-                        <span class="tg-msg-time">8:56 AM</span>
+                        <!-- Live Account Pill Box -->
+                        <div class="tg-account-card p-3 rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-white-50 small">Wallet Balance</span>
+                                <span class="badge bg-success px-2 py-1 fs-6 fw-bold" id="leftBalanceBadge">
+                                    ${{ number_format($account['wallet_balance'] ?? 17.7, 2) }}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center text-white-50 small mt-2 pt-2 border-top border-secondary">
+                                <span>Telegram ID: <code class="tg-code">{{ $account['chat_id'] ?? '6976455363' }}</code></span>
+                                <span>👤 {{ $account['first_name'] ?? 'Shahab' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Keyboard Grid Buttons Menu -->
+                    <div class="tg-sidebar-menu p-3 flex-grow-1 overflow-y-auto">
+                        <div class="small text-uppercase text-white-50 fw-bold mb-2 tracking-wide" style="font-size: 11px;">
+                            Quick Commands
+                        </div>
+                        <div class="d-flex flex-column gap-2">
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="shop">
+                                <span><i class="las la-shopping-cart fs-5 me-2"></i> 🛒 Shop Products</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="wallet">
+                                <span><i class="las la-wallet fs-5 me-2"></i> 💰 Wallet & Balance</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="orders">
+                                <span><i class="las la-receipt fs-5 me-2"></i> 📃 Order History</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="orders">
+                                <span><i class="las la-undo-alt fs-5 me-2"></i> 💸 Recover Order</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="profile">
+                                <span><i class="las la-user-shield fs-5 me-2"></i> 🛡️ Account Profile</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="api_key">
+                                <span><i class="las la-key fs-5 me-2"></i> 📱 API Key</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-blue w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="stats">
+                                <span><i class="las la-chart-bar fs-5 me-2"></i> 📊 Account Stats</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                            <button type="button" class="btn tg-btn-green w-100 text-start d-flex align-items-center justify-content-between py-2 px-3 tg-keyboard-btn" data-action="support">
+                                <span><i class="las la-headset fs-5 me-2"></i> 🤫 Warzone Support</span>
+                                <i class="las la-angle-right text-white-50"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Telegram Keyboard Grid Panel -->
-            <div class="tg-keyboard-container p-1" id="keyboardContainer">
-                <div class="row g-1">
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="shop">
-                            🛒 Shop
-                        </button>
+                <!-- Right Chat & Interaction Pane -->
+                <div class="col-lg-8 col-md-7 tg-chat-pane d-flex flex-column">
+                    <!-- Telegram Chat Header -->
+                    <div class="tg-chat-header d-flex align-items-center justify-content-between px-3 py-2 border-bottom border-dark">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="d-lg-none d-md-none">
+                                <img src="https://ui-avatars.com/api/?name=Warzone+Shop&background=2b5278&color=fff&size=32&font-size=0.4" alt="Warzone Shop" class="rounded-circle">
+                            </div>
+                            <div>
+                                <span class="text-white fw-bold d-block" style="font-size: 14px;">Warzone Shop Conversation</span>
+                                <span class="text-white-50 small" style="font-size: 11px;">Real-time API Bot Response Feed</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-info py-1 px-3 tg-action-btn" data-action="start">
+                                <i class="las la-redo-alt me-1"></i> /start
+                            </button>
+                        </div>
                     </div>
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="wallet">
-                            💰 Wallet
-                        </button>
+
+                    <!-- Chat Scrollable Feed -->
+                    <div class="tg-chat-feed p-3 flex-grow-1 overflow-y-auto" id="chatFeed">
+                        <!-- Initial Welcome Bot Message -->
+                        <div class="tg-msg-row tg-msg-bot-row mb-3">
+                            <div class="tg-msg-bot shadow-sm">
+                                @include('admin.partials.warzone_menu_response', ['account' => $account])
+                                <span class="tg-msg-time">8:56 AM</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="orders">
-                            📃 Order History
+
+                    <!-- Bottom Message Input Bar -->
+                    <div class="tg-input-bar d-flex align-items-center gap-2 p-3 border-top border-dark">
+                        <button type="button" class="btn btn-outline-secondary text-white py-2 px-3 tg-action-btn" data-action="start" title="Main Menu">
+                            <i class="las la-bars fs-5"></i>
                         </button>
-                    </div>
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="orders">
-                            💸 Recover Order
-                        </button>
-                    </div>
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-green w-100 tg-keyboard-btn" data-action="wallet">
-                            💰 Refer & Earn
-                        </button>
-                    </div>
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="profile">
-                            🛡️ Profile
-                        </button>
-                    </div>
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-green w-100 tg-keyboard-btn" data-action="support">
-                            🤫 Support
-                        </button>
-                    </div>
-                    <div class="col-6">
-                        <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="api_key">
-                            📱 API Key
-                        </button>
-                    </div>
-                    <div class="col-12">
-                        <button type="button" class="btn tg-btn-blue w-100 tg-keyboard-btn" data-action="stats">
-                            📊 Account Stats
+                        <input type="text" class="form-control tg-msg-input py-2 px-3" id="tgMessageInput" placeholder="Send a command (e.g. /shop, /orders, /wallet, /start)..." autocomplete="off">
+                        <button type="button" class="btn btn-primary text-white py-2 px-4 rounded-pill d-flex align-items-center gap-2" id="tgSendBtn">
+                            <span>Send</span>
+                            <i class="las la-paper-plane fs-6"></i>
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Bottom Message Input Bar -->
-            <div class="tg-input-bar d-flex align-items-center gap-1 p-1">
-                <button type="button" class="btn text-white p-1" id="toggleKeyboardBtn" title="Toggle Keyboard" style="font-size: 11px;">
-                    <i class="las la-bars"></i> Menu
-                </button>
-                <input type="text" class="form-control tg-msg-input" id="tgMessageInput" placeholder="Message..." autocomplete="off">
-                <button type="button" class="btn btn-primary text-white p-1 rounded-circle d-flex align-items-center justify-content-center" id="tgSendBtn" style="width: 32px; height: 32px; min-width: 32px;">
-                    <i class="las la-paper-plane" style="font-size: 14px;"></i>
-                </button>
             </div>
         </div>
     </div>
@@ -103,32 +131,57 @@
 
 @push('style')
 <style>
-    .tg-app-container {
+    .tg-desktop-app {
         background-color: #0e1621;
         border-radius: 12px;
         overflow: hidden;
-        border: 1px solid #17212b;
+        border: 1px solid #1f2c3d;
+        height: calc(100vh - 170px);
+        min-height: 520px;
+        max-height: 720px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        max-width: 390px;
-        margin: 0 auto;
-        height: calc(100vh - 165px);
-        max-height: 570px;
-        min-height: 430px;
-        display: flex;
-        flex-direction: column;
     }
-    .tg-app-header {
+    .tg-sidebar-pane {
+        background-color: #151e27;
+        height: 100%;
+        overflow: hidden;
+    }
+    .tg-sidebar-header {
         background-color: #17212b;
-        border-bottom: 1px solid #0e1621;
         flex-shrink: 0;
     }
-    .tg-bot-avatar img {
-        width: 32px;
-        height: 32px;
+    .tg-sidebar-menu {
+        overflow-y: auto;
+    }
+    .tg-status-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #4ade80;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 6px #4ade80;
+    }
+    .tg-account-card {
+        background: #1c2733;
+        border: 1px solid #233242;
+    }
+    .tg-code {
+        color: #38bdf8 !important;
+        background: rgba(0,0,0,0.4) !important;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    .tg-chat-pane {
+        background-color: #0e1621;
+        height: 100%;
+        overflow: hidden;
+    }
+    .tg-chat-header {
+        background-color: #17212b;
+        flex-shrink: 0;
     }
     .tg-chat-feed {
-        flex: 1 1 auto;
-        overflow-y: auto;
         background: #0e1621 url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2F1b2733' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
     }
     .tg-msg-row {
@@ -144,21 +197,21 @@
     .tg-msg-bot {
         background-color: #182533 !important;
         color: #ffffff !important;
-        border-radius: 10px 10px 10px 2px;
-        max-width: 90%;
-        padding: 8px 10px;
+        border-radius: 12px 12px 12px 2px;
+        max-width: 85%;
+        padding: 12px 16px;
         position: relative;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     .tg-msg-user {
-        background-color: #24527a !important;
+        background-color: #2b5278 !important;
         color: #ffffff !important;
-        border-radius: 10px 10px 2px 10px;
-        max-width: 80%;
-        padding: 6px 10px;
+        border-radius: 12px 12px 2px 12px;
+        max-width: 75%;
+        padding: 10px 16px;
         position: relative;
-        font-size: 12px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        font-size: 14px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     .tg-msg-user span {
         color: #ffffff !important;
@@ -168,30 +221,30 @@
         color: #93c5fd !important;
     }
     .tg-msg-time {
-        font-size: 9.5px;
+        font-size: 11px;
         color: #94a3b8 !important;
         float: right;
-        margin-top: 4px;
-        margin-left: 6px;
+        margin-top: 6px;
+        margin-left: 10px;
     }
     .tg-bot-card {
-        font-size: 12px;
-        line-height: 1.4;
+        font-size: 13.5px;
+        line-height: 1.5;
         color: #ffffff !important;
     }
     .tg-bot-card * {
         color: #ffffff;
     }
     .tg-card-header {
-        font-size: 13px;
+        font-size: 15px;
         border-bottom: 1px solid rgba(255,255,255,0.12);
-        padding-bottom: 4px;
+        padding-bottom: 6px;
         color: #ffffff !important;
     }
     .tg-info-box {
         background-color: rgba(0,0,0,0.35) !important;
-        padding: 6px 10px;
-        border-radius: 6px;
+        padding: 10px 14px;
+        border-radius: 8px;
         border-left: 3px solid #38bdf8;
     }
     .tg-info-box * {
@@ -200,52 +253,47 @@
     .tg-info-box code, .tg-bot-card code {
         color: #38bdf8 !important;
         background: rgba(0,0,0,0.5) !important;
-        padding: 2px 5px;
+        padding: 2px 6px;
         border-radius: 4px;
         font-weight: 600;
-        font-size: 11px;
+        font-size: 12px;
     }
     .tg-info-box .text-success, .tg-bot-card .text-success {
         color: #4ade80 !important;
     }
-    .tg-keyboard-container {
-        background-color: #17212b;
-        border-top: 1px solid #0e1621;
-        flex-shrink: 0;
-    }
     .tg-btn-blue {
-        background-color: #24466b !important;
+        background-color: #20354b !important;
         color: #ffffff !important;
-        border: none !important;
+        border: 1px solid #29425d !important;
         font-weight: 600 !important;
-        font-size: 11.5px !important;
-        padding: 5px 8px !important;
-        border-radius: 6px;
-        transition: all 0.15s;
+        font-size: 13px !important;
+        border-radius: 8px;
+        transition: all 0.2s;
     }
     .tg-btn-blue:hover {
-        background-color: #2e5988 !important;
+        background-color: #2b4967 !important;
+        border-color: #38bdf8 !important;
         color: #ffffff !important;
     }
     .tg-btn-green {
-        background-color: #1b6339 !important;
+        background-color: #17472c !important;
         color: #ffffff !important;
-        border: none !important;
+        border: 1px solid #205e3b !important;
         font-weight: 600 !important;
-        font-size: 11.5px !important;
-        padding: 5px 8px !important;
-        border-radius: 6px;
-        transition: all 0.15s;
+        font-size: 13px !important;
+        border-radius: 8px;
+        transition: all 0.2s;
     }
     .tg-btn-green:hover {
-        background-color: #24824b !important;
+        background-color: #1e5a38 !important;
+        border-color: #4ade80 !important;
         color: #ffffff !important;
     }
     .tg-btn-prod-stock {
         background-color: #166534 !important;
         border: 1px solid #22c55e !important;
         color: #ffffff !important;
-        border-radius: 6px;
+        border-radius: 8px;
     }
     .tg-btn-prod-stock:hover {
         background-color: #15803d !important;
@@ -257,7 +305,7 @@
         background-color: #991b1b !important;
         border: 1px solid #ef4444 !important;
         color: #ffffff !important;
-        border-radius: 6px;
+        border-radius: 8px;
     }
     .tg-btn-prod-nostock:hover {
         background-color: #b91c1c !important;
@@ -267,21 +315,81 @@
     }
     .tg-input-bar {
         background-color: #17212b;
-        border-top: 1px solid #0e1621;
         flex-shrink: 0;
     }
     .tg-msg-input {
         background-color: #0e1621 !important;
         border: 1px solid #2b5278 !important;
         color: #ffffff !important;
-        border-radius: 18px !important;
-        padding: 4px 10px !important;
-        font-size: 11.5px !important;
-        height: 30px !important;
+        border-radius: 24px !important;
+        font-size: 13.5px !important;
     }
     .tg-msg-input::placeholder {
         color: rgba(255,255,255,0.4) !important;
     }
+    .tg-custom-table {
+
+        width: 100%;
+        border-collapse: collapse;
+        background: #111b27;
+        border: 1px solid #23374d;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .tg-custom-table th {
+        background: #1e334a !important;
+        color: #38bdf8 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        padding: 8px 12px !important;
+        border: 1px solid #23374d !important;
+        text-transform: uppercase;
+    }
+    .tg-custom-table td {
+        background: #142130 !important;
+        color: #ffffff !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        padding: 8px 12px !important;
+        border: 1px solid #23374d !important;
+    }
+    .tg-alert-danger {
+        background-color: #450a0a !important;
+        border: 1px solid #ef4444 !important;
+        color: #fecaca !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 10px 14px !important;
+        border-radius: 8px !important;
+    }
+    .tg-alert-warning {
+        background-color: #422006 !important;
+        border: 1px solid #eab308 !important;
+        color: #fef08a !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 10px 14px !important;
+        border-radius: 8px !important;
+    }
+    .tg-alert-success {
+        background-color: #052e16 !important;
+        border: 1px solid #22c55e !important;
+        color: #bbf7d0 !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 10px 14px !important;
+        border-radius: 8px !important;
+    }
+    .tg-alert-info {
+        background-color: #082f49 !important;
+        border: 1px solid #0284c7 !important;
+        color: #bae6fd !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        padding: 10px 14px !important;
+        border-radius: 8px !important;
+    }
+
     .btn-xs {
         padding: 2px 6px;
         font-size: 11px;
@@ -390,19 +498,21 @@
                     if (res.success && res.html) {
                         appendBotResponse(loadingId, res.html);
                         if (res.account && res.account.wallet_balance !== undefined) {
-                            $('#topBalanceBadge').text('💰 Balance: $' + parseFloat(res.account.wallet_balance).toFixed(2));
+                            $('#topBalanceBadge').text('💰 $' + parseFloat(res.account.wallet_balance).toFixed(2));
+                            $('#leftBalanceBadge').text('$' + parseFloat(res.account.wallet_balance).toFixed(2));
                         }
                     } else {
-                        const errMsg = `<div class="alert alert-danger py-2 mb-0 small">❌ ${res.message || 'Error executing request'}</div>`;
+                        const errMsg = `<div class="tg-alert-danger mb-0">❌ ${res.message || 'Error executing request'}</div>`;
                         appendBotResponse(loadingId, errMsg);
                     }
                 },
                 error: function(xhr) {
-                    const errMsg = `<div class="alert alert-danger py-2 mb-0 small">❌ Connection error (${xhr.status}). Try again.</div>`;
+                    const errMsg = `<div class="tg-alert-danger mb-0">❌ Connection error (${xhr.status}). Try again.</div>`;
                     appendBotResponse(loadingId, errMsg);
                 }
             });
         }
+
 
         // Toggle Keyboard Panel
         $('#toggleKeyboardBtn').on('click', function() {

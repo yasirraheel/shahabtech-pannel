@@ -39,12 +39,13 @@
             ❌ <strong>Order Placement Failed</strong>
         </div>
         <div class="tg-card-body">
-            <div class="alert alert-danger mb-3">
+            <div class="tg-alert-danger mb-3">
                 {{ $result['error'] ?? ($result['message'] ?? 'Unable to process order.') }}
             </div>
-            <button type="button" class="btn btn-secondary btn-sm w-100 tg-action-btn" data-action="shop">
+            <button type="button" class="btn tg-btn-blue btn-sm w-100 tg-action-btn fw-bold text-white" data-action="shop">
                 ⬅️ Back to Products List
             </button>
         </div>
+
     @endif
 </div>
