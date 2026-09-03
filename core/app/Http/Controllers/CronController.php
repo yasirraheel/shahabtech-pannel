@@ -396,4 +396,130 @@ class CronController extends Controller
 
         return ['valid' => true, 'error' => null, 'account_name' => is_string($extractedName) ? trim($extractedName) : null];
     }
+
+    /**
+     * Auto-buy Gemini AI Pro 18M from Warzone API as soon as stock is available.
+     * Buys the maximum affordable quantity with the current wallet balance.
+     */
+    public function warzoneAutoBuyGemini()
+    {
+        $apiKey  = 'WAR_LoV98CIYjX6S6N17Hvmc2c2K';
+        $baseUrl = 'https://api.warzoneshop.in/api/v1';
+
+        try {
+            // 1. Fetch current wallet balance
+            $accountRes = \Illuminate\Support\Facades\Http::withHeaders([
+                'X-API-Key' => $apiKey,
+                'Accept'    => 'application/json',
+            ])->timeout(12)->get("$baseUrl/me")->json();
+
+            $balance = floatval($accountRes['wallet_balance'] ?? 0);
+            if ($balance <= 0) {
+                return response()->json([
+                    'status'     => 'insufficient_balance',
+                    'message'    => 'Wallet balance is $0.00. Please top up your wallet first.',
+                    'balance'    => 0,
+                    'checked_at' => now()->toDateTimeString(),
+                ]);
+            }
+
+            // 2. Fetch products and locate Gemini Pro
+            $productsRes = \Illuminate\Support\Facades\Http::withHeaders([
+                'X-API-Key' => $apiKey,
+                'Accept'    => 'application/json',
+            ])->timeout(12)->get("$baseUrl/products")->json();
+
+            $gemini = null;
+            foreach ($productsRes['services'] ?? [] as $service) {
+                if (($service['service_id'] ?? '') === 'S_01' || stripos($service['name'] ?? '', 'Gemini') !== false) {
+                    $gemini = $service;
+                    break;
+                }
+            }
+
+            if (!$gemini) {
+                return response()->json([
+                    'status'     => 'error',
+                    'message'    => 'Gemini AI Pro 18M product not found in Warzone API services list.',
+                    'checked_at' => now()->toDateTimeString(),
+                ], 404);
+            }
+
+            $serviceId = $gemini['service_id'] ?? 'S_01';
+            $stock     = intval($gemini['stock'] ?? 0);
+            $orderable = !empty($gemini['orderable']);
+
+            // 3. Check stock availability
+            if ($stock <= 0 || !$orderable) {
+                return response()->json([
+                    'status'     => 'waiting',
+                    'message'    => "Gemini AI Pro 18M is currently Out of Stock (Stock: {$stock}). Standing by for stock...",
+                    'stock'      => $stock,
+                    'balance'    => $balance,
+                    'orderable'  => $orderable,
+                    'checked_at' => now()->toDateTimeString(),
+                ]);
+            }
+
+            // 4. Calculate maximum affordable quantity
+            $basePrice  = floatval($gemini['price'] ?? 0.55);
+            $priceTiers = $gemini['price_tiers'] ?? [];
+            $maxToBuy   = 0;
+
+            for ($q = $stock; $q >= 1; $q--) {
+                $unitPrice = $basePrice;
+                foreach ($priceTiers as $tier) {
+                    if ($q >= $tier['min_qty'] && $q <= $tier['max_qty']) {
+                        $unitPrice = floatval($tier['unit_price']);
+                        break;
+                    }
+                }
+                $totalCost = $q * $unitPrice;
+                if ($totalCost <= $balance) {
+                    $maxToBuy = $q;
+                    break;
+                }
+            }
+
+            if ($maxToBuy < 1) {
+                return response()->json([
+                    'status'     => 'insufficient_funds',
+                    'message'    => "Stock is available ({$stock}), but current balance (\${$balance}) is less than unit price (\${$basePrice}).",
+                    'stock'      => $stock,
+                    'balance'    => $balance,
+                    'checked_at' => now()->toDateTimeString(),
+                ]);
+            }
+
+            // 5. Instantly place order
+            $orderPayload = [
+                'service_id' => $serviceId,
+                'quantity'   => $maxToBuy,
+            ];
+
+            $orderRes = \Illuminate\Support\Facades\Http::withHeaders([
+                'X-API-Key' => $apiKey,
+                'Accept'    => 'application/json',
+            ])->timeout(20)->post("$baseUrl/order", $orderPayload)->json();
+
+            \Illuminate\Support\Facades\Log::info("Warzone Auto Buy Gemini Triggered: Qty: {$maxToBuy}, Balance: \${$balance}, Response: " . json_encode($orderRes));
+
+            return response()->json([
+                'status'         => 'ordered',
+                'message'        => "Successfully placed instant auto-buy order for {$maxToBuy} Gemini Pro account(s)!",
+                'quantity_bought'=> $maxToBuy,
+                'balance_before' => $balance,
+                'order_result'   => $orderRes,
+                'executed_at'    => now()->toDateTimeString(),
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Warzone Auto Buy Gemini Exception: " . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Exception occurred during auto-buy check: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
+

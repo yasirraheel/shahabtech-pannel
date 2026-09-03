@@ -12,6 +12,8 @@ Route::get('/login', function () {
 })->name('login');
 Route::get('cron', 'CronController@cron')->name('cron');
 Route::get('cron/cookie-check', 'CronController@cookieCheck')->name('cron.cookie.check');
+Route::get('cron/warzone-auto-buy-gemini', 'CronController@warzoneAutoBuyGemini')->name('cron.warzone.gemini');
+
 
 // Extension API Routes (Session-based via normal auth)
 Route::options('api/extension/{any?}', function() {
