@@ -1,61 +1,50 @@
 @extends('admin.layouts.app')
 
 @section('panel')
-    <!-- Top Summary Stat Cards -->
-    <div class="row g-3 mb-4">
+    <!-- Top Summary Stat Cards (Exact Main Dashboard Style) -->
+    <div class="row gy-4 mb-4">
         <div class="col-xxl-3 col-sm-6">
-            <div class="card bg--dark text-white border border-secondary shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <h6 class="text-white-50 small mb-1">Total Links</h6>
-                        <h3 class="text-white mb-0 fw-bold">{{ $totalCount }}</h3>
-                    </div>
-                    <div class="rounded-circle bg-primary bg-opacity-25 p-3 text-primary">
-                        <i class="las la-link fs-2"></i>
-                    </div>
-                </div>
-            </div>
+            <x-widget
+                style="6"
+                link="{{ route('admin.warzone.links.index') }}"
+                icon="las la-link"
+                title="Total Links"
+                value="{{ $totalCount }}"
+                bg="primary"
+            />
         </div>
         <div class="col-xxl-3 col-sm-6">
-            <div class="card bg--dark text-white border border-secondary shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <h6 class="text-white-50 small mb-1">Available (In Stock)</h6>
-                        <h3 class="text-success mb-0 fw-bold">{{ $availableCount }}</h3>
-                    </div>
-                    <div class="rounded-circle bg-success bg-opacity-25 p-3 text-success">
-                        <i class="las la-check-circle fs-2"></i>
-                    </div>
-                </div>
-            </div>
+            <x-widget
+                style="6"
+                link="{{ route('admin.warzone.links.index', ['status' => 1]) }}"
+                icon="las la-check-circle"
+                title="Available (In Stock)"
+                value="{{ $availableCount }}"
+                bg="success"
+            />
         </div>
         <div class="col-xxl-3 col-sm-6">
-            <div class="card bg--dark text-white border border-secondary shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <h6 class="text-white-50 small mb-1">Active (In Use)</h6>
-                        <h3 class="text-info mb-0 fw-bold">{{ $activeCount }}</h3>
-                    </div>
-                    <div class="rounded-circle bg-info bg-opacity-25 p-3 text-info">
-                        <i class="las la-user-check fs-2"></i>
-                    </div>
-                </div>
-            </div>
+            <x-widget
+                style="6"
+                link="{{ route('admin.warzone.links.index', ['status' => 2]) }}"
+                icon="las la-user-check"
+                title="Active (In Use)"
+                value="{{ $activeCount }}"
+                bg="info"
+            />
         </div>
         <div class="col-xxl-3 col-sm-6">
-            <div class="card bg--dark text-white border border-secondary shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <h6 class="text-white-50 small mb-1">Used / Expired</h6>
-                        <h3 class="text-warning mb-0 fw-bold">{{ $usedCount + $expiredCount }}</h3>
-                    </div>
-                    <div class="rounded-circle bg-warning bg-opacity-25 p-3 text-warning">
-                        <i class="las la-archive fs-2"></i>
-                    </div>
-                </div>
-            </div>
+            <x-widget
+                style="6"
+                link="{{ route('admin.warzone.links.index', ['status' => 3]) }}"
+                icon="las la-archive"
+                title="Used / Expired"
+                value="{{ $usedCount + $expiredCount }}"
+                bg="warning"
+            />
         </div>
     </div>
+
 
     <!-- Main Table Card -->
     <div class="row">
