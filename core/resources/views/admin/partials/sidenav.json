@@ -26,7 +26,15 @@
         "route_name": "admin.dashboard",
         "menu_active": "admin.dashboard"
     },
+    "warzone_telegram": {
+        "keyword": ["Warzone", "Telegram", "Warzone Telegram", "Bot", "Orders", "Shop"],
+        "title": "Warzone Telegram",
+        "icon": "lab la-telegram",
+        "route_name": "admin.warzone.telegram.index",
+        "menu_active": "admin.warzone.telegram*"
+    },
     "account_listing": {
+
         "keyword": ["Manage accounts","Shared accounts","Account access"],
         "title": "Manage Accounts",
         "icon": "las la-dungeon",

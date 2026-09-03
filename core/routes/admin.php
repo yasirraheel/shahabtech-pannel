@@ -250,6 +250,13 @@ Route::middleware('admin')->group(function () {
         Route::get('get-keys', 'getKeys')->name('get.key');
     });
 
+    // Warzone Telegram
+    Route::controller('WarzoneTelegramController')->prefix('warzone-telegram')->name('warzone.telegram.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('action', 'action')->name('action');
+    });
+
+
     Route::controller('GeneralSettingController')->group(function(){
 
         Route::get('system-setting', 'systemSetting')->name('setting.system');
