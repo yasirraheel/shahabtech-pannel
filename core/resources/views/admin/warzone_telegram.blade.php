@@ -672,7 +672,30 @@
             }
         };
 
+        // In-place auto-refresh for Auto-Buy Monitor card
+        function refreshAutoBuyCard() {
+            const $lastAutoBuyCard = $('.tg-bot-card').filter(function() {
+                return $(this).find('strong:contains("Gemini Auto-Buy Sniper Bot")').length > 0;
+            }).last();
+
+            if ($lastAutoBuyCard.length > 0) {
+                $.ajax({
+                    url: actionUrl,
+                    type: 'POST',
+                    data: { _token: csrfToken, action: 'autobuy' },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.success && res.html) {
+                            $lastAutoBuyCard.replaceWith(res.html);
+                        }
+                    }
+                });
+            }
+        }
+        setInterval(refreshAutoBuyCard, 15000);
+
         scrollToBottom();
+
     })(jQuery);
 </script>
 @endpush
