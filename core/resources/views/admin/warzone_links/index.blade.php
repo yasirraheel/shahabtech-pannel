@@ -337,8 +337,11 @@
         });
     })(jQuery);
 </script>
+@endpush
+
 @push('style')
 <style>
+
     .badge--success {
         background-color: rgba(40, 199, 111, 0.15) !important;
         border: 1px solid #28c76f !important;
