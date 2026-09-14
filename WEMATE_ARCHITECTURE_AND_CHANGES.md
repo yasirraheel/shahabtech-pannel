@@ -66,14 +66,30 @@
 
 ---
 
-## 3. Key Files & Structure
+### F. Cookie Injection Fix & Tab Creation Race Condition Elimination (v2.3.0)
+* **Problem**: 
+  1. When clicking "Visit Platform" from the user dashboard, users were not getting logged into Google Flow.
+  2. Root cause: `background.js` had an unconditional `chrome.tabs.onCreated` listener. When `chrome.tabs.create({ url: 'https://flow.google.com/' })` opened the tab, the `onCreated` listener immediately fired, triggering `autoInjectCookies` -> `clearGoogleAuthCookies()`. This wiped the Google authentication cookies (`SID`, `SSID`, `HSID`, `__Secure-1PSID`, `OSID`, etc.) out of the browser at the exact millisecond the newly opened tab was initiating its HTTP handshake with Google Flow, causing Google to reject the request and redirect to `ServiceLogin`.
+  3. Google cookies with domain `.google.com` were not being mirrored across `https://flow.google.com/`, `https://labs.google/`, and `https://accounts.google.com/`.
+  4. Cookies with domain `flow.google.com` (such as `OSID` and `__Secure-OSID`) were being stripped of their domain and converted into host-only cookies.
+* **Solution**:
+  1. **Removed `chrome.tabs.onCreated` listener**: Tab creation never wipes or re-injects cookies.
+  2. **Implemented 30-Second Tab Debounce**: `chrome.tabs.onUpdated` only triggers when `status === 'loading'`, enforces a 30-second debounce per tab, and never clears existing auth cookies during background updates (`shouldClearAuth = false`).
+  3. **Comprehensive Google Cross-Domain Mirroring**: Replicated exact FlowByDcx mirroring logic where all `.google.com` auth cookies are mirrored directly to `https://flow.google.com/`, `https://labs.google/`, and `https://accounts.google.com/`.
+  4. **Domain Normalization**: Cookies for `flow.google.com` are normalized to `.flow.google.com` so they are fully valid across all sub-paths.
+  5. **Immediate Meta Tag Injection**: Updated `content.js` to run at `document_start` across all portal domains so `shahabtech-extension-installed` is always present before user clicks.
+  6. **Packaged & Deployed**: Packaged flat `wemate-ext-v2.3.0.zip` and updated `min_extension_version` in DB to `2.3.0`.
+
+---
+
+## 3. Key Files & Responsibilities
 
 | Component | Path | Description |
 |---|---|---|
 | **Cron & Cookie Verification** | `core/app/Http/Controllers/CronController.php` | Live HTTP cookie validation (`verifyAccountCookieHealth`), WhatsApp expiry alerts, user load balancing. |
 | **Admin Account Management** | `core/app/Http/Controllers/Admin/AccountListingController.php` | Account CRUD, manual "Check Cookie", expiry extend/decrease (+30 / -30 days), duplicate name prevention. |
 | **Extension Upload & Zip Flattening** | `core/app/Http/Controllers/Admin/ExtensionUploadController.php` | Handles zip upload, auto-flattening nested directories, updating `min_extension_version`. |
-| **Extension Manifest** | `wemate-ext/manifest.json` | Manifest V3 configuration (currently v2.2.0). |
+| **Extension Manifest** | `wemate-ext/manifest.json` | Manifest V3 configuration (currently v2.3.0). |
 | **Extension Background Service Worker** | `wemate-ext/background.js` | Cookie injection engine, multi-tier fallback, subscription status watchdog. |
 | **Extension Content Protector** | `wemate-ext/protector.js` | Prevents logout, blocks cookie-editor extensions, isolates ChatGPT chat history, hides Flow projects & home thumbnails. |
 | **Extension Main World Hijack** | `wemate-ext/hijack.js` | Runs in `MAIN` world to protect storage and environment. |
