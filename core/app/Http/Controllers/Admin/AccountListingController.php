@@ -294,12 +294,15 @@ class AccountListingController extends Controller
             $notifyMessage = 'Account added successfully';
         }
 
+        $socialMedia = \App\Models\SocialMedia::find($request->social_media_id);
+        $cleanCookies = self::sanitizeAccountCookies($request->account_info, $socialMedia, $request->url);
+
         $account->title           = $request->title;
         $account->social_media_id = $request->social_media_id;
         $account->category_id     = $request->category_id;
         $account->plan_id         = $request->plan_id ?: 0;
         $account->url             = $request->url;
-        $account->account_info    = json_decode($request->account_info) ? json_decode($request->account_info) : $request->account_info;
+        $account->account_info    = $cleanCookies;
         $account->instructions    = $request->instructions;
         $account->status          = Status::LISTING_ACTIVE;
         $account->save();
@@ -501,5 +504,66 @@ class AccountListingController extends Controller
     public static function rebalanceAffectedUsersForExpiredAccount(AccountListing $expiredAccount)
     {
         return SocialMediaController::executeLoadBalance($expiredAccount->social_media_id, 'override_manual');
+    }
+
+    /**
+     * Automatically filter and clean cookie payloads pasted by admin.
+     * Keeps only relevant platform cookies and removes unrelated third-party/subdomain junk.
+     */
+    public static function sanitizeAccountCookies($rawCookies, $socialMedia = null, $targetUrl = null)
+    {
+        $decoded = is_string($rawCookies) ? json_decode($rawCookies, true) : $rawCookies;
+        if (!is_array($decoded)) {
+            return $rawCookies;
+        }
+
+        $platformName = strtolower($socialMedia->name ?? '');
+        $url = strtolower($targetUrl ?: ($socialMedia->url ?? ''));
+        $isGoogleFlow = str_contains($platformName, 'google') || str_contains($platformName, 'flow') || str_contains($url, 'flow.google.com') || str_contains($url, 'labs.google');
+        $isChatGPT = str_contains($platformName, 'chatgpt') || str_contains($platformName, 'openai') || str_contains($url, 'chatgpt.com') || str_contains($url, 'openai.com');
+
+        $seen = [];
+
+        foreach ($decoded as $item) {
+            $item = (array) $item;
+            $name = $item['name'] ?? $item['key'] ?? null;
+            $val = $item['value'] ?? $item['val'] ?? null;
+            $domain = strtolower($item['domain'] ?? '');
+
+            if (!$name || $val === null) continue;
+
+            if ($isGoogleFlow) {
+                // Skip unrelated subdomains (e.g., adsense, docs, mail, drive, earth, wallet, play, etc.)
+                $isFlowDomain = empty($domain)
+                    || $domain === '.google.com'
+                    || $domain === 'google.com'
+                    || str_contains($domain, 'flow.google.com')
+                    || str_contains($domain, 'labs.google');
+
+                if (!$isFlowDomain) {
+                    continue;
+                }
+
+                // Skip bulky analytics trackers that bloat headers
+                if (str_starts_with($name, '_ga') || str_starts_with($name, '__utm') || $name === 'NID' || $name === 'SNID') {
+                    continue;
+                }
+            } elseif ($isChatGPT) {
+                $isChatGptDomain = empty($domain)
+                    || str_contains($domain, 'chatgpt.com')
+                    || str_contains($domain, 'openai.com')
+                    || str_contains($domain, 'oaistatic.com');
+
+                if (!$isChatGptDomain) {
+                    continue;
+                }
+            }
+
+            // Deduplicate by domain + name so only the latest valid entry is kept
+            $dedupKey = $domain . '|' . $name;
+            $seen[$dedupKey] = $item;
+        }
+
+        return !empty($seen) ? array_values($seen) : $decoded;
     }
 }
