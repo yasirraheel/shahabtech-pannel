@@ -281,6 +281,10 @@ class CronController extends Controller
             return ['valid' => false, 'error' => 'No cookie data configured'];
         }
 
+        $platformName = strtolower($account->socialMedia->name ?? '');
+        $accountTitle = strtolower($account->title ?? '');
+        $isGoogleFlow = str_contains($platformName, 'google') || str_contains($accountTitle, 'flow');
+
         // Convert array/object of cookies into standard header string
         // We DO NOT check local expiration dates; we scan live.
         $cookieHeaderParts = [];
@@ -290,8 +294,29 @@ class CronController extends Controller
                 $item = (array) $item;
                 $name = $item['name'] ?? $item['key'] ?? null;
                 $val  = $item['value'] ?? $item['val'] ?? null;
+                $domain = strtolower($item['domain'] ?? '');
 
                 if ($name && $val !== null) {
+                    if ($isGoogleFlow) {
+                        // Avoid HTTP 431 Request Header Fields Too Large and CookieMismatch errors
+                        // Only include cookies meant for Google Flow / Google Root Auth
+                        $isRelevantDomain = empty($domain) 
+                            || $domain === '.google.com' 
+                            || $domain === 'google.com' 
+                            || str_contains($domain, 'flow.google.com') 
+                            || str_contains($domain, 'labs.google')
+                            || str_contains($domain, 'accounts.google.com');
+
+                        if (!$isRelevantDomain) {
+                            continue; // Skip adsense, docs, mail, wallet, etc.
+                        }
+
+                        // Skip bulky analytics trackers
+                        if (str_starts_with($name, '_ga') || str_starts_with($name, '__utm') || $name === 'NID') {
+                            continue;
+                        }
+                    }
+
                     $cookieHeaderParts[] = "$name=$val";
                 }
             }
@@ -303,9 +328,7 @@ class CronController extends Controller
 
         $cookieHeaderString = implode('; ', $cookieHeaderParts);
 
-        $platformName = strtolower($account->socialMedia->name ?? '');
-        $accountTitle = strtolower($account->title ?? '');
-        $isGoogleFlow = str_contains($platformName, 'google') || str_contains($accountTitle, 'flow');
+
 
         if ($isGoogleFlow) {
             // For Google Flow, test NextAuth session API endpoint live
