@@ -350,16 +350,6 @@ class CronController extends Controller
                 return ['valid' => false, 'error' => 'Session expired (Unauthenticated on Google Flow API)'];
             }
 
-            // Inspect the live session expiration timestamp returned by Google NextAuth API
-            if (isset($json['expires'])) {
-                $sessionExpiryTs = strtotime($json['expires']);
-                if ($sessionExpiryTs && $sessionExpiryTs < time()) {
-                    $tz = config('app.timezone') ?: date_default_timezone_get();
-                    $formattedTime = \Carbon\Carbon::createFromTimestamp($sessionExpiryTs)->timezone($tz)->format('Y-m-d H:i');
-                    return ['valid' => false, 'error' => 'Google Session Expired (' . $formattedTime . ')'];
-                }
-            }
-
             $extractedName = null;
             if (!empty($json['user']['name'])) {
                 $extractedName = trim($json['user']['name']);
