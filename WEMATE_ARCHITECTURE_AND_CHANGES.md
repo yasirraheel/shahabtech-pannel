@@ -80,6 +80,37 @@
   5. **Immediate Meta Tag Injection**: Updated `content.js` to run at `document_start` across all portal domains so `shahabtech-extension-installed` is always present before user clicks.
   6. **Packaged & Deployed**: Packaged flat `wemate-ext-v2.3.0.zip` and updated `min_extension_version` in DB to `2.3.0`.
 
+### G. Admin Panel Cookie Auto-Sanitizer (Commit `2329818`)
+* **Problem**: When admins export cookies from browser sessions, the JSON export frequently contains 100+ cookies from unrelated Google properties (`docs.google.com`, `drive.google.com`, `mail.google.com`, `adsense`, `youtube`, `play`, etc.) and tracking tokens (`_ga`, `_gid`, `NID`, `OGP`). Injecting this massive payload overwhelmed Chrome's cookie jar, degraded performance, and led to session conflicts.
+* **Solution in `core/app/Http/Controllers/Admin/AccountListingController.php`**:
+  * Implemented `sanitizeAccountCookies()`: Automatically runs on any cookie payload pasted in the Admin Panel when adding or editing accounts.
+  * For Google Flow:
+    1. Extracts only cookies belonging to `.google.com` or `flow.google.com`.
+    2. Completely strips cookies belonging to 60+ unrelated subdomains (`docs`, `sheets`, `drive`, `mail`, `play`, `youtube`, `ads`, `analytics`, etc.).
+    3. Strips advertising and telemetry cookies (`_ga`, `_gid`, `_gat`, `__utm`, `NID`, `ANID`, `IDE`, `DSID`).
+    4. Deduplicates cookies by name/domain/path and formats the output into clean, optimized JSON.
+
+---
+
+### H. Safe Project Hiding & Elimination of Black Screen on Pro Accounts (v2.3.1)
+* **Problem**:
+  1. On Google Flow Pro accounts (e.g. `aasikhan`), users reported that the home page would render for a split second (showing the banner and "+ New project" card), and then immediately turn into a completely pitch-black screen with all controls disappearing.
+  2. Meanwhile, Ultra accounts (with many existing projects) did not show the black screen.
+  3. **Root Cause**:
+     * In `wemate-ext/protector.js`, the previous `hideOtherProjects()` implementation used an over-aggressive DOM crawler `findCardParent(el, depth=8)` which looked for `parentElement.children.length > 6`.
+     * On high-traffic Ultra accounts with >6 project cards, `children.length > 6` stopped the crawler at the card level.
+     * On fresh Pro accounts with 0 or few projects, `children.length > 6` was **never met**.
+     * `findCardParent` crawled up 8 levels of ancestors until reaching `document.body`'s direct child, marking the entire application root `<main>` / `div#__next` with `data-wm-hide="1"`.
+     * Combined with `[data-wm-hide] { display: none !important; }`, the entire viewport was hidden into a black screen.
+     * Additionally, arbitrary date matching (`DATE_RE`) on all `div` and `section` elements and container cascade rules (`kids.every(...)`) caused recursive hiding of the grid.
+* **Solution in `wemate-ext/protector.js`**:
+  1. **Removed all broad rules**: Eliminated `findCardParent(el, 8)`, `DATE_RE` regex, `BNNER_RE`, container hiding cascades, and global `[data-wm-hide]` CSS.
+  2. **Targeted Card Selection**: Only inspects `a[href*="/project/"]` and `a[href^="/fx/tools/flow/"]` with valid project slugs (`m[1].length >= 4`). Creation links (`/project/create`, `/project/new`) are strictly excluded.
+  3. **Comprehensive New Project Shield**: `NEWP_RE` checks `innerText`, `textContent`, `aria-label`, and `title` for "New project", "Create", "Start Creating", "+", etc. If an element or any ancestor contains the "+ New project" button, it is **strictly immune** and can never be hidden.
+  4. **Strict Boundary Limiter**: The card parent finder walks a maximum of 4 levels and stops immediately if it encounters `MAIN`, `HEADER`, `NAV`, `SECTION`, `BODY`, or any element containing `NEWP_RE`.
+  5. **Card-Level Inline Hiding**: Uses `card.style.setProperty('display', 'none', 'important')` strictly on the identified project card.
+  6. **Packaged & Deployed**: Packaged flat `wemate-ext-v2.3.1.zip`, uploaded to server, and updated `min_extension_version` to `2.3.1`.
+
 ---
 
 ## 3. Key Files & Responsibilities
@@ -87,11 +118,11 @@
 | Component | Path | Description |
 |---|---|---|
 | **Cron & Cookie Verification** | `core/app/Http/Controllers/CronController.php` | Live HTTP cookie validation (`verifyAccountCookieHealth`), WhatsApp expiry alerts, user load balancing. |
-| **Admin Account Management** | `core/app/Http/Controllers/Admin/AccountListingController.php` | Account CRUD, manual "Check Cookie", expiry extend/decrease (+30 / -30 days), duplicate name prevention. |
+| **Admin Account Management** | `core/app/Http/Controllers/Admin/AccountListingController.php` | Account CRUD, manual "Check Cookie", cookie auto-sanitizer (`sanitizeAccountCookies`), expiry extend/decrease (+30 / -30 days). |
 | **Extension Upload & Zip Flattening** | `core/app/Http/Controllers/Admin/ExtensionUploadController.php` | Handles zip upload, auto-flattening nested directories, updating `min_extension_version`. |
-| **Extension Manifest** | `wemate-ext/manifest.json` | Manifest V3 configuration (currently v2.3.0). |
+| **Extension Manifest** | `wemate-ext/manifest.json` | Manifest V3 configuration (currently v2.3.1). |
 | **Extension Background Service Worker** | `wemate-ext/background.js` | Cookie injection engine, multi-tier fallback, subscription status watchdog. |
-| **Extension Content Protector** | `wemate-ext/protector.js` | Prevents logout, blocks cookie-editor extensions, isolates ChatGPT chat history, hides Flow projects & home thumbnails. |
+| **Extension Content Protector** | `wemate-ext/protector.js` | Prevents logout, blocks cookie-editor extensions, isolates ChatGPT chat history, safe Flow project hiding. |
 | **Extension Main World Hijack** | `wemate-ext/hijack.js` | Runs in `MAIN` world to protect storage and environment. |
 
 ---
