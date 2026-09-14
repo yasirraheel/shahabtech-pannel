@@ -34,22 +34,6 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     window.location.replace(matchedPlatform.url);
                     return;
                 }
-
-                // Path lock logic
-                // Only lock if the user has provided a specific path (length > 1)
-                if (allowedObj.pathname.length > 1) {
-                    // If they are on the exact same host but a different path
-                    if (currentHost === allowedObj.hostname.toLowerCase()) {
-                        if (!window.location.pathname.toLowerCase().startsWith(allowedObj.pathname.toLowerCase())) {
-                            window.location.replace(matchedPlatform.url);
-                            return;
-                        }
-                    } else {
-                        // They navigated to a different subdomain entirely (e.g., accounts.google.com instead of labs.google)
-                        window.location.replace(matchedPlatform.url);
-                        return;
-                    }
-                }
             }
         }
 

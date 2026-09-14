@@ -199,14 +199,21 @@ class ExtensionController extends Controller
                     ? ($acc->socialMedia->name . ' ' . $idx) 
                     : $acc->socialMedia->name;
 
+                $targetUrl = $acc->socialMedia->url;
+                $targetDomain = $acc->socialMedia->domain;
+                if (stripos($acc->socialMedia->name, 'flow') !== false || stripos($targetUrl, 'labs.google') !== false) {
+                    $targetUrl = 'https://flow.google.com/';
+                    $targetDomain = 'flow.google.com';
+                }
+
                 return [
                     'id'           => $acc->socialMedia->id,
                     'account_id'   => $acc->id,
                     'name'         => $acc->socialMedia->name,
                     'title'        => $displayName,
                     'display_name' => $displayName,
-                    'url'          => $acc->socialMedia->url,
-                    'domain'       => $acc->socialMedia->domain,
+                    'url'          => $targetUrl,
+                    'domain'       => $targetDomain,
                 ];
             })
             ->values();
@@ -276,12 +283,19 @@ class ExtensionController extends Controller
             $cookies = json_decode($cookies, true);
         }
 
+        $targetUrl = $account->socialMedia->url;
+        $targetDomain = $account->socialMedia->domain;
+        if (stripos($account->socialMedia->name, 'flow') !== false || stripos($targetUrl, 'labs.google') !== false) {
+            $targetUrl = 'https://flow.google.com/';
+            $targetDomain = 'flow.google.com';
+        }
+
         return response()->json([
             'success'  => true,
             'platform' => [
                 'name'   => $account->socialMedia->name,
-                'url'    => $account->socialMedia->url,
-                'domain' => $account->socialMedia->domain,
+                'url'    => $targetUrl,
+                'domain' => $targetDomain,
             ],
             'cookies'  => $cookies ?? [],
         ]);

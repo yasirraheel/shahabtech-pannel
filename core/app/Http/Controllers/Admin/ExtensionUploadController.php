@@ -67,10 +67,87 @@ class ExtensionUploadController extends Controller
             
             // Use the original filename provided by the admin (e.g. wemate-ext-v1.6.zip)
             $filename = $file->getClientOriginalName();
+            $targetPath = $directory . '/' . $filename;
             $file->move($directory, $filename);
+
+            // Auto-flatten ZIP so manifest.json and extension files are in a single root folder (no nested folder-in-folder)
+            $this->flattenExtensionZip($targetPath);
         }
 
         $notify[] = ['success', 'Extension distribution settings updated successfully!'];
         return back()->withNotify($notify);
+    }
+
+    private function flattenExtensionZip($zipPath)
+    {
+        if (!file_exists($zipPath) || !class_exists('ZipArchive')) {
+            return false;
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            return false;
+        }
+
+        $manifestPath = null;
+        $prefix = '';
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if ($name === 'manifest.json') {
+                $manifestPath = $name;
+                $prefix = '';
+                break;
+            } elseif (preg_match('#(^|/)(manifest\\.json)$#i', $name)) {
+                $manifestPath = $name;
+                $prefix = substr($name, 0, strlen($name) - strlen('manifest.json'));
+                break;
+            }
+        }
+
+        if (!$manifestPath || $prefix === '') {
+            $zip->close();
+            return true;
+        }
+
+        $tempZipPath = $zipPath . '.clean.tmp.zip';
+        $newZip = new \ZipArchive();
+        if ($newZip->open($tempZipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            $zip->close();
+            return false;
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+
+            if (strpos($name, '__MACOSX/') === 0 || basename($name) === '.DS_Store' || basename($name) === 'Thumbs.db') {
+                continue;
+            }
+
+            if (strpos($name, $prefix) === 0) {
+                $relName = substr($name, strlen($prefix));
+                if ($relName === '' || $relName === false) {
+                    continue;
+                }
+
+                if (substr($relName, -1) === '/') {
+                    $newZip->addEmptyDir($relName);
+                } else {
+                    $content = $zip->getFromIndex($i);
+                    if ($content !== false) {
+                        $newZip->addFromString($relName, $content);
+                    }
+                }
+            }
+        }
+
+        $zip->close();
+        $newZip->close();
+
+        if (file_exists($tempZipPath)) {
+            @unlink($zipPath);
+            rename($tempZipPath, $zipPath);
+        }
+
+        return true;
     }
 }
