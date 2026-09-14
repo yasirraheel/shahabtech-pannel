@@ -114,26 +114,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.className = 'platform-card';
             card.innerHTML = `
                 <div class="platform-info">
-                    <span class="platform-name">${p.name}</span>
+                    <span class="platform-name">${p.title || p.name}</span>
                     <span class="platform-domain">${p.domain}</span>
                 </div>
                 <button class="btn btn-primary" style="width:auto; padding: 6px 12px; font-size:11px;">Access</button>
             `;
             
             const btn = card.querySelector('button');
-            btn.addEventListener('click', () => injectCookies(p.id, btn));
+            btn.addEventListener('click', () => injectCookies(p.id, p.account_id, btn));
             
             ui.platformsContainer.appendChild(card);
         });
     }
 
-    async function injectCookies(platformId, btnElement) {
+    async function injectCookies(platformId, accountId, btnElement) {
         const originalText = btnElement.textContent;
         btnElement.innerHTML = '<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div>';
         btnElement.disabled = true;
 
         try {
-            const res = await fetch(`${API_URL}/cookies/${platformId}`, {
+            let cookieUrl = `${API_URL}/cookies/${platformId}`;
+            if (accountId) {
+                cookieUrl += `/${accountId}`;
+            }
+            const res = await fetch(cookieUrl, {
                 method: 'GET',
                 credentials: 'include',
                 headers: { 'Accept': 'application/json' }

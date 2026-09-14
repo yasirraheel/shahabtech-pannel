@@ -193,14 +193,16 @@ async function clearGoogleAuthCookies() {
     }
 }
 
-async function applyCookiesEngine(rawCookies, platformUrl) {
+async function applyCookiesEngine(rawCookies, platformUrl, shouldClearAuth = true) {
     if (!Array.isArray(rawCookies) || !rawCookies.length) return { applied: 0, failed: 0, total: 0 };
     const cookies = rawCookies.map(normaliseCookie).filter(Boolean);
     const isGoogle = cookies.some(c => (c.domain || '').includes('google.com') || (c.domain || '').includes('labs.google') || (platformUrl || '').includes('google'));
     const isChatGPT = cookies.some(c => (c.domain || '').includes('chatgpt.com') || (c.domain || '').includes('openai.com') || (platformUrl || '').includes('chatgpt'));
 
-    if (isGoogle) {
-        try { await clearGoogleAuthCookies(); } catch (_) {}
+    if (shouldClearAuth) {
+        if (isGoogle) {
+            try { await clearGoogleAuthCookies(); } catch (_) {}
+        }
     }
 
     const nowSec = Math.floor(Date.now() / 1000);
@@ -221,8 +223,6 @@ async function applyCookiesEngine(rawCookies, platformUrl) {
 
             const isSecurePrefix = name.startsWith('__Secure-');
             const isHostPrefix = name.startsWith('__Host-');
-            const isHostOnly = c.hostonly === true || (!rawDomain.startsWith('.') && (rawDomain.includes('flow.google.com') || rawDomain.includes('labs.google')));
-
             const secure = (isSecurePrefix || isHostPrefix || c.secure === true || c.secure === 1 || c.secure === 'true');
             const url = (secure ? 'https://' : 'http://') + host + path;
 
@@ -236,8 +236,15 @@ async function applyCookiesEngine(rawCookies, platformUrl) {
                 sameSite: c.samesite || mapSameSite(c.samesite, secure)
             };
 
-            if (!isHostPrefix && !isHostOnly && rawDomain) {
-                opts.domain = '.' + rawDomain.replace(/^\.+/, '');
+            // __Host- cookies MUST NOT have domain property
+            if (isHostPrefix) {
+                opts.path = '/';
+                opts.secure = true;
+                delete opts.domain;
+            } else if (!c.hostonly && rawDomain.startsWith('.')) {
+                opts.domain = rawDomain;
+            } else if (!c.hostonly && !rawDomain.startsWith('.') && rawDomain.includes('.')) {
+                opts.domain = '.' + rawDomain;
             }
 
             if (isChatGPT) {
@@ -262,24 +269,19 @@ async function applyCookiesEngine(rawCookies, platformUrl) {
                 console.warn('[WeMate] Cookie set failed:', opts.name);
             }
 
-            // Cross-domain Mirroring for Google Flow session tokens
-            if (isGoogle && (host.includes('labs.google') || host.includes('flow.google.com'))) {
-                const mirrorHost = host.includes('labs.google') ? 'flow.google.com' : 'labs.google';
-                const mirrorUrl = 'https://' + mirrorHost + path;
-                const mOpts = {
-                    url: mirrorUrl,
-                    name: name,
-                    value: opts.value,
-                    path: opts.path,
-                    secure: true,
-                    httpOnly: opts.httpOnly,
-                    sameSite: opts.sameSite
-                };
-                if (!isHostPrefix && !isHostOnly) {
-                    mOpts.domain = '.' + mirrorHost;
+            // Comprehensive Google Cross-Domain Mirroring (Matching FlowByDcx exactly)
+            if (isGoogle && !isHostPrefix && !c.hostonly) {
+                const googleTargets = [
+                    { url: 'https://flow.google.com' + path, domain: '.google.com' },
+                    { url: 'https://labs.google' + path, domain: '.google.com' },
+                    { url: 'https://accounts.google.com' + path, domain: '.google.com' }
+                ];
+                for (const target of googleTargets) {
+                    try {
+                        const mOpts = Object.assign({}, opts, { url: target.url, domain: target.domain });
+                        await attemptSetCookie(mOpts, target.url);
+                    } catch (_) {}
                 }
-                if (opts.expirationDate) mOpts.expirationDate = opts.expirationDate;
-                await attemptSetCookie(mOpts, mirrorUrl);
             }
         } catch (e) {
             failed++;
@@ -323,10 +325,26 @@ async function handleCookieInjection(platform, cookiesToInject) {
             chrome.storage.local.set({ injectedDomains: domains });
         });
 
-        const result = await applyCookiesEngine(cookiesToInject, launchUrl);
+        // 1. First apply all cookies cleanly
+        const result = await applyCookiesEngine(cookiesToInject, launchUrl, true);
         console.log('[WeMate] Injected cookies result:', result);
 
-        chrome.tabs.create({ url: launchUrl });
+        // 2. Open or activate target tab with full debounce protection
+        const cleanDomain = domainToSave || 'flow.google.com';
+        chrome.tabs.query({}, (tabs) => {
+            const existingTab = (tabs || []).find(t => t.url && t.url.includes(cleanDomain));
+            if (existingTab && existingTab.id) {
+                autoInjectedTabs.set(existingTab.id, Date.now());
+                chrome.tabs.update(existingTab.id, { url: launchUrl, active: true });
+            } else {
+                chrome.tabs.create({ url: launchUrl }, (newTab) => {
+                    if (newTab && newTab.id) {
+                        autoInjectedTabs.set(newTab.id, Date.now());
+                    }
+                });
+            }
+        });
+
         return result;
     } catch (error) {
         console.error('[WeMate] handleCookieInjection error:', error);
@@ -334,7 +352,7 @@ async function handleCookieInjection(platform, cookiesToInject) {
     }
 }
 
-// Auto-Reinjection mechanism (like Bunnyflow)
+// Auto-Reinjection mechanism (Protected from race conditions)
 const autoInjectedTabs = new Map();
 
 function shouldAutoInject(url, domains) {
@@ -352,37 +370,27 @@ function shouldAutoInject(url, domains) {
     return null;
 }
 
-async function autoInjectCookies(tabId, matchedDomainObj) {
-    if (!matchedDomainObj || !matchedDomainObj.savedCookies) return;
-    
-    // Prevent spamming injections on the same tab
-    const last = autoInjectedTabs.get(tabId);
-    const now = Date.now();
-    if (last && (now - last) < 10000) return;
-    autoInjectedTabs.set(tabId, now);
+// ONLY trigger on loading state and with a 30-second debounce
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    const url = changeInfo.url || (tab && tab.url);
+    if (!url || changeInfo.status !== 'loading') return;
 
-    await applyCookiesEngine(matchedDomainObj.savedCookies, matchedDomainObj.url);
-}
+    const last = autoInjectedTabs.get(tabId) || 0;
+    if (Date.now() - last < 30000) return;
 
-function handleTabNavigation(tabId, url) {
-    if (!url) return;
     chrome.storage.local.get(['injectedDomains'], (result) => {
         let domains = result.injectedDomains || [];
         if (domains.length === 0) return;
         
         let matched = shouldAutoInject(url, domains);
-        if (matched) {
-            autoInjectCookies(tabId, matched);
+        if (matched && matched.savedCookies) {
+            autoInjectedTabs.set(tabId, Date.now());
+            // Re-apply WITHOUT clearing auth cookies to avoid killing in-flight requests
+            applyCookiesEngine(matched.savedCookies, matched.url, false);
         }
     });
-}
+});
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    handleTabNavigation(tabId, changeInfo.url || (tab && tab.url));
-});
-chrome.tabs.onCreated.addListener((tab) => {
-    if (tab && tab.id != null) handleTabNavigation(tab.id, tab.url || tab.pendingUrl);
-});
 chrome.tabs.onRemoved.addListener((tabId) => {
     autoInjectedTabs.delete(tabId);
 });

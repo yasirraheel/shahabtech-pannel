@@ -32,24 +32,42 @@ window.addEventListener('ShahabTechInject', (event) => {
 });
 
 // Also let the web page know the extension is installed and its exact version
-const extVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) ? chrome.runtime.getManifest().version : '2.1.0';
+const extVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) ? chrome.runtime.getManifest().version : '2.3.0';
 
-const metaVersion = document.createElement('meta');
-metaVersion.name = 'extension-version';
-metaVersion.content = extVersion;
-document.head.appendChild(metaVersion);
+function injectExtensionMetaTags() {
+    const target = document.head || document.documentElement;
+    if (!target) return;
 
-const metaVersion2 = document.createElement('meta');
-metaVersion2.name = 'wemate-extension-version';
-metaVersion2.content = extVersion;
-document.head.appendChild(metaVersion2);
+    if (!document.querySelector('meta[name="extension-version"]')) {
+        const metaVersion = document.createElement('meta');
+        metaVersion.name = 'extension-version';
+        metaVersion.content = extVersion;
+        target.appendChild(metaVersion);
+    }
 
-const meta = document.createElement('meta');
-meta.name = 'shahabtech-extension-installed';
-meta.content = 'true';
-document.head.appendChild(meta);
+    if (!document.querySelector('meta[name="wemate-extension-version"]')) {
+        const metaVersion2 = document.createElement('meta');
+        metaVersion2.name = 'wemate-extension-version';
+        metaVersion2.content = extVersion;
+        target.appendChild(metaVersion2);
+    }
 
-const meta2 = document.createElement('meta');
-meta2.name = 'wemate-extension-installed';
-meta2.content = 'true';
-document.head.appendChild(meta2);
+    if (!document.querySelector('meta[name="shahabtech-extension-installed"]')) {
+        const meta = document.createElement('meta');
+        meta.name = 'shahabtech-extension-installed';
+        meta.content = 'true';
+        target.appendChild(meta);
+    }
+
+    if (!document.querySelector('meta[name="wemate-extension-installed"]')) {
+        const meta2 = document.createElement('meta');
+        meta2.name = 'wemate-extension-installed';
+        meta2.content = 'true';
+        target.appendChild(meta2);
+    }
+}
+
+injectExtensionMetaTags();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectExtensionMetaTags);
+}

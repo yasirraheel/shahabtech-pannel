@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WeMate",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Access your premium accounts through WeMate.",
   "permissions": [
     "cookies",
@@ -29,9 +29,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://panel.shahabtech.com/*", "*://localhost/*"],
+      "matches": [
+        "*://panel.shahabtech.com/*",
+        "*://shahabtech.com/*",
+        "*://www.shahabtech.com/*",
+        "*://localhost/*",
+        "*://127.0.0.1/*"
+      ],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     },
     {
       "matches": ["<all_urls>"],
