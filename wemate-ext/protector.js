@@ -68,14 +68,14 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             while (node = walkers.nextNode()) {
                 const text = (node.nodeValue || '').toLowerCase();
                 if (text.includes('sign out') || text.includes('log out') || text.includes('logout') || text.includes('signout')) {
-                    // Hide the closest clickable parent (button, a, or the parent element)
+                    // Hide the closest clickable parent (button, a, or menu item)
                     const parent = node.parentElement;
                     if (parent) {
-                        const clickable = parent.closest('button, a, [role="button"], [role="menuitem"], li, .btn, div');
-                        if (clickable) {
-                            clickable.style.setProperty('display', 'none', 'important');
-                        } else {
-                            parent.style.setProperty('display', 'none', 'important');
+                        const clickable = parent.closest('button, a, [role="button"], [role="menuitem"], li, .btn');
+                        const targetToHide = clickable || parent;
+                        const tTag = (targetToHide.tagName || '').toUpperCase();
+                        if (targetToHide !== document.body && targetToHide !== document.documentElement && tTag !== 'MAIN' && tTag !== 'HEADER' && tTag !== 'NAV' && tTag !== 'SECTION') {
+                            targetToHide.style.setProperty('display', 'none', 'important');
                         }
                     }
                 }
@@ -195,11 +195,15 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             chrome.storage.local.get(['__wemate_my_projects'], (res) => {
                 myProjects = res.__wemate_my_projects || [];
             });
+            chrome.storage.onChanged.addListener((changes, area) => {
+                if (area === 'local' && changes.__wemate_my_projects) {
+                    myProjects = changes.__wemate_my_projects.newValue || [];
+                    if (isFlowHomePage()) hideOtherProjects();
+                }
+            });
         } catch(e) {}
 
-        const DATE_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b.{0,5}\d{1,2}|\d{1,2}:\d{2}\s*(am|pm)|tháng|\d{4}-\d{2}-\d{2}/i;
-        const NEWP_RE = /new\s*project|dự án mới|\+\s*d|create new|\+\s*new/i;
-        const BNNER_RE = /nano banana|is here!|new model|veo\s+\d|imagen/i;
+        const NEWP_RE = /new\s*project|dự án mới|\+\s*d|create\s*new|create|start\s*creating|\+\s*new|^\s*\+\s*$/i;
 
         function isFlowHomePage() {
             const host = window.location.hostname.toLowerCase();
@@ -213,101 +217,85 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             return false;
         }
 
-        function findCardParent(el, depth) {
-            depth = depth || 8;
-            let cur = el;
-            for (let i = 0; i < depth; i++) {
-                const p = cur.parentElement;
-                if (!p || p === document.body || p === document.documentElement) break;
-                if (p.children.length > 6) return cur;
-                if (['ARTICLE', 'LI'].includes(p.tagName) || p.getAttribute('role') === 'gridcell' || p.getAttribute('role') === 'listitem') return p;
-                cur = p;
-            }
-            return cur;
-        }
-
-        // Apply instant global CSS rules
-        if (!document.getElementById('__wemate_hide_projects_css__')) {
-            const style = document.createElement('style');
-            style.id = '__wemate_hide_projects_css__';
-            style.textContent = `
-                [data-wm-hide] { display: none !important; visibility: hidden !important; opacity: 0 !important; }
-                [data-wm-ban]  { display: none !important; visibility: hidden !important; opacity: 0 !important; }
-            `;
-            (document.head || document.documentElement).appendChild(style);
-        }
-
         const hideOtherProjects = () => {
             if (!isFlowHomePage()) return;
 
-            // 1. Hide all project card links that aren't the user's own project or "New Project"
-            document.querySelectorAll('a[href*="/project/"]').forEach(a => {
+            // Target only actual project links (Google Flow and Labs Flow)
+            const projectLinks = document.querySelectorAll('a[href*="/project/"], a[href^="/fx/tools/flow/"]');
+            projectLinks.forEach(a => {
                 const href = a.getAttribute('href') || '';
-                const txt = (a.textContent || '').trim();
-                if (NEWP_RE.test(txt)) return;
+                if (!href || href === '/fx/tools/flow' || href === '/fx/tools/flow/' || href === '/project' || href === '/project/') return;
+
+                // Never hide if the link/button is "New Project" or "Create"
+                const linkTxt = (a.innerText || a.textContent || a.getAttribute('aria-label') || a.title || '').trim();
+                if (NEWP_RE.test(linkTxt)) return;
+
+                const cleanHref = href.replace(/\/$/, '');
+                const m = cleanHref.match(/\/(?:fx\/tools\/flow\/)?project\/([a-zA-Z0-9_-]{4,})/i);
+                if (!m) return;
+                const pId = m[1].toLowerCase();
+                if (pId === 'create' || pId === 'new') return;
 
                 // Check if this project is owned by this user
-                const cleanHref = href.replace(/\/$/, '');
-                const m = cleanHref.match(/\/project\/([a-zA-Z0-9_-]{4,})/i);
-                const pId = m ? m[1] : '';
-
-                const isMine = myProjects.some(p => p.includes(cleanHref) || (pId && p.includes(pId)));
-                if (isMine) return;
-
-                const card = findCardParent(a);
-                card.dataset.wmHide = '1';
-                a.dataset.wmHide = '1';
-            });
-
-            // 2. Hide list/article/gridcell items containing date stamps (Flow project cards)
-            document.querySelectorAll('li, article, [role="gridcell"], [role="listitem"]').forEach(el => {
-                const txt = (el.textContent || '').trim();
-                if (txt.length > 350 || !DATE_RE.test(txt) || NEWP_RE.test(txt)) return;
-                
-                // Do not hide if it contains a link to our own project
-                const links = el.querySelectorAll('a[href*="/project/"]');
-                let hasMine = false;
-                links.forEach(l => {
-                    const h = l.getAttribute('href') || '';
-                    if (myProjects.some(p => p && h && (p.includes(h) || h.includes(p)))) hasMine = true;
+                const isMine = myProjects.some(p => {
+                    if (!p) return false;
+                    const cp = p.replace(/\/$/, '').toLowerCase();
+                    return cleanHref.toLowerCase() === cp ||
+                           cleanHref.toLowerCase().endsWith('/' + cp) ||
+                           pId === cp;
                 });
-                if (!hasMine) {
-                    el.dataset.wmHide = '1';
+
+                if (isMine) {
+                    // Make sure user's own project is visible
+                    a.style.display = '';
+                    a.style.visibility = '';
+                    a.style.opacity = '';
+                    let up = a;
+                    for (let i = 0; i < 4; i++) {
+                        if (!up.parentElement || up.parentElement === document.body) break;
+                        up = up.parentElement;
+                        up.style.display = '';
+                        up.style.visibility = '';
+                        up.style.opacity = '';
+                    }
+                    return;
                 }
-            });
 
-            // 3. Hide any div/section with an image/video AND a date (Flow project thumbnail cards)
-            document.querySelectorAll('div, section').forEach(el => {
-                const txt = (el.textContent || '').trim();
-                if (txt.length > 280 || txt.length < 3 || !DATE_RE.test(txt) || NEWP_RE.test(txt)) return;
-                if (!el.querySelector('img, video, [role="img"]')) return;
-                if (el.querySelectorAll('[data-wm-hide]').length > 0) return;
+                // Locate the specific card element (up to 4 levels max, never climbing into layout containers)
+                let card = a;
+                for (let i = 0; i < 4; i++) {
+                    const parent = card.parentElement;
+                    if (!parent || parent === document.body || parent === document.documentElement) break;
+                    const parentTag = (parent.tagName || '').toUpperCase();
+                    if (['MAIN', 'HEADER', 'NAV', 'SECTION'].includes(parentTag)) break;
 
-                const links = el.querySelectorAll('a[href*="/project/"]');
-                let hasMine = false;
-                links.forEach(l => {
-                    const h = l.getAttribute('href') || '';
-                    if (myProjects.some(p => p && h && (p.includes(h) || h.includes(p)))) hasMine = true;
-                });
-                if (!hasMine) {
-                    findCardParent(el).dataset.wmHide = '1';
+                    // Safety: if parent contains the "New project" button or text, stop so we never hide the container!
+                    const parentTxt = parent.innerText || parent.textContent || '';
+                    if (NEWP_RE.test(parentTxt)) break;
+
+                    // If parent has multiple items and is the grid/list container, card is the direct child
+                    if (parent.children.length > 1) {
+                        const pCls = (typeof parent.className === 'string' ? parent.className : '').toLowerCase();
+                        const pRole = (parent.getAttribute('role') || '').toLowerCase();
+                        if (pRole === 'grid' || pRole === 'list' || pCls.includes('grid') || pCls.includes('list')) {
+                            break;
+                        }
+                    }
+
+                    const cardTag = (card.tagName || '').toUpperCase();
+                    if (['LI', 'ARTICLE'].includes(cardTag) || card.getAttribute('role') === 'gridcell' || card.getAttribute('role') === 'listitem') {
+                        break;
+                    }
+
+                    card = parent;
                 }
-            });
 
-            // 4. Hide banners or promo sections
-            document.querySelectorAll('div, section').forEach(el => {
-                const txt = (el.textContent || '').trim();
-                if (txt.length > 500 || txt.length < 5 || !BNNER_RE.test(txt) || NEWP_RE.test(txt)) return;
-                el.dataset.wmBan = '1';
-            });
-
-            // 5. Hide containers whose visible children are all hidden project cards (prevent blank spaces)
-            document.querySelectorAll('ul, ol, div[class*="grid"], div[class*="list"]').forEach(el => {
-                const kids = Array.from(el.children);
-                if (kids.length < 2) return;
-                const allHidden = kids.every(k => k.dataset.wmHide === '1' || k.dataset.wmBan === '1');
-                if (allHidden) {
-                    el.dataset.wmHide = '1';
+                // Final safety: never hide if card contains "New Project" button/text
+                const cardTxt = (card.innerText || card.textContent || '').trim();
+                if (!NEWP_RE.test(cardTxt)) {
+                    card.style.setProperty('display', 'none', 'important');
+                    card.style.setProperty('visibility', 'hidden', 'important');
+                    card.style.setProperty('opacity', '0', 'important');
                 }
             });
         };
@@ -315,16 +303,18 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
         let lastPathname = window.location.pathname;
         const trackNewProjects = () => {
             const currentPath = window.location.pathname;
-            const m = currentPath.match(/\/project\/([a-zA-Z0-9_-]{6,})/i);
+            const m = currentPath.match(/\/(?:fx\/tools\/flow\/)?project\/([a-zA-Z0-9_-]{4,})/i);
             if (m && m[1]) {
-                const pId = m[1];
-                const cleanPath = currentPath.replace(/\/$/, '');
-                if (!myProjects.includes(cleanPath) && !myProjects.includes(pId)) {
-                    myProjects.push(cleanPath);
-                    myProjects.push(pId);
-                    try {
-                        chrome.storage.local.set({ '__wemate_my_projects': myProjects });
-                    } catch(e) {}
+                const pId = m[1].toLowerCase();
+                if (pId !== 'new' && pId !== 'create') {
+                    const cleanPath = currentPath.replace(/\/$/, '');
+                    if (!myProjects.includes(cleanPath) && !myProjects.includes(m[1])) {
+                        myProjects.push(cleanPath);
+                        myProjects.push(m[1]);
+                        try {
+                            chrome.storage.local.set({ '__wemate_my_projects': myProjects });
+                        } catch(e) {}
+                    }
                 }
             }
             lastPathname = currentPath;
