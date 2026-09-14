@@ -189,7 +189,7 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             }
         };
 
-        // --- Hide Other Users' Projects (Bunnyflow Style) ---
+        // --- Hide Other Users' Projects & Home Thumbnails (FlowByDcx Parity) ---
         let myProjects = [];
         try {
             chrome.storage.local.get(['__wemate_my_projects'], (res) => {
@@ -197,49 +197,117 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
             });
         } catch(e) {}
 
-        const hideOtherProjects = () => {
-            if (!window.location.pathname.match(/^\/fx\/tools\/flow\/?$/)) return;
-            
-            // Apply a global CSS rule to hide all project cards by default to prevent flashing
-            if (!document.getElementById('__wemate_hide_projects_css__')) {
-                const style = document.createElement('style');
-                style.id = '__wemate_hide_projects_css__';
-                style.textContent = `
-                    a[href^="/fx/tools/flow/project/"] { visibility: hidden !important; opacity: 0 !important; }
-                    a[href^="/fx/tools/flow/project/"] * { visibility: hidden !important; opacity: 0 !important; }
-                `;
-                (document.head || document.documentElement).appendChild(style);
-            }
+        const DATE_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b.{0,5}\d{1,2}|\d{1,2}:\d{2}\s*(am|pm)|tháng|\d{4}-\d{2}-\d{2}/i;
+        const NEWP_RE = /new\s*project|dự án mới|\+\s*d|create new|\+\s*new/i;
+        const BNNER_RE = /nano banana|is here!|new model|veo\s+\d|imagen/i;
 
-            const projectLinks = document.querySelectorAll('a[href^="/fx/tools/flow/project/"]');
-            projectLinks.forEach(link => {
-                const href = link.getAttribute('href');
-                if (!href) return;
-                
-                let container = link;
-                for (let i = 0; i < 5; i++) {
-                    if (!container.parentElement) break;
-                    container = container.parentElement;
-                }
-                
+        function isFlowHomePage() {
+            const host = window.location.hostname.toLowerCase();
+            const path = window.location.pathname.toLowerCase();
+            if (host.includes('flow.google.com')) {
+                return !path.includes('/project/');
+            }
+            if (host.includes('labs.google')) {
+                return path.includes('/fx/tools/flow') && !path.includes('/project/');
+            }
+            return false;
+        }
+
+        function findCardParent(el, depth) {
+            depth = depth || 8;
+            let cur = el;
+            for (let i = 0; i < depth; i++) {
+                const p = cur.parentElement;
+                if (!p || p === document.body || p === document.documentElement) break;
+                if (p.children.length > 6) return cur;
+                if (['ARTICLE', 'LI'].includes(p.tagName) || p.getAttribute('role') === 'gridcell' || p.getAttribute('role') === 'listitem') return p;
+                cur = p;
+            }
+            return cur;
+        }
+
+        // Apply instant global CSS rules
+        if (!document.getElementById('__wemate_hide_projects_css__')) {
+            const style = document.createElement('style');
+            style.id = '__wemate_hide_projects_css__';
+            style.textContent = `
+                [data-wm-hide] { display: none !important; visibility: hidden !important; opacity: 0 !important; }
+                [data-wm-ban]  { display: none !important; visibility: hidden !important; opacity: 0 !important; }
+            `;
+            (document.head || document.documentElement).appendChild(style);
+        }
+
+        const hideOtherProjects = () => {
+            if (!isFlowHomePage()) return;
+
+            // 1. Hide all project card links that aren't the user's own project or "New Project"
+            document.querySelectorAll('a[href*="/project/"]').forEach(a => {
+                const href = a.getAttribute('href') || '';
+                const txt = (a.textContent || '').trim();
+                if (NEWP_RE.test(txt)) return;
+
+                // Check if this project is owned by this user
                 const cleanHref = href.replace(/\/$/, '');
+                const m = cleanHref.match(/\/project\/([a-zA-Z0-9_-]{4,})/i);
+                const pId = m ? m[1] : '';
+
+                const isMine = myProjects.some(p => p.includes(cleanHref) || (pId && p.includes(pId)));
+                if (isMine) return;
+
+                const card = findCardParent(a);
+                card.dataset.wmHide = '1';
+                a.dataset.wmHide = '1';
+            });
+
+            // 2. Hide list/article/gridcell items containing date stamps (Flow project cards)
+            document.querySelectorAll('li, article, [role="gridcell"], [role="listitem"]').forEach(el => {
+                const txt = (el.textContent || '').trim();
+                if (txt.length > 350 || !DATE_RE.test(txt) || NEWP_RE.test(txt)) return;
                 
-                if (myProjects.includes(cleanHref) || myProjects.includes(href)) {
-                    // Show this user's project
-                    link.style.visibility = '';
-                    link.style.opacity = '';
-                    link.querySelectorAll('*').forEach(child => {
-                        child.style.visibility = '';
-                        child.style.opacity = '';
-                    });
-                    container.style.display = '';
-                    container.style.visibility = '';
-                } else {
-                    // Hide other users' projects
-                    link.style.visibility = 'hidden';
-                    link.style.opacity = '0';
-                    container.style.display = 'none';
-                    container.style.visibility = 'hidden';
+                // Do not hide if it contains a link to our own project
+                const links = el.querySelectorAll('a[href*="/project/"]');
+                let hasMine = false;
+                links.forEach(l => {
+                    const h = l.getAttribute('href') || '';
+                    if (myProjects.some(p => p && h && (p.includes(h) || h.includes(p)))) hasMine = true;
+                });
+                if (!hasMine) {
+                    el.dataset.wmHide = '1';
+                }
+            });
+
+            // 3. Hide any div/section with an image/video AND a date (Flow project thumbnail cards)
+            document.querySelectorAll('div, section').forEach(el => {
+                const txt = (el.textContent || '').trim();
+                if (txt.length > 280 || txt.length < 3 || !DATE_RE.test(txt) || NEWP_RE.test(txt)) return;
+                if (!el.querySelector('img, video, [role="img"]')) return;
+                if (el.querySelectorAll('[data-wm-hide]').length > 0) return;
+
+                const links = el.querySelectorAll('a[href*="/project/"]');
+                let hasMine = false;
+                links.forEach(l => {
+                    const h = l.getAttribute('href') || '';
+                    if (myProjects.some(p => p && h && (p.includes(h) || h.includes(p)))) hasMine = true;
+                });
+                if (!hasMine) {
+                    findCardParent(el).dataset.wmHide = '1';
+                }
+            });
+
+            // 4. Hide banners or promo sections
+            document.querySelectorAll('div, section').forEach(el => {
+                const txt = (el.textContent || '').trim();
+                if (txt.length > 500 || txt.length < 5 || !BNNER_RE.test(txt) || NEWP_RE.test(txt)) return;
+                el.dataset.wmBan = '1';
+            });
+
+            // 5. Hide containers whose visible children are all hidden project cards (prevent blank spaces)
+            document.querySelectorAll('ul, ol, div[class*="grid"], div[class*="list"]').forEach(el => {
+                const kids = Array.from(el.children);
+                if (kids.length < 2) return;
+                const allHidden = kids.every(k => k.dataset.wmHide === '1' || k.dataset.wmBan === '1');
+                if (allHidden) {
+                    el.dataset.wmHide = '1';
                 }
             });
         };
@@ -247,18 +315,19 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
         let lastPathname = window.location.pathname;
         const trackNewProjects = () => {
             const currentPath = window.location.pathname;
-            if (currentPath !== lastPathname) {
-                if (currentPath.startsWith('/fx/tools/flow/project/') && currentPath.length > 20) {
-                    const cleanPath = currentPath.replace(/\/$/, '');
-                    if (!myProjects.includes(cleanPath)) {
-                        myProjects.push(cleanPath);
-                        try {
-                            chrome.storage.local.set({ '__wemate_my_projects': myProjects });
-                        } catch(e) {}
-                    }
+            const m = currentPath.match(/\/project\/([a-zA-Z0-9_-]{6,})/i);
+            if (m && m[1]) {
+                const pId = m[1];
+                const cleanPath = currentPath.replace(/\/$/, '');
+                if (!myProjects.includes(cleanPath) && !myProjects.includes(pId)) {
+                    myProjects.push(cleanPath);
+                    myProjects.push(pId);
+                    try {
+                        chrome.storage.local.set({ '__wemate_my_projects': myProjects });
+                    } catch(e) {}
                 }
-                lastPathname = currentPath;
             }
+            lastPathname = currentPath;
         };
 
         const runProtections = () => {
