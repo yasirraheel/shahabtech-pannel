@@ -344,20 +344,79 @@ class CronController extends Controller
         }
 
         if ($isGoogleFlow) {
-            // Google Flow session API returning {} (empty JSON object or null user) means unauthenticated / expired
-            $json = json_decode($response, true);
-            if (empty($json) || !isset($json['user']) || empty($json['user'])) {
-                return ['valid' => false, 'error' => 'Session expired (Unauthenticated on Google Flow API)'];
+            // Tier 1: Check NextAuth session API on labs.google (for accounts exported with NextAuth session cookies)
+            $ch = curl_init('https://labs.google/fx/api/auth/session');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Cookie: ' . $cookieHeaderString,
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept: application/json, text/html, */*'
+            ]);
+            $apiResp = curl_exec($ch);
+            curl_close($ch);
+
+            $json = json_decode($apiResp, true);
+            if (is_array($json) && !empty($json['user'])) {
+                $extractedName = trim($json['user']['name'] ?? $json['user']['email'] ?? '');
+                return ['valid' => true, 'error' => null, 'account_name' => $extractedName];
             }
 
-            $extractedName = null;
-            if (!empty($json['user']['name'])) {
-                $extractedName = trim($json['user']['name']);
-            } elseif (!empty($json['user']['email'])) {
-                $extractedName = trim($json['user']['email']);
+            // Tier 2: Check flow.google.com homepage (for accounts exported from flow.google.com with Google Account cookies)
+            $ch2 = curl_init('https://flow.google.com/');
+            curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch2, CURLOPT_MAXREDIRS, 5);
+            curl_setopt($ch2, CURLOPT_TIMEOUT, 12);
+            curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch2, CURLOPT_HTTPHEADER, [
+                'Cookie: ' . $cookieHeaderString,
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            ]);
+            $htmlResp = curl_exec($ch2);
+            $effectiveUrl2 = curl_getinfo($ch2, CURLINFO_EFFECTIVE_URL);
+            $curlErr2 = curl_error($ch2);
+            curl_close($ch2);
+
+            if ($curlErr2) {
+                return ['valid' => false, 'error' => 'Network error connecting to Google Flow: ' . $curlErr2, 'is_network_error' => true];
             }
 
-            return ['valid' => true, 'error' => null, 'account_name' => $extractedName];
+            if (str_contains($effectiveUrl2, 'accounts.google.com') || str_contains($effectiveUrl2, 'ServiceLogin') || str_contains($effectiveUrl2, 'signin')) {
+                return ['valid' => false, 'error' => 'Session expired (Redirected to Google Login)'];
+            }
+
+            // Look for authenticated user email in page configuration
+            if (preg_match('/([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)/', $htmlResp, $emailMatch)) {
+                $userEmail = trim($emailMatch[1]);
+                if (!str_ends_with($userEmail, '@google.com') || str_contains($htmlResp, '"oPEP7c"')) {
+                    return ['valid' => true, 'error' => null, 'account_name' => $userEmail];
+                }
+            }
+
+            // Fallback: Check if SID / SSID / HSID authentication cookies are present and unexpired
+            $hasGoogleAuthCookies = false;
+            if (is_array($rawInfo)) {
+                foreach ($rawInfo as $cookieItem) {
+                    $cookieItem = (array) $cookieItem;
+                    $cName = $cookieItem['name'] ?? '';
+                    $cExp = $cookieItem['expirationDate'] ?? $cookieItem['expires'] ?? 0;
+                    if (in_array($cName, ['SID', 'SSID', 'HSID', '__Secure-1PSID', '__Secure-3PSID'])) {
+                        if (empty($cExp) || $cExp > time()) {
+                            $hasGoogleAuthCookies = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if ($hasGoogleAuthCookies && !str_contains($htmlResp, 'ServiceLogin')) {
+                return ['valid' => true, 'error' => null, 'account_name' => $account->title];
+            }
+
+            return ['valid' => false, 'error' => 'Session expired (Unauthenticated on Google Flow)'];
         }
 
         // For other platforms, check HTTP status & redirect URL
