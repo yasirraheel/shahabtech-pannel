@@ -154,3 +154,230 @@ ssh -p 65002 u559276167@82.197.80.201 "cd ~/domains/shahabtech.com/public_html/p
    ```bash
    ssh -p 65002 u559276167@82.197.80.201 "cd ~/domains/shahabtech.com/public_html/panel/core && php -r \"\$g = gs(); \$g->min_extension_version = '{version}'; \$g->save();\""
    ```
+
+---
+
+## 5. Google Flow Cookie Filtering & Sanitization Guide (Future Agent Reference)
+
+> **CRITICAL REFERENCE FOR FUTURE AGENTS & DEVELOPERS**
+> When extracting, storing, or injecting cookies for shared Google Flow accounts, **never store raw browser cookie exports directly**. A browser dump contains 150+ cookies across dozens of Google properties which breaks sessions, bloats HTTP headers (causing `HTTP 431 Request Header Fields Too Large`), and triggers `accounts.google.com/CookieMismatch`.
+> 
+> Follow this exact filtering specification to ensure shared Google Flow accounts remain 100% stable and login properly.
+
+### 5.1 The Two-Tier Authentication Architecture of Google Flow
+
+Google Flow (`flow.google.com` / `labs.google/fx/tools/flow`) authenticates users across two distinct tiers:
+
+1. **Tier 1: Global Google Account Session (`.google.com` domain)**
+   * Provides the primary identity. Cookies must have domain `.google.com` (or `google.com`).
+   * **Mandatory Cookies**:
+     * `SID`, `HSID`, `SSID`: Core HTTP authentication credentials.
+     * `APISID`, `SAPISID`: Cryptographic authorization credentials for Google APIs (used to construct `SAPISIDHASH`).
+     * `__Secure-1PSID`, `__Secure-3PSID`: First/third-party partitioned session cookies.
+     * `__Secure-1PAPISID`, `__Secure-3PAPISID`: First/third-party API tokens.
+     * `__Secure-1PSIDTS`, `__Secure-3PSIDTS`: Rolling timestamp security cookies (without these, Google forces re-authentication).
+     * `__Secure-1PSIDCC`, `__Secure-3PSIDCC`: Session validation check cookies.
+     * `__Host-1PLSID`, `__Host-3PLSID`, `LSID`: Account chooser / login state credentials.
+
+2. **Tier 2: Flow Service-Specific Auth (`flow.google.com` or `labs.google`)**
+   * Ties the global Google session to the specific Google Flow application instance.
+   * **Mandatory Cookies**:
+     * `OSID` (Origin Session ID): **THE MOST CRITICAL COOKIE FOR FLOW**. Generated specifically for `flow.google.com`. Without `OSID`, Google Flow immediately bounces the user to `accounts.google.com/CookieMismatch` or `ServiceLogin`.
+     * `__Secure-OSID`: Secure variant of `OSID`.
+     * `__Secure-next-auth.session-token`, `next-auth.session-token`: NextAuth JWT session tokens (present if logged in via `labs.google`).
+     * `__Host-next-auth.csrf-token`: NextAuth CSRF protection token.
+
+---
+
+### 5.2 Allowed Domains vs. Excluded Subdomains
+
+When filtering cookies for Google Flow, evaluate the `domain` attribute strictly:
+
+#### ✅ ALLOWED DOMAINS (Only keep cookies matching these):
+```text
+.google.com
+google.com
+flow.google.com
+.flow.google.com
+labs.google
+.labs.google
+```
+
+#### 🚫 STRICTLY EXCLUDED GOOGLE SUBDOMAINS (Always strip cookies matching these):
+Google sets cookies across 60+ services that must NEVER be stored or injected:
+```text
+mail.google.com          docs.google.com          drive.google.com
+calendar.google.com      photos.google.com        meet.google.com
+contacts.google.com      groups.google.com        news.google.com
+maps.google.com          play.google.com          store.google.com
+shopping.google.com      podcasts.google.com      analytics.google.com
+ads.google.com           adwords.google.com       adsense.google.com
+youtube.com              youtu.be                 blogger.com
+blogspot.com             classroom.google.com     sites.google.com
+```
+
+---
+
+### 5.3 Excluded Tracking & Telemetry Cookies
+
+Google and third-party advertising cookies must be stripped to prevent telemetry bloat and rotating token conflicts:
+
+#### 🚫 STRIP ANY COOKIE MATCHING:
+* **Prefixes**: `_ga*`, `_gid*`, `_gat*`, `__utm*`, `__Secure-ENID`
+* **Ad Identifiers**: `NID`, `SNID`, `1P_JAR`, `DV`, `AID`, `TAID`, `ANID`, `IDE`, `DSID`
+* **Social / Telemetry**: `_fbp`, `_fbc`, `fr`, `__gads`, `__gpi`, `UULE`, `OGPC`, `OGP`, `PREF`
+
+---
+
+### 5.4 PHP Implementation Reference (`sanitizeAccountCookies`)
+
+When saving or updating an account in the Admin Panel or API, use this function to sanitize the raw JSON payload:
+
+```php
+function sanitizeAccountCookies($rawCookies, $serviceName = '', $targetUrl = '') {
+    $decoded = is_string($rawCookies) ? json_decode($rawCookies, true) : $rawCookies;
+    if (!is_array($decoded)) {
+        return is_string($rawCookies) ? $rawCookies : json_encode($rawCookies ?? []);
+    }
+
+    $svc = strtolower(trim($serviceName));
+    $url = strtolower(trim($targetUrl));
+    $isGoogleFlow = str_contains($svc, 'flow') || str_contains($svc, 'google') || str_contains($url, 'flow.google.com') || str_contains($url, 'labs.google');
+
+    // Telemetry & tracker cookie names
+    $trackerNames = [
+        'NID', 'SNID', '1P_JAR', 'DV', 'AID', 'TAID', 'ANID', 'IDE', 'DSID',
+        '_fbp', '_fbc', 'fr', '__gads', '__gpi', 'UULE', 'OGPC', 'OGP', 'PREF'
+    ];
+
+    // Unrelated subdomains to drop
+    $unrelatedSubdomains = [
+        'mail.google.com', 'docs.google.com', 'drive.google.com', 'calendar.google.com',
+        'photos.google.com', 'classroom.google.com', 'meet.google.com', 'sites.google.com',
+        'contacts.google.com', 'groups.google.com', 'news.google.com', 'maps.google.com',
+        'play.google.com', 'store.google.com', 'shopping.google.com', 'podcasts.google.com',
+        'analytics.google.com', 'ads.google.com', 'adwords.google.com', 'adsense.google.com',
+        'youtube.com', 'youtu.be', 'blogger.com', 'blogspot.com'
+    ];
+
+    $filtered = [];
+    $seen = [];
+
+    foreach ($decoded as $item) {
+        if (!is_array($item) && !is_object($item)) continue;
+        $item = (array) $item;
+        $name = trim($item['name'] ?? $item['key'] ?? '');
+        $val  = $item['value'] ?? $item['val'] ?? null;
+        $domain = strtolower(trim($item['domain'] ?? ''));
+
+        if ($name === '' || $val === null) continue;
+
+        // Normalize property names
+        $cleanItem = [
+            'name'   => $name,
+            'value'  => (string) $val,
+            'domain' => $domain,
+            'path'   => $item['path'] ?? '/',
+        ];
+        if (isset($item['secure'])) $cleanItem['secure'] = (bool) $item['secure'];
+        if (isset($item['httpOnly'])) $cleanItem['httpOnly'] = (bool) $item['httpOnly'];
+        if (isset($item['sameSite'])) $cleanItem['sameSite'] = $item['sameSite'];
+        if (isset($item['expirationDate'])) $cleanItem['expirationDate'] = $item['expirationDate'];
+
+        if ($isGoogleFlow) {
+            // 1. Drop unrelated Google subdomains
+            $cleanDomain = ltrim($domain, '.');
+            $isUnrelated = false;
+            foreach ($unrelatedSubdomains as $badSub) {
+                if ($cleanDomain === $badSub || str_ends_with($cleanDomain, '.' . $badSub)) {
+                    $isUnrelated = true;
+                    break;
+                }
+            }
+            if ($isUnrelated) continue;
+
+            // 2. Only allow root google.com or flow/labs domains
+            $isFlowDomain = empty($domain)
+                || $domain === '.google.com'
+                || $domain === 'google.com'
+                || str_contains($domain, 'flow.google.com')
+                || str_contains($domain, 'labs.google');
+
+            if (!$isFlowDomain) continue;
+
+            // 3. Drop trackers
+            if (str_starts_with($name, '_ga') || str_starts_with($name, '__utm') || str_starts_with($name, '__Secure-ENID')) continue;
+            if (in_array($name, $trackerNames, true)) continue;
+        }
+
+        // Deduplicate by name + domain + path
+        $key = $name . '|' . $cleanItem['domain'] . '|' . $cleanItem['path'];
+        if (isset($seen[$key])) continue;
+        $seen[$key] = true;
+
+        $filtered[] = $cleanItem;
+    }
+
+    return json_encode($filtered, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+}
+```
+
+---
+
+### 5.5 JavaScript / Chrome Extension Extraction Logic
+
+In Chrome extensions, `chrome.cookies.getAll({ url: activeTabUrl })` **only returns cookies whose domain matches the exact URL of the active tab**. Because `SID`, `HSID`, and `SAPISID` live on `.google.com`, a simple URL query will fail to extract root Google authentication cookies!
+
+Use the **Color Picker / DCX domain resolution pattern** instead:
+
+```javascript
+// 1. Fetch all cookies in browser profile
+const cookies = await chrome.cookies.getAll({});
+
+// 2. Resolve complete domain suite for active tab
+function getCookieDomains(hostname) {
+    const domains = new Set([hostname]);
+    const parts = hostname.split('.');
+    for (let i = 1; i < parts.length - 1; i++) {
+        domains.add(parts.slice(i).join('.'));
+    }
+
+    // CRITICAL: Always include all Google auth domains when on Google Flow or Labs
+    if (hostname.includes('google.com') || hostname.includes('labs.google')) {
+        [
+            'labs.google',
+            'google.com',
+            'flow.google.com',
+            'accounts.google.com',
+            'myaccount.google.com',
+            'ogs.google.com',
+            'gstatic.com'
+        ].forEach(domain => domains.add(domain));
+    }
+    return Array.from(domains);
+}
+
+// 3. Match cookies against resolved domains
+function isCookieForDomains(cookie, domains) {
+    const cookieDomain = (cookie.domain || '').replace(/^\./, '').toLowerCase();
+    return domains.some(domain => {
+        const normalizedDomain = domain.replace(/^\./, '').toLowerCase();
+        return cookieDomain === normalizedDomain || cookieDomain.endsWith(`.${normalizedDomain}`);
+    });
+}
+```
+
+---
+
+### 5.6 Troubleshooting Checklist for Future Agents
+
+If Google Flow fails to log in, causes an infinite reload loop, or shows an error, check this list in order:
+
+| Symptom | Root Cause | Fix |
+|---|---|---|
+| **Redirects to `accounts.google.com/CookieMismatch`** | `OSID` is missing, or the `OSID` cookie does not match the `SID` / `HSID` in the payload. | Re-export cookies from a live tab on `flow.google.com` so that `OSID` and `SID` originate from the exact same login session. Ensure `OSID` is in the payload. |
+| **Redirects to `ServiceLogin` (Not Logged In)** | `SID`, `HSID`, or `__Secure-1PSID` are missing or expired, or were cleared during tab launch. | Ensure `.google.com` root cookies are present. Verify extension doesn't have an `onCreated` listener clearing cookies during handshake. |
+| **HTTP 431 Request Header Fields Too Large** | Raw un-sanitized cookie payload containing 100+ cookies from Docs/Drive/YouTube was injected. | Run payload through `sanitizeAccountCookies` to reduce payload to ~12–25 essential cookies. |
+| **Page Flips from Account 2 back to Account 1 on Refresh** | Background extension's `onUpdated` listener calls `inject-cookies` without `accountId`, defaulting to the first account. | Ensure extension stores `active_account_flow` in `chrome.storage.local` and sends it on every background refresh. |
+| **Pitch Black Screen on Flow Home Page (Pro Accounts)** | Content script's card parent finder crawled to `<main>` or `body` because children count was `< 6`. | Ensure `wemate-ext/protector.js` v2.3.1+ is deployed with targeted `a[href*="/project/"]` hiding and strict `NEWP_RE` immunity. |
+
