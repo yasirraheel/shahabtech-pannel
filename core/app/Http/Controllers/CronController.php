@@ -377,9 +377,10 @@ class CronController extends Controller
                 }
             }
 
-            if ($isFlowApp && !str_contains($htmlResp, 'ServiceLogin')) {
+            if ($isFlowApp && $httpCode === 200) {
                 return ['valid' => true, 'error' => null, 'account_name' => $extractedName ?: $account->title];
             }
+
 
             // Optional fallback: Legacy NextAuth session check (for accounts still on labs.google)
             $chLegacy = curl_init('https://labs.google/fx/api/auth/session');
