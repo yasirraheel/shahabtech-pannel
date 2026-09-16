@@ -37,24 +37,19 @@ async function verifyAuthAndWipeIfInvalid() {
             headers: { 'Accept': 'application/json' }
         });
         
-        let shouldWipe = false;
-
-        if (res.status === 401 || res.status === 403) {
-            shouldWipe = true;
-        } else if (res.ok) {
+        // IMPORTANT: Do NOT wipe on 401 or 403 or network issues.
+        // A web session timeout on panel.shahabtech.com is normal and does NOT mean
+        // the user's active platform cookies should be wiped.
+        if (res.ok) {
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 const data = await res.json();
-                // We only wipe if the API explicitly says success:false
-                if (!data.success || !data.user || !data.user.plan) {
-                    shouldWipe = true;
+                // Only wipe if the user was successfully retrieved and their plan is explicitly marked expired
+                if (data.success && data.user && data.user.is_expired === true) {
+                    console.log('[WeMate] User subscription is explicitly expired. Wiping session.');
+                    wipeAllInjectedCookies();
                 }
             }
-            // If it returned HTML, do NOT wipe (could be Cloudflare challenge or transient server issue)
-        }
-
-        if (shouldWipe) {
-            wipeAllInjectedCookies();
         }
     } catch (err) {
         console.warn('Network error checking auth status', err);
@@ -371,6 +366,8 @@ function shouldAutoInject(url, domains) {
 }
 
 // ONLY trigger on loading state and with a 30-second debounce
+// CRITICAL: NEVER overwrite active Google/Flow cookies with a stale snapshot!
+// Overwriting active cookies reverts Google's rolling tokens (PSIDTS, OSID, SIDCC) and triggers session revocation.
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     const url = changeInfo.url || (tab && tab.url);
     if (!url || changeInfo.status !== 'loading') return;
@@ -385,8 +382,24 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         let matched = shouldAutoInject(url, domains);
         if (matched && matched.savedCookies) {
             autoInjectedTabs.set(tabId, Date.now());
-            // Re-apply WITHOUT clearing auth cookies to avoid killing in-flight requests
-            applyCookiesEngine(matched.savedCookies, matched.url, false);
+
+            // Check if active auth cookies already exist in the browser.
+            // If the user already has session cookies, DO NOT overwrite them with the stale initial snapshot!
+            const checkUrl = matched.url || url;
+            const isGoogle = (matched.domain || '').includes('google') || checkUrl.includes('google');
+            
+            if (isGoogle) {
+                chrome.cookies.get({ url: 'https://flow.google.com/', name: '__Secure-1PSID' }, (c1) => {
+                    if (!c1) {
+                        chrome.cookies.get({ url: 'https://flow.google.com/', name: 'SID' }, (c2) => {
+                            if (!c2) {
+                                console.log('[WeMate] Google auth missing, re-applying cookies.');
+                                applyCookiesEngine(matched.savedCookies, matched.url, false);
+                            }
+                        });
+                    }
+                });
+            }
         }
     });
 });

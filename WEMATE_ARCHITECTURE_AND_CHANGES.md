@@ -380,4 +380,22 @@ If Google Flow fails to log in, causes an infinite reload loop, or shows an erro
 | **HTTP 431 Request Header Fields Too Large** | Raw un-sanitized cookie payload containing 100+ cookies from Docs/Drive/YouTube was injected. | Run payload through `sanitizeAccountCookies` to reduce payload to ~12–25 essential cookies. |
 | **Page Flips from Account 2 back to Account 1 on Refresh** | Background extension's `onUpdated` listener calls `inject-cookies` without `accountId`, defaulting to the first account. | Ensure extension stores `active_account_flow` in `chrome.storage.local` and sends it on every background refresh. |
 | **Pitch Black Screen on Flow Home Page (Pro Accounts)** | Content script's card parent finder crawled to `<main>` or `body` because children count was `< 6`. | Ensure `wemate-ext/protector.js` v2.3.1+ is deployed with targeted `a[href*="/project/"]` hiding and strict `NEWP_RE` immunity. |
+| **Cookies Expiring in User Browser While Main Browser is Alive** | Extension auto-wipe on 401 panel web session timeout, `onUpdated` stomping rolling tokens (`PSIDTS`), or keeping admin browser open. | Fixed in v2.3.2: removed silent wipes on 401/403, protected live rolling tokens in `onUpdated`, added `/about` bounce recovery, and close admin browser profile after export. |
+
+---
+
+### I. Cookie Expiry Elimination & Rolling Session Preservation (v2.3.2)
+* **Problem**: Users reported being logged out after working for some time, redirecting to `https://flow.google.com/about`, while the admin's original browser session remained logged in and active.
+* **Root Causes Identified**:
+  1. **Extension 5-Minute Auto-Wipe (`verifyAuthAndWipeIfInvalid`)**: `checkAuthAlarm` ran every 5 minutes and called `/api/extension/me`. If the user's web session on `panel.shahabtech.com` expired (HTTP 401), the extension wiped all injected Google and Flow cookies out of the browser.
+  2. **Extension Popup Silent Wipe (`popup.js`)**: Every time a user opened the extension popup, if `/me` was 401 or experienced a network blip, `popup.js` dispatched `WIPE_COOKIES`.
+  3. **Stale Snapshot Overwrite (`chrome.tabs.onUpdated`)**: The 30-second debounce in `background.js` re-injected the original static cookie snapshot on every tab navigation/reload, overwriting Google's live rolling tokens (`__Secure-1PSIDTS`, `__Secure-3PSIDTS`, `OSID`, `SIDCC`). Google flagged this as session replay / desync and killed the session.
+  4. **Google Rolling Sequence Invalidation**: Keeping the admin's original Chrome browser profile open allowed Google background tasks to roll `PSIDTS` from $T_0 \to T_1$, instantly blacklisting the exported $T_0$ snapshot used by clients.
+* **Solutions Implemented**:
+  1. **`wemate-ext/background.js`**:
+     * `verifyAuthAndWipeIfInvalid()`: Removed cookie wipe on 401/403/network errors. Cookies are ONLY wiped if the server returns 200 OK and explicitly flags `data.user.is_expired === true`.
+     * `chrome.tabs.onUpdated`: Added active auth checks (`__Secure-1PSID`, `SID`). If session cookies already exist, the live tokens are preserved and never overwritten by the stale initial snapshot.
+  2. **`wemate-ext/popup.js`**: Removed `WIPE_COOKIES` dispatch from unauthenticated states in `checkAuth()`; simply renders the login form.
+  3. **`wemate-ext/protector.js`**: Added automated `/about` bounce recovery with loop protection (`__wm_flow_about_recovery`) so users routed to `flow.google.com/about` are seamlessly redirected to `https://flow.google.com/`.
+  4. **Packaged & Deployed**: Packaged `wemate-ext-v2.3.2.zip`, uploaded to production server, and updated `min_extension_version` in DB to `2.3.2`.
 

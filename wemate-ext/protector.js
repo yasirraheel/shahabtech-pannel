@@ -35,6 +35,22 @@ chrome.storage.local.get(['injectedDomains'], (result) => {
                     return;
                 }
             }
+
+            // Google Flow /about bounce recovery
+            if (currentHost.includes('flow.google.com')) {
+                const currentPath = window.location.pathname.toLowerCase();
+                if (currentPath === '/about' || currentPath === '/about/' || currentPath.startsWith('/flow/about')) {
+                    const REDIRECT_KEY = '__wm_flow_about_recovery';
+                    const attempts = parseInt(sessionStorage.getItem(REDIRECT_KEY) || '0', 10);
+                    if (attempts < 3) {
+                        sessionStorage.setItem(REDIRECT_KEY, String(attempts + 1));
+                        window.location.replace('https://flow.google.com/');
+                        return;
+                    }
+                } else {
+                    try { sessionStorage.removeItem('__wm_flow_about_recovery'); } catch(_) {}
+                }
+            }
         }
 
         // --- 2. Hide logout elements and profile menus via CSS ---
