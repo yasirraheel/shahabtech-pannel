@@ -23,21 +23,17 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-// ─── COOKIE WATCHER (GOOGLE FLOW ROLLING TOKENS) ─────────────────────────────
+// Only watch the actual rolling session tokens.
+// Challenge cookies (SIDCC, __Secure-3PSIDCC) change every minute on routine pings, so we exclude them.
 const WATCHED_COOKIE_NAMES = new Set([
     '__Secure-1PSIDTS',
     '__Secure-3PSIDTS',
-    '__Secure-1PSID',
-    '__Secure-3PSID',
     'OSID',
-    '__Secure-OSID',
-    'SID',
-    'HSID',
-    'SSID',
-    'SIDCC',
-    '__Secure-1PSIDCC',
-    '__Secure-3PSIDCC'
+    '__Secure-OSID'
 ]);
+
+let lastAutoSyncTime = 0;
+const MIN_AUTO_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes minimum cooldown between auto-syncs
 
 chrome.cookies.onChanged.addListener((changeInfo) => {
     const cookie = changeInfo.cookie;
@@ -56,6 +52,10 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
 });
 
 function scheduleSync(delayMs, reason) {
+    if (Date.now() - lastAutoSyncTime < MIN_AUTO_SYNC_INTERVAL) {
+        console.log(`[WeMate Admin Sync] Auto-sync cooldown active (last synced < 5m ago). Skipping ${reason}.`);
+        return;
+    }
     if (debounceTimer) {
         clearTimeout(debounceTimer);
     }
@@ -199,6 +199,7 @@ async function performSync(triggerSource = 'manual') {
             trigger: triggerSource
         });
 
+        lastAutoSyncTime = Date.now();
         updateBadge('LIVE', '#198754');
         console.log(`[WeMate Admin Sync] Sync SUCCESSFUL! Updated Account #${data.account_id} with ${data.cookie_count} cookies.`);
         isSyncing = false;
