@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     success: true,
                     timestamp: Date.now(),
                     cookieCount: count,
+                    accountId: response.data ? response.data.account_id : selectAccount.value,
                     accountTitle: response.data ? response.data.title : 'Selected Account'
                 });
                 chrome.storage.local.get(['syncHistory'], (res) => {
@@ -190,7 +191,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const timeStr = timeAgo(h.timestamp);
             const statusStr = h.success 
                 ? `<span style="color: #4ade80;">✔ ${h.cookieCount || 0} cookies</span>` 
-                : `<span style="color: #f87171;">✖ Failed</span>`;
+                : `<span style="color: #f87171; cursor: help;" title="${(h.error || 'Failed').replace(/"/g, '&quot;')}">✖ Failed</span>`;
             row.innerHTML = `
                 <span>${timeStr} (${h.trigger || 'auto'})</span>
                 <span>${statusStr}</span>
