@@ -196,6 +196,16 @@ class CronController extends Controller
         $expiredAccountsNotified = [];
 
         foreach ($accounts as $acc) {
+            // If the account is actively managed via Admin Extension live sync, SKIP cron cURL verification completely!
+            // Fresh cookies are delivered directly by the admin's trusted browser, so no server cURL checking is needed.
+            if ($acc->last_sync_source === 'admin_extension' || !empty($acc->last_synced_at)) {
+                $acc->cookie_status = 1;
+                $acc->cookie_check_error = null;
+                $acc->save();
+                $checkedCount++;
+                continue;
+            }
+
             $prevStatus = $acc->cookie_status;
             $result = $this->verifyAccountCookieHealth($acc);
 

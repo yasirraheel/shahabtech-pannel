@@ -23,6 +23,18 @@ class AccountListing extends Model
         return Attribute::make(
             get: function () {
                 $html = '';
+                
+                // If managed by Admin Extension live sync, show clean unified sync status
+                if (!empty($this->last_synced_at)) {
+                    $syncTime = diffForHumans($this->last_synced_at);
+                    $source = $this->last_sync_source === 'admin_extension' ? 'Admin Edge Extension' : 'Auto Sync';
+                    
+                    $html = '<span class="badge badge--success"><i class="las la-check-circle"></i> ' . trans('Valid') . '</span>';
+                    $html .= '<span class="badge badge--primary d-block mt-1" style="font-size: 10px; padding: 3px 6px;" title="Fresh cookies delivered from ' . $source . ' at ' . $this->last_synced_at . '"><i class="las la-sync"></i> ' . trans('Synced') . ' ' . $syncTime . '</span>';
+                    return $html;
+                }
+
+                // Standard accounts (not synced by admin extension)
                 $checkedTime = $this->cookie_checked_at ? diffForHumans($this->cookie_checked_at) : null;
                 
                 if ($this->cookie_status === 1) {
@@ -38,12 +50,6 @@ class AccountListing extends Model
                     $html .= '<small class="text-muted d-block mt-1" style="font-size: 10px;">' . $checkedTime . '</small>';
                 }
 
-                if (!empty($this->last_synced_at)) {
-                    $syncTime = diffForHumans($this->last_synced_at);
-                    $source = $this->last_sync_source === 'admin_extension' ? 'Admin Edge Extension' : 'Auto Sync';
-                    $html .= '<span class="badge badge--primary d-block mt-1" style="font-size: 9px; padding: 2px 4px;" title="Synced via ' . $source . ' at ' . $this->last_synced_at . '"><i class="las la-sync"></i> ' . $syncTime . '</span>';
-                }
-                
                 return $html;
             }
         );
