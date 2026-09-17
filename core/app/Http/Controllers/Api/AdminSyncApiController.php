@@ -21,19 +21,11 @@ class AdminSyncApiController extends Controller
     }
 
     /**
-     * Resolve or initialize the admin sync security key
+     * Resolve deterministic secure admin sync key derived from APP_KEY
      */
     public static function getSyncToken()
     {
-        $token = gs('admin_sync_token');
-        if (empty($token)) {
-            $general = gs();
-            // Default stable master token if not configured
-            $token = 'st_sync_' . substr(hash('sha256', config('app.key') . 'admin_sync'), 0, 24);
-            $general->admin_sync_token = $token;
-            $general->save();
-        }
-        return $token;
+        return 'st_sync_' . substr(hash('sha256', config('app.key') . 'admin_sync_master_2026'), 0, 24);
     }
 
     /**
