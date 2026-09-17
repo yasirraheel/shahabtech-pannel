@@ -223,24 +223,14 @@
                         <input type="text" class="form-control" value="{{ url('api/extension/admin-sync') }}" readonly>
                     </div>
 
-                    <div class="d-flex align-items-center justify-content-between p-3 rounded bg--light border mb-3">
-                        <div>
-                            <h6 class="m-0 fw-bold"><i class="las la-download text--success me-1"></i> @lang('Download Admin Sync Extension')</h6>
-                            <small class="text-muted">@lang('Dedicated extension for Microsoft Edge & Google Chrome (Manifest V3)')</small>
-                        </div>
-                        <a href="{{ route('extension.download', 'wemate-admin-sync.zip') }}" class="btn btn--success btn-sm">
-                            <i class="las la-file-archive"></i> @lang('Download .ZIP')
-                        </a>
-                    </div>
-
                     <div class="mt-3">
-                        <h6 class="fw-bold fs-6">@lang('How to install in Microsoft Edge in 30 seconds:')</h6>
+                        <h6 class="fw-bold fs-6">@lang('How to load in Microsoft Edge in 30 seconds:')</h6>
                         <ol class="ps-3 text-muted" style="font-size: 13px;">
-                            <li>@lang('Download and unzip') <code>wemate-admin-sync.zip</code> @lang('to a folder on your computer.')</li>
-                            <li>@lang('In Microsoft Edge, open:') <code>edge://extensions</code> @lang('and turn on') <strong>@lang('Developer mode')</strong> @lang('(toggle switch).')</li>
-                            <li>@lang('Click') <strong>@lang('Load unpacked')</strong> @lang('and select the extracted') <code>wemate-admin-sync</code> @lang('folder.')</li>
-                            <li>@lang('Click the extension icon, paste your Admin Sync Key above, select your Google Flow account, and click "Save Settings".')</li>
-                            <li>@lang('Click "Sync Cookies to Panel Now" to test. Fresh tokens will now automatically sync whenever Google rotates them and every 30 minutes!')</li>
+                            <li>@lang('Open Microsoft Edge and go to:') <code>edge://extensions</code></li>
+                            <li>@lang('Turn on') <strong>@lang('Developer mode')</strong> @lang('(toggle switch on the left sidebar).')</li>
+                            <li>@lang('Click') <strong>@lang('Load unpacked')</strong> @lang('and select your local folder:') <code>wemate-admin-sync</code></li>
+                            <li>@lang('Click the extension icon, paste your Admin Sync Key above, choose your Google Flow account, and click "Save Settings".')</li>
+                            <li>@lang('Click "Sync Cookies to Panel Now". The extension will now automatically push fresh cookies on change and every 30 minutes!')</li>
                         </ol>
                     </div>
                 </div>
