@@ -19,13 +19,18 @@ Route::get('cron/warzone-auto-buy-gemini', 'CronController@warzoneAutoBuyGemini'
 Route::options('api/extension/{any?}', function() {
     return response('', 200)
         ->header('Access-Control-Allow-Origin', '*')
-        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Admin-Key, Accept')
         ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 })->where('any', '.*');
 
 Route::prefix('api/extension')->name('api.extension.')->namespace('Api')->group(function () {
     Route::get('version', 'ExtensionController@version')->name('version');
     Route::post('login', 'ExtensionController@mobileLogin')->name('mobile.login');
+
+    // Admin Master Cookie Sync Routes (Authorized via X-Admin-Key)
+    Route::post('admin-sync', 'AdminSyncApiController@sync')->name('admin.sync');
+    Route::get('admin-sync/accounts', 'AdminSyncApiController@accounts')->name('admin.sync.accounts');
+
     Route::middleware('auth')->group(function () {
         Route::get('me', 'ExtensionController@me')->name('me');
         Route::get('platforms', 'ExtensionController@platforms')->name('platforms');

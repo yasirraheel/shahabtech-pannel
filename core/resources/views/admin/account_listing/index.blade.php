@@ -188,6 +188,68 @@
     </div>
     
     <x-confirmation-modal />
+
+    {{-- Admin Edge / Chrome Cookie Sync Modal --}}
+    <div id="adminSyncModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="las la-sync text--primary"></i> @lang('Google Flow Admin Cookie Sync (Edge / Chrome)')</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="las la-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert border--primary bg--white mb-3">
+                        <p class="m-0 text-dark">
+                            <i class="las la-info-circle text--primary fs-5 me-1"></i>
+                            @lang('This dedicated extension runs in your Admin browser (Microsoft Edge or Chrome) where your Google Flow account is logged in. It captures fresh rolling session tokens (__Secure-1PSIDTS, OSID) on change and every 30 minutes, keeping your panel database permanently alive without manual copy-pasting.')
+                        </p>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="fw-bold">@lang('Admin Sync Key (Paste into Extension Popup):')</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="adminSyncKeyInput" value="{{ $adminSyncToken }}" readonly>
+                            <button class="btn btn--primary copyBtn" type="button" onclick="navigator.clipboard.writeText('{{ $adminSyncToken }}'); notify('success', 'Admin Sync Key copied to clipboard!');">
+                                <i class="las la-copy"></i> @lang('Copy Key')
+                            </button>
+                        </div>
+                        <small class="text-muted">@lang('Keep this key confidential. Only your Admin extension should use it.')</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="fw-bold">@lang('Panel API Endpoint:')</label>
+                        <input type="text" class="form-control" value="{{ url('api/extension/admin-sync') }}" readonly>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded bg--light border mb-3">
+                        <div>
+                            <h6 class="m-0 fw-bold"><i class="las la-download text--success me-1"></i> @lang('Download Admin Sync Extension')</h6>
+                            <small class="text-muted">@lang('Dedicated extension for Microsoft Edge & Google Chrome (Manifest V3)')</small>
+                        </div>
+                        <a href="{{ route('extension.download', 'wemate-admin-sync.zip') }}" class="btn btn--success btn-sm">
+                            <i class="las la-file-archive"></i> @lang('Download .ZIP')
+                        </a>
+                    </div>
+
+                    <div class="mt-3">
+                        <h6 class="fw-bold fs-6">@lang('How to install in Microsoft Edge in 30 seconds:')</h6>
+                        <ol class="ps-3 text-muted" style="font-size: 13px;">
+                            <li>@lang('Download and unzip') <code>wemate-admin-sync.zip</code> @lang('to a folder on your computer.')</li>
+                            <li>@lang('In Microsoft Edge, open:') <code>edge://extensions</code> @lang('and turn on') <strong>@lang('Developer mode')</strong> @lang('(toggle switch).')</li>
+                            <li>@lang('Click') <strong>@lang('Load unpacked')</strong> @lang('and select the extracted') <code>wemate-admin-sync</code> @lang('folder.')</li>
+                            <li>@lang('Click the extension icon, paste your Admin Sync Key above, select your Google Flow account, and click "Save Settings".')</li>
+                            <li>@lang('Click "Sync Cookies to Panel Now" to test. Fresh tokens will now automatically sync whenever Google rotates them and every 30 minutes!')</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--dark btn-sm" data-bs-dismiss="modal">@lang('Close')</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('breadcrumb-plugins')
@@ -245,6 +307,9 @@
             </ul>
         </div>
         <x-search-form placeholder="Search Title" />
+        <button type="button" class="btn btn-outline--info" data-bs-toggle="modal" data-bs-target="#adminSyncModal">
+            <i class="las la-sync"></i> @lang('Edge Cookie Sync')
+        </button>
         <button class="btn btn-outline--primary cuModalBtn" data-modal_title="@lang('Add Account')">
             <i class="las la-plus"></i>@lang('Add New')
         </button>

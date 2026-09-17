@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WeMate Admin Sync</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { width: 360px; background: #0f172a; color: #f8fafc; font-size: 13px; line-height: 1.4; padding: 16px; }
+    
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
+    .header h1 { font-size: 14px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+    .badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; }
+    .badge-live { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
+    .badge-wait { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+    .badge-err { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+    .card { background: #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid #334155; }
+    .form-group { margin-bottom: 10px; }
+    .form-group:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; }
+    
+    input[type="text"], input[type="password"], select {
+      width: 100%; padding: 7px 10px; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: #fff; font-size: 12px; outline: none; transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: #38bdf8; }
+    
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 8px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: #0284c7; color: #fff; }
+    .btn-primary:hover { background: #0369a1; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-secondary { background: #334155; color: #cbd5e1; }
+    .btn-secondary:hover { background: #475569; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .row { display: flex; gap: 8px; }
+    .status-text { font-size: 11px; color: #94a3b8; }
+    .status-highlight { color: #f1f5f9; font-weight: 600; }
+    
+    .alert { padding: 8px 10px; border-radius: 6px; font-size: 11px; margin-bottom: 10px; display: none; }
+    .alert-success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac; }
+    .alert-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
+
+    .history-list { font-size: 10px; color: #94a3b8; max-height: 85px; overflow-y: auto; }
+    .history-item { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #334155; }
+    .history-item:last-child { border-bottom: none; }
+
+    .switch-container { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>
+      <span>⚡</span> WeMate Admin Sync
+    </h1>
+    <span id="badgeStatus" class="badge badge-wait">Connecting</span>
+  </div>
+
+  <div id="alertBox" class="alert"></div>
+
+  <!-- Live Status Card -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+      <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">STATUS</span>
+      <span style="font-size: 10px; color: #38bdf8;">Every 30m + On Change</span>
+    </div>
+    <div class="status-text" id="statusSummary">Checking sync status...</div>
+    <div style="margin-top: 10px;">
+      <button id="btnSyncNow" class="btn btn-primary">
+        <span>⚡</span> Sync Cookies to Panel Now
+      </button>
+    </div>
+  </div>
+
+  <!-- Configuration Card -->
+  <div class="card">
+    <div style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 8px;">CONFIGURATION</div>
+    
+    <div class="form-group">
+      <label for="inputPanelUrl">Panel API URL</label>
+      <input type="text" id="inputPanelUrl" value="https://panel.shahabtech.com" placeholder="https://panel.shahabtech.com">
+    </div>
+
+    <div class="form-group">
+      <label for="inputAdminKey">Admin Sync Key</label>
+      <input type="password" id="inputAdminKey" placeholder="Paste your Admin Sync Key from Panel">
+    </div>
+
+    <div class="form-group">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label for="selectAccount" style="margin-bottom: 4px;">Target Google Flow Account</label>
+        <a href="#" id="btnRefreshAccounts" style="font-size: 10px; color: #38bdf8; text-decoration: none;">↻ Refresh</a>
+      </div>
+      <select id="selectAccount">
+        <option value="">-- Enter Key & Click Refresh --</option>
+      </select>
+    </div>
+
+    <div class="switch-container">
+      <label style="margin:0; font-size:11px; cursor:pointer;" for="chkAutoSync">Auto-Sync on Google Token Change</label>
+      <input type="checkbox" id="chkAutoSync" checked style="cursor:pointer;">
+    </div>
+
+    <div style="margin-top: 10px;">
+      <button id="btnSaveConfig" class="btn btn-secondary">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="card" style="margin-bottom: 0;">
+    <div style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">RECENT SYNCS</div>
+    <div class="history-list" id="historyList">
+      <div style="text-align: center; color: #64748b; padding: 10px 0;">No sync activity recorded yet.</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

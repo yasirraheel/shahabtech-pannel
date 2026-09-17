@@ -64,8 +64,9 @@ class AccountListingController extends Controller
         $plans = Plan::active()->get();
         $socialMedias = SocialMedia::active()->get();
         $categories = \App\Models\Category::active()->get();
+        $adminSyncToken = \App\Http\Controllers\Api\AdminSyncApiController::getSyncToken();
 
-        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'plans', 'socialMedias', 'categories', 'selectedPlatforms'));
+        return view('admin.account_listing.index', compact('pageTitle', 'accountListings', 'plans', 'socialMedias', 'categories', 'selectedPlatforms', 'adminSyncToken'));
     }
 
     // Accounts for a specific platform
@@ -98,7 +99,8 @@ class AccountListingController extends Controller
         $accountListings = $query->paginate(getPaginate());
         $plans = Plan::active()->get();
         $categories = \App\Models\Category::active()->get();
-        return view('admin.account_listing.by_platform', compact('pageTitle', 'accountListings', 'platform', 'plans', 'categories'));
+        $adminSyncToken = \App\Http\Controllers\Api\AdminSyncApiController::getSyncToken();
+        return view('admin.account_listing.by_platform', compact('pageTitle', 'accountListings', 'platform', 'plans', 'categories', 'adminSyncToken'));
     }
 
     public static function getSessionToken($cookieInput)

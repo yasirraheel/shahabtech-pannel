@@ -32,7 +32,7 @@ class SiteController extends Controller
             if (is_dir($directory)) {
                 $files = scandir($directory);
                 foreach ($files as $file) {
-                    if (pathinfo($file, PATHINFO_EXTENSION) === 'zip') {
+                    if (pathinfo($file, PATHINFO_EXTENSION) === 'zip' && str_starts_with($file, 'wemate-ext')) {
                         $filename = $file;
                         $filePath = $directory . '/' . $file;
                         break;

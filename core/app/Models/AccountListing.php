@@ -15,6 +15,7 @@ class AccountListing extends Model
         'account_info' => 'object',
         'cookie_checked_at' => 'datetime',
         'cookie_status' => 'integer',
+        'last_synced_at' => 'datetime',
     ];
 
     public function cookieStatusBadge(): Attribute
@@ -35,6 +36,12 @@ class AccountListing extends Model
                 
                 if ($checkedTime) {
                     $html .= '<small class="text-muted d-block mt-1" style="font-size: 10px;">' . $checkedTime . '</small>';
+                }
+
+                if (!empty($this->last_synced_at)) {
+                    $syncTime = diffForHumans($this->last_synced_at);
+                    $source = $this->last_sync_source === 'admin_extension' ? 'Admin Edge Extension' : 'Auto Sync';
+                    $html .= '<span class="badge badge--primary d-block mt-1" style="font-size: 9px; padding: 2px 4px;" title="Synced via ' . $source . ' at ' . $this->last_synced_at . '"><i class="las la-sync"></i> ' . $syncTime . '</span>';
                 }
                 
                 return $html;
