@@ -350,6 +350,18 @@ class ManageUsersController extends Controller
         return back()->withNotify($notify);
     }
 
+    public function deleteBulk(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:users,id',
+        ]);
+
+        $count = User::whereIn('id', $request->ids)->delete();
+        $notify[] = ['success', $count . ' user(s) deleted successfully.'];
+        return back()->withNotify($notify);
+    }
+
     public function addSubBalance(Request $request, $id)
     {
         $request->validate([

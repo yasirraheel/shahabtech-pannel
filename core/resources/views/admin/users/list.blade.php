@@ -8,6 +8,9 @@
                         <table class="table table--light style--two mb-0">
                             <thead>
                             <tr>
+                                <th style="width: 45px;" class="text-center">
+                                    <input type="checkbox" class="form-check-input" id="checkAll" style="cursor: pointer; width: 18px; height: 18px;">
+                                </th>
                                 <th>@lang('User')</th>
                                 <th>@lang('Email-Mobile')</th>
                                 <th class="text-center">@lang('Country')</th>
@@ -18,6 +21,9 @@
                             <tbody>
                             @forelse($users as $user)
                             <tr>
+                                <td class="text-center align-middle">
+                                    <input type="checkbox" class="form-check-input user-check" value="{{ $user->id }}" style="cursor: pointer; width: 18px; height: 18px;">
+                                </td>
                                 <td class="text-start" style="text-align: left !important; word-break: break-word;">
                                     <div class="text-start">
                                         <span class="fw-bold text--dark d-block">{{$user->fullname}}</span>
@@ -136,6 +142,32 @@
             </div>
         </div>
         <x-confirmation-modal />
+
+        {{-- Bulk Delete Modal --}}
+        <div class="modal fade" id="bulkDeleteModal" role="dialog" tabindex="-1">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="las la-trash text-danger me-1"></i> @lang('Bulk Delete Confirmation')</h5>
+                        <button class="close" data-bs-dismiss="modal" type="button" aria-label="Close">
+                            <i class="las la-times"></i>
+                        </button>
+                    </div>
+                    <form action="{{ route('admin.users.delete.bulk') }}" method="POST">
+                        @csrf
+                        <div class="modal-body">
+                            <p class="fs-15 mb-2">@lang('Are you sure you want to delete') <strong class="bulk-count-display text-danger fw-bold">0</strong> @lang('selected user(s)?')</p>
+                            <p class="text-muted small mb-0"><i class="las la-info-circle"></i> @lang('Selected user accounts will be deleted.')</p>
+                            <div id="bulkIdsWrapper"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn--dark" data-bs-dismiss="modal" type="button">@lang('No, Cancel')</button>
+                            <button class="btn btn--danger" type="submit"><i class="las la-trash me-1"></i> @lang('Yes, Delete Selected')</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -149,6 +181,9 @@
     @php
         $isSortedByLastSeen = session('admin_users_sort') === 'last_seen';
     @endphp
+    <button type="button" class="btn btn-outline--danger d-none" id="bulkDeleteBtn">
+        <i class="las la-trash"></i> @lang('Delete Selected') (<span id="selectedCount">0</span>)
+    </button>
     <a href="{{ request()->fullUrlWithQuery(['sort' => $isSortedByLastSeen ? 'id' : 'last_seen']) }}" class="btn {{ $isSortedByLastSeen ? 'btn--primary' : 'btn-outline--primary' }}">
         <i class="las la-sort-amount-down"></i> @lang('Sort by Last Seen')
     </a>
@@ -156,4 +191,54 @@
     <a href="{{ route('admin.users.create') }}" class="btn btn-outline--primary">
         <i class="las la-plus"></i>@lang('Add New')
     </a>
+@endpush
+
+@push('script')
+<script>
+    (function($) {
+        "use strict";
+
+        function updateBulkButton() {
+            var selected = $('.user-check:checked');
+            var count = selected.length;
+            $('#selectedCount').text(count);
+            if (count > 0) {
+                $('#bulkDeleteBtn').removeClass('d-none');
+            } else {
+                $('#bulkDeleteBtn').addClass('d-none');
+            }
+
+            var total = $('.user-check').length;
+            $('#checkAll').prop('checked', total > 0 && count === total);
+        }
+
+        $('#checkAll').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            $('.user-check').prop('checked', isChecked);
+            updateBulkButton();
+        });
+
+        $(document).on('change', '.user-check', function() {
+            updateBulkButton();
+        });
+
+        $('#bulkDeleteBtn').on('click', function() {
+            var selected = $('.user-check:checked');
+            if (selected.length === 0) {
+                return;
+            }
+
+            var modal = $('#bulkDeleteModal');
+            var container = $('#bulkIdsWrapper');
+            container.empty();
+
+            selected.each(function() {
+                container.append('<input type="hidden" name="ids[]" value="' + $(this).val() + '">');
+            });
+
+            modal.find('.bulk-count-display').text(selected.length);
+            modal.modal('show');
+        });
+    })(jQuery);
+</script>
 @endpush
