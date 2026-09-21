@@ -133,8 +133,13 @@
                     </div>
                     <div class="card-body">
                         @if(@$isAdmin && !empty($adminAccounts) && $adminAccounts->isNotEmpty())
-                            <div class="alert alert--warning mb-4 py-2">
-                                <small><i class="las la-vial"></i> <strong>@lang('Tester Mode Active'):</strong> @lang('Showing all active accounts with full developer controls.')</small>
+                            <div class="mb-4 p-3 d-flex align-items-center gap-3" style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); border-left: 4px solid #eab308; border-radius: 8px;">
+                                <div style="width: 34px; height: 34px; border-radius: 6px; background: rgba(234, 179, 8, 0.2); display: flex; align-items: center; justify-content: center; color: #facc15; flex-shrink: 0;">
+                                    <i class="las la-vial" style="font-size: 20px;"></i>
+                                </div>
+                                <div style="font-size: 13.5px; line-height: 1.4;">
+                                    <strong class="text-white">@lang('Tester Mode Active'):</strong> <span style="color: #fef08a;">@lang('Showing all active accounts with full developer controls.')</span>
+                                </div>
                             </div>
                             @foreach ($adminAccounts as $acc)
                                 @php

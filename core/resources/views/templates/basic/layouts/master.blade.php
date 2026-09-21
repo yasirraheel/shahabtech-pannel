@@ -146,7 +146,30 @@
             border-bottom-left-radius: 0 !important;
         }
 
-        /* High Contrast Notice Banner (Forcing all nested tags & inline styles to white) */
+        /* Alerts in Dark Theme */
+        .alert-warning, .alert--warning {
+            background-color: rgba(234, 179, 8, 0.12) !important;
+            border: 1px solid rgba(234, 179, 8, 0.35) !important;
+            color: #fef08a !important;
+        }
+        .alert-warning *, .alert--warning * {
+            color: #fef08a !important;
+        }
+        .alert-warning strong, .alert--warning strong {
+            color: #ffffff !important;
+        }
+        .alert-danger, .alert--danger {
+            background-color: rgba(239, 68, 68, 0.12) !important;
+            border: 1px solid rgba(239, 68, 68, 0.35) !important;
+            color: #fca5a5 !important;
+        }
+        .alert-info, .alert--info {
+            background-color: rgba(59, 130, 246, 0.12) !important;
+            border: 1px solid rgba(59, 130, 246, 0.35) !important;
+            color: #93c5fd !important;
+        }
+
+        /* High Contrast Notice Banner */
         #globalNotificationBanner,
         #globalNotificationBanner * {
             color: #f8fafc !important;
@@ -339,6 +362,113 @@
         </div>
     </div>
 
+    @auth
+        @php
+            $expiryDate = auth()->user()->expires_at ?: auth()->user()->created_at->addDays(30);
+            $daysRemaining = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($expiryDate)->startOfDay(), false);
+            $contactContent = getContent('contact.content', true)->data_values;
+            $whatsappNumber = preg_replace('/[^0-9]/', '', @$contactContent->phone_number);
+            $whatsappUrl = "https://wa.me/{$whatsappNumber}?text=" . urlencode("Hello, I would like to renew my account.");
+            $minExtVersion = gs('min_extension_version') ?: '1.9.6';
+            $forceExtUpdate = (bool) gs('force_extension_update');
+            $extDownloadUrl = getExtensionDownloadUrl();
+        @endphp
+
+        {{-- WhatsApp Renewal Popup Card --}}
+        @if($daysRemaining <= 3)
+            <div class="cookies-card hide text-center" id="renewal-card" style="position: fixed; bottom: 20px; right: 20px; max-width: 380px; background-color: #ffc107; color: #222; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 999999; border-radius: 12px; padding: 20px;">
+                <div class="cookies-card__icon" style="background-color: #e0a800; color: #fff; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <i class="las la-exclamation-triangle" style="font-size: 24px;"></i>
+                </div>
+                <p class="cookies-card__content mt-3 mb-3" style="color: #222; font-size: 14px; line-height: 1.5;">
+                    <strong style="font-size: 1.15rem; color: #000;">@lang('Notice')</strong><br>
+                    <strong style="color: #000;">@lang('Dear Valued User,')</strong><br>
+                    @if($daysRemaining >= 0)
+                        @lang('Your account validity is expiring in') <strong>{{ $daysRemaining }} @lang('days')</strong>.<br>
+                    @else
+                        @lang('Your account validity is') <strong>@lang('expired')</strong>.<br>
+                    @endif
+                    @lang('For renewal, please contact us on WhatsApp here:')<br><br>
+                    <a href="{{ $whatsappUrl }}" target="_blank" class="btn btn-sm w-100" style="background-color: #25D366; border-color: #25D366; color: white; border-radius: 20px; padding: 8px 20px; font-weight: bold;">
+                        <i class="lab la-whatsapp me-1" style="font-size: 1.2rem;"></i> {{ @$contactContent->phone_number }}
+                    </a>
+                </p>
+                <div class="cookies-card__btn">
+                    <a class="btn w-100 btn-sm" id="renewal-okay" href="javascript:void(0)" style="background-color: #222; color: #fff; border-radius: 20px;">@lang('Okay')</a>
+                </div>
+            </div>
+            
+            @push('script')
+            <script>
+                (function($) {
+                    "use strict";
+                    var renewalCard = $('#renewal-card');
+                    var lastClosed = localStorage.getItem('renewalClosedAt');
+                    var now = new Date().getTime();
+                    
+                    if (!lastClosed || (now - parseInt(lastClosed) > 10800000)) {
+                        setTimeout(function() {
+                            renewalCard.removeClass('hide').fadeIn();
+                        }, 2000);
+                    }
+                    
+                    $('#renewal-okay').on('click', function() {
+                        renewalCard.fadeOut();
+                        localStorage.setItem('renewalClosedAt', new Date().getTime());
+                    });
+                })(jQuery);
+            </script>
+            @endpush
+        @endif
+
+        {{-- Extension Update Modal on Web Panel --}}
+        <div class="modal fade custom--modal" id="panelExtensionUpdateModal" tabindex="-1" role="dialog" aria-labelledby="panelExtensionUpdateTitle" aria-hidden="true" @if($forceExtUpdate) data-bs-backdrop="static" data-bs-keyboard="false" @endif>
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content" style="background: #111827 !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff;">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title d-flex align-items-center text-warning" id="panelExtensionUpdateTitle">
+                            <i class="las la-exclamation-triangle me-2 fs-4"></i>
+                            @if($forceExtUpdate)
+                                @lang('Action Required: Extension Update')
+                            @else
+                                @lang('Extension Update Available')
+                            @endif
+                        </h5>
+                        @if(!$forceExtUpdate)
+                            <button type="button" class="btn-close modal-icon" data-bs-dismiss="modal" aria-label="Close"></button>
+                        @endif
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-3">
+                            <span class="badge bg-warning text-dark px-3 py-2 fs-6">
+                                @lang('Required Version'): <strong>v{{ $minExtVersion }}</strong>
+                            </span>
+                        </div>
+                        @if($forceExtUpdate)
+                            <p class="text-white fs-15 mb-0">
+                                @lang('Your browser extension is outdated. The administrator has required an update to continue accessing your assigned accounts seamlessly.')
+                            </p>
+                        @else
+                            <p class="text-white fs-15 mb-0">
+                                @lang('A new version of the') {{ __(gs('site_name')) }} @lang('Extension (v')<strong>{{ $minExtVersion }}</strong>@lang(') is available. Please update to enjoy the latest features.')
+                            </p>
+                        @endif
+                    </div>
+                    <div class="modal-footer border-0 pt-0 d-flex gap-2">
+                        <a href="{{ $extDownloadUrl }}" target="_blank" id="panelUpdateDownloadBtn" class="btn btn--primary flex-grow-1">
+                            <i class="las la-download me-1"></i> @lang('Download Extension Update')
+                        </a>
+                        @if(!$forceExtUpdate)
+                            <button type="button" class="btn btn--secondary flex-grow-1" id="panelUpdateSnoozeBtn" data-bs-dismiss="modal">
+                                @lang('Snooze (6 Hours)')
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endauth
+
     {{-- Core Scripts --}}
     <script src="{{ asset('assets/global/js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ asset('assets/global/js/bootstrap.bundle.min.js') }}"></script>
@@ -351,10 +481,6 @@
     @stack('script-lib')
 
     @auth
-    @php
-        $minExtVersion = gs('min_extension_version') ?: '1.9.6';
-        $forceExtUpdate = (bool) gs('force_extension_update');
-    @endphp
     <script>
         (function($) {
             "use strict";
@@ -394,7 +520,7 @@
                     if (isStrictForce) {
                         modal.modal('show');
                     } else {
-                        var lastSnooze = localStorage.getItem('toolsbydcx_panel_update_snooze') || localStorage.getItem('wemate_panel_update_snooze') || 0;
+                        var lastSnooze = localStorage.getItem('panel_update_snooze') || 0;
                         var now = new Date().getTime();
                         if (now - parseInt(lastSnooze) > SNOOZE_MS) {
                             modal.modal('show');
@@ -402,7 +528,7 @@
                     }
 
                     $('#panelUpdateSnoozeBtn').on('click', function() {
-                        localStorage.setItem('toolsbydcx_panel_update_snooze', new Date().getTime());
+                        localStorage.setItem('panel_update_snooze', new Date().getTime());
                     });
                 }
             }

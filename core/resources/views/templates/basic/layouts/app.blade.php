@@ -40,62 +40,7 @@
 
     <a class="scroll-top"><i class="fas fa-angle-double-up"></i></a>
 
-    @if(gs('banner_status') && gs('banner_message'))
-    @php
-        $bannerTheme = gs('banner_color') ?: 'primary';
-        $textColor = in_array($bannerTheme, ['warning', 'info']) ? 'text-dark' : 'text-white';
-        $btnTheme = in_array($bannerTheme, ['warning', 'info']) ? 'btn-dark' : 'btn-light';
-    @endphp
-    <div id="globalNotificationBanner" class="notification-banner shadow-lg bg-{{ $bannerTheme }}" style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 99999; padding: 10px 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.15); animation: slideInUp 0.5s ease-out;">
-        <div class="container position-relative">
-            <div class="d-flex flex-column flex-md-row align-items-md-center gap-3 pe-4">
-                <div class="flex-grow-1">
-                    <h6 class="{{ $textColor }} mb-1" style="font-size: 15px;"><i class="las la-bell me-2"></i> @lang('Notice')</h6>
-                    <div class="{{ $textColor }}" style="font-size: 13px; line-height: 1.4;">
-                        {!! gs('banner_message') !!}
-                    </div>
-                </div>
-                @if(gs('banner_cta_text') && gs('banner_cta_link'))
-                    @php
-                        $ctaLink = gs('banner_cta_link');
-                        if (auth()->check()) {
-                            $ctaLink = str_replace('[username]', auth()->user()->username, $ctaLink);
-                            $ctaLink = str_replace('[email]', auth()->user()->email, $ctaLink);
-                            $ctaLink = str_replace(urlencode('[username]'), urlencode(auth()->user()->username), $ctaLink);
-                            $ctaLink = str_replace(urlencode('[email]'), urlencode(auth()->user()->email), $ctaLink);
-                        }
-                    @endphp
-                    <div class="flex-shrink-0 mt-2 mt-md-0">
-                        <a href="{{ $ctaLink }}" target="_blank" class="btn {{ $btnTheme }} btn-sm fw-bold d-inline-flex align-items-center justify-content-center gap-1" style="border-radius: 20px; padding: 8px 15px; font-size: 13px; white-space: nowrap;">
-                            {{ gs('banner_cta_text') }} <i class="las la-arrow-right"></i>
-                        </a>
-                    </div>
-                @endif
-            </div>
-            <button type="button" class="{{ $textColor }} position-absolute" style="top: -2px; right: 10px; background: none; border: none; opacity: 0.8; font-size: 24px; line-height: 1; padding: 0;" onclick="closeNotificationBanner()" aria-label="Close">&times;</button>
-        </div>
-    </div>
 
-    @push('script')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var banner = document.getElementById('globalNotificationBanner');
-            var bannerClosedAt = localStorage.getItem('bannerClosedAt');
-            var now = new Date().getTime();
-            
-            // If never closed, or closed more than 5 minutes (300000 ms) ago
-            if (!bannerClosedAt || (now - parseInt(bannerClosedAt) > 300000)) {
-                banner.style.display = 'block';
-            }
-        });
-
-        function closeNotificationBanner() {
-            document.getElementById('globalNotificationBanner').style.display = 'none';
-            localStorage.setItem('bannerClosedAt', new Date().getTime());
-        }
-    </script>
-    @endpush
-    @endif
 
     @auth
         @php
