@@ -1,178 +1,83 @@
 @extends('admin.layouts.app')
 
 @section('panel')
-    <div class="row">
-        <div class="col-12">
-            <div class="card mt-30">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">@lang('Create New User')</h5>
-                    <button type="button" class="btn btn-sm btn-outline--primary" id="generateUserBtn"><i class="las la-magic"></i> @lang('Quick Generate User')</button>
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card mt-30 shadow-sm border-0">
+                <div class="card-header bg--primary text-white d-flex justify-content-between align-items-center py-3">
+                    <h5 class="card-title text-white mb-0"><i class="las la-user-plus me-1"></i> @lang('Create New User')</h5>
+                    <button type="button" class="btn btn-sm btn-light text--primary fw-bold" id="generateUserBtn">
+                        <i class="las la-magic"></i> @lang('Quick Generate')
+                    </button>
                 </div>
-                <div class="card-body">
-                    <form action="{{route('admin.users.store')}}" method="POST"
-                          enctype="multipart/form-data">
+                <div class="card-body p-4">
+                    <form action="{{ route('admin.users.store') }}" method="POST">
                         @csrf
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('First Name')</label>
-                                    <input class="form-control" type="text" name="firstname" required value="{{ old('firstname') }}">
-                                </div>
+                        <div class="form-group mb-4">
+                            <label class="fw-bold text--dark mb-2 required">
+                                <i class="las la-user text--primary"></i> @lang('Full Name')
+                            </label>
+                            <input class="form-control form-control-lg" type="text" name="name" id="userNameInput" placeholder="@lang('e.g. Roar Berg')" required value="{{ old('name') }}" autofocus>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="fw-bold text--dark mb-2 required">
+                                <i class="las la-envelope text--primary"></i> @lang('Email Address')
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <input class="form-control" type="text" name="email_prefix" id="emailPrefixInput" placeholder="@lang('username_or_email')" value="{{ old('email_prefix') }}" required>
+                                <span class="input-group-text bg--primary text-white fw-bold">@ {{ $domain }}</span>
                             </div>
+                            <small class="text-muted mt-1 d-block">
+                                <i class="las la-info-circle"></i> @lang('Type the username prefix; domain suffix is automatically attached.')
+                            </small>
+                        </div>
 
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-control-label">@lang('Last Name')</label>
-                                    <input class="form-control" type="text" name="lastname" required value="{{ old('lastname') }}">
-                                </div>
+                        <div class="form-group mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="fw-bold text--dark mb-0 required">
+                                    <i class="las la-key text--primary"></i> @lang('Password')
+                                </label>
+                                <a href="javascript:void(0)" class="text--primary fw-bold text-decoration-none" id="generatePasswordBtn" style="font-size: 13px;">
+                                    <i class="las la-random"></i> @lang('Generate Random')
+                                </a>
                             </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Email') </label>
-                                    <input class="form-control" type="email" name="email" value="{{ old('email') }}" required>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Username') </label>
-                                    <input class="form-control" type="text" name="username" value="{{ old('username') }}" required>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Password') </label>
-                                    <div class="input-group">
-                                        <input class="form-control" type="password" name="password" id="passwordField" required>
-                                        <button type="button" class="input-group-text" id="togglePassword"><i class="las la-eye"></i></button>
-                                        <button type="button" class="input-group-text copy-btn"><i class="las la-copy"></i></button>
-                                    </div>
-                                    <small><a href="javascript:void(0)" id="generatePasswordBtn">@lang('Generate Random Password')</a></small>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Country') <span class="text--danger">*</span></label>
-                                    <select name="country" class="form-control select2" id="country">
-                                        @foreach($countries as $key => $country)
-                                            <option data-mobile_code="{{ $country->dial_code }}" value="{{ $key }}" @selected(old('country') == $key)>{{ __($country->country) }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Mobile Number') </label>
-                                    <div class="input-group ">
-                                        <span class="input-group-text mobile-code"></span>
-                                        <input type="number" name="mobile" value="{{ old('mobile') }}" id="mobile" class="form-control checkUser">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Assign Plan')</label>
-                                    <select name="plan_id" class="form-control select2">
-                                        <option value="">@lang('No Plan Assigned')</option>
-                                        @foreach($plans as $plan)
-                                            <option value="{{ $plan->id }}">{{ __($plan->name) }} ({{ showAmount($plan->price) }} {{ gs('cur_text') }})</option>
-                                        @endforeach
-                                    </select>
-                                    <small class="text-muted">@lang('Selecting a plan will give the user access to all accounts under this plan.')</small>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('User Role / Testing Mode')</label>
-                                    <div class="d-flex align-items-center mt-2 flex-wrap gap-4">
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" id="is_trial" name="is_trial">
-                                            <label class="form-check-label fw-bold" for="is_trial">@lang('Trial Period')</label>
-                                        </div>
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" id="is_exclusive" name="is_exclusive">
-                                            <label class="form-check-label fw-bold text--info" for="is_exclusive"><i class="las la-star me-1"></i> @lang('Exclusive User')</label>
-                                        </div>
-                                    </div>
-                                    <small class="text-muted d-block mt-1">@lang('Exclusive users can copy account cookies directly to their clipboard in JSON format from their dashboard.')</small>
-                                </div>
-                            </div>
-
-                            <div class="col-md-12" id="standard-expiry-wrapper">
-                                <div class="form-group">
-                                    <label>@lang('Subscription Expiry Date')</label>
-                                    <input class="form-control" type="datetime-local" name="expires_at" value="{{ now()->addDays(30)->format('Y-m-d\TH:i') }}">
-                                    <small class="text-muted">@lang('By default, users expire 30 days after their creation date.')</small>
-                                </div>
-                            </div>
-
-                            <div class="col-md-12" id="trial-period-wrapper" style="display:none;">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>@lang('Trial Start Mode')</label>
-                                            <select name="trial_start_type" class="form-control" id="trial_start_type">
-                                                <option value="immediate">@lang('Start Immediately')</option>
-                                                <option value="next_login" selected>@lang('Start on User\'s Next Login')</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6" id="trial-duration-wrapper">
-                                        <div class="form-group">
-                                            <label>@lang('Trial Duration')</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="trial_duration" placeholder="e.g. 2" min="1">
-                                                <select name="trial_unit" class="form-control">
-                                                    <option value="minutes">@lang('Minutes')</option>
-                                                    <option value="hours" selected>@lang('Hours')</option>
-                                                    <option value="days">@lang('Days')</option>
-                                                </select>
-                                            </div>
-                                            <small class="text-muted">@lang('Set the trial period length.')</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Assign Platforms (Auto Load-Balanced)')</label>
-                                    <input type="hidden" name="platform_ids_submitted" value="1">
-                                    <select name="platform_ids[]" class="form-control select2" multiple="multiple" data-placeholder="@lang('Select Platforms (e.g. Google Flow, ChatGPT)')">
-                                        @foreach($socialMedias as $sm)
-                                            <option value="{{ $sm->id }}">{{ __($sm->name) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <small class="text-muted">@lang('Select platforms to automatically balance users evenly across available account listings.')</small>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>@lang('Assign Specific Accounts (Manual Override)')</label>
-                                    <input type="hidden" name="account_ids_submitted" value="1">
-                                    <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector" data-placeholder="@lang('Select Specific Account Instance')">
-                                        @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}" data-name="{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}">{{ __(@$account->socialMedia->name) }} - {{ __($account->title) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <small class="text-muted">@lang('Select specific account instances if you want to manually assign a specific account.')</small>
-                                    <div id="account-prices-container" class="mt-2"></div>
-                                </div>
-                            </div>
-
-
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn--primary w-100 h-45">@lang('Submit')
+                            <div class="input-group input-group-lg">
+                                <input class="form-control" type="text" name="password" id="passwordField" placeholder="@lang('Enter or generate password')" required>
+                                <button type="button" class="btn btn--primary px-3 d-flex align-items-center justify-content-center" id="togglePassword" title="@lang('Toggle Visibility')" style="cursor:pointer; min-width: 50px;">
+                                    <i class="las la-eye" style="font-size: 20px; color: #fff;"></i>
+                                </button>
+                                <button type="button" class="btn btn--dark px-3 d-flex align-items-center justify-content-center copy-btn" title="@lang('Copy Password')" style="cursor:pointer; min-width: 50px;">
+                                    <i class="las la-copy" style="font-size: 20px; color: #fff;"></i>
                                 </button>
                             </div>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="fw-bold text--dark mb-2">
+                                <i class="las la-shield-alt text--primary"></i> @lang('Assign Available Accounts')
+                            </label>
+                            <select name="account_ids[]" class="form-control select2" multiple="multiple" id="account-selector" data-placeholder="@lang('Select Available Active Accounts')">
+                                @foreach($accounts as $account)
+                                    <option value="{{ $account->id }}">
+                                        {{ __(@$account->socialMedia->name) }} — {{ __($account->title) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted mt-1 d-block">
+                                @if($accounts->count() > 0)
+                                    <span class="text--success fw-bold"><i class="las la-check-circle"></i> {{ $accounts->count() }} @lang('active platform accounts currently available with valid cookies.')</span>
+                                @else
+                                    <span class="text--warning"><i class="las la-exclamation-triangle"></i> @lang('No active accounts with valid cookies available right now.')</span>
+                                @endif
+                            </small>
+                        </div>
+
+                        <div class="mt-4 pt-2">
+                            <button type="submit" class="btn btn--primary btn-lg w-100 h-45 shadow-sm fw-bold">
+                                <i class="las la-check me-1"></i> @lang('Create User & Activate Access')
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -185,266 +90,167 @@
 <script>
     (function ($) {
         "use strict";
-        
-        $('select[name=country]').on('change', function () {
-            $('input[name=mobile_code]').val($('select[name=country] :selected').data('mobile_code'));
-            $('.mobile-code').text('+' + $('select[name=country] :selected').data('mobile_code'));
-        });
-        $('input[name=mobile_code]').val($('select[name=country] :selected').data('mobile_code'));
-        $('.mobile-code').text('+' + $('select[name=country] :selected').data('mobile_code'));
 
-        // Auto-fill email based on username
-        $('input[name="username"]').on('input', function() {
-            let val = $(this).val();
-            if(val) {
-                $('input[name="email"]').val(val.toLowerCase() + '@topdealsplus.com');
-            } else {
-                $('input[name="email"]').val('');
+        function generateRandomPassword(length = 10) {
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let pwd = "";
+            for (let i = 0; i < length; i++) {
+                pwd += chars.charAt(Math.floor(Math.random() * chars.length));
             }
+            return pwd;
+        }
+
+        // Initial default random password
+        $('#passwordField').val(generateRandomPassword(10));
+
+        // Generate Password Button
+        $('#generatePasswordBtn').on('click', function(e) {
+            e.preventDefault();
+            $('#passwordField').val(generateRandomPassword(10));
+            notify('success', 'New random password generated!');
         });
 
         // Toggle password visibility
         $('#togglePassword').on('click', function() {
             let pwd = $('#passwordField');
-            if(pwd.attr('type') === 'password') {
+            if (pwd.attr('type') === 'password') {
                 pwd.attr('type', 'text');
-                $(this).html('<i class="las la-eye-slash"></i>');
+                $(this).html('<i class="las la-eye-slash" style="font-size: 20px; color: #fff;"></i>');
             } else {
                 pwd.attr('type', 'password');
-                $(this).html('<i class="las la-eye"></i>');
+                $(this).html('<i class="las la-eye" style="font-size: 20px; color: #fff;"></i>');
             }
         });
 
         // Copy Password
         $('.copy-btn').on('click', function () {
             let copyText = document.getElementById("passwordField");
-            if(copyText.type === "password") {
-                copyText.type = "text";
-                copyText.select();
-                document.execCommand("copy");
-                copyText.type = "password";
-            } else {
-                copyText.select();
-                document.execCommand("copy");
-            }
-            notify('success', 'Password Copied!');
+            let originalType = copyText.type;
+            copyText.type = "text";
+            copyText.select();
+            document.execCommand("copy");
+            copyText.type = originalType;
+            notify('success', 'Password copied to clipboard!');
         });
 
-        function generateRandomString(length) {
-            let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-            let str = "";
-            for (let i = 0; i < length; i++) {
-                str += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return str;
-        }
-        
-        function generateRandomNumberString(length) {
-            let chars = "0123456789";
-            let str = "";
-            for (let i = 0; i < length; i++) {
-                str += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return str;
-        }
+        // Auto-generate email prefix while typing Name
+        let isPrefixManuallyEdited = false;
 
-        // Generate Random Password
-        $('#generatePasswordBtn').on('click', function() {
-            $('#passwordField').val(generateRandomString(12));
-            $('#passwordField').attr('type', 'text');
-            $('#togglePassword').html('<i class="las la-eye-slash"></i>');
+        $('#userNameInput').on('input', function() {
+            if (!isPrefixManuallyEdited) {
+                let name = $(this).val().trim().toLowerCase();
+                let prefix = name.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+                $('#emailPrefixInput').val(prefix);
+            }
         });
 
-        // Quick Generate User with 100 European Names Pool
+        $('#emailPrefixInput').on('input', function() {
+            isPrefixManuallyEdited = $(this).val().length > 0;
+        });
+
+        // Quick Generate User with European/International Names Pool
         let userPoolIndex = Math.floor(Math.random() * 100);
         $('#generateUserBtn').on('click', function() {
             let pool = [
-                // 1–20: Nordic & Scandinavian
-                { fName: "Soren", lName: "Lind", countries: ["DK", "SE"] },
-                { fName: "Bram", lName: "Eklund", countries: ["SE"] },
-                { fName: "Frej", lName: "Holm", countries: ["SE", "NO", "DK"] },
-                { fName: "Jens", lName: "Falk", countries: ["DK"] },
-                { fName: "Roar", lName: "Berg", countries: ["NO"] },
-                { fName: "Kael", lName: "Vik", countries: ["NO"] },
-                { fName: "Stian", lName: "Borg", countries: ["NO"] },
-                { fName: "Tage", lName: "Strand", countries: ["SE"] },
-                { fName: "Vidar", lName: "Ny", countries: ["SE"] },
-                { fName: "Viggo", lName: "Blom", countries: ["DK"] },
-                { fName: "Aksel", lName: "Dahl", countries: ["NO"] },
-                { fName: "Rune", lName: "Sol", countries: ["DK"] },
-                { fName: "Elin", lName: "Sand", countries: ["SE"] },
-                { fName: "Astra", lName: "Vang", countries: ["DK"] },
-                { fName: "Ylva", lName: "Steen", countries: ["SE"] },
-                { fName: "Sune", lName: "Ring", countries: ["DK"] },
-                { fName: "Dania", lName: "Alm", countries: ["NO"] },
-                { fName: "Tuva", lName: "Hjort", countries: ["NO"] },
-                { fName: "Eir", lName: "Hed", countries: ["NO", "SE", "DK"] },
-                { fName: "Mael", lName: "Blixt", countries: ["SE"] },
-
-                // 21–40: Celtic & British Isles
-                { fName: "Cian", lName: "Keir", countries: ["IE", "GB"] },
-                { fName: "Rhys", lName: "Vance", countries: ["GB"] },
-                { fName: "Eoin", lName: "Blair", countries: ["IE", "GB"] },
-                { fName: "Torin", lName: "Ross", countries: ["GB", "IE"] },
-                { fName: "Niall", lName: "Kern", countries: ["IE"] },
-                { fName: "Bran", lName: "Sloane", countries: ["IE"] },
-                { fName: "Taron", lName: "Rhys", countries: ["GB"] },
-                { fName: "Calum", lName: "Doyle", countries: ["GB", "IE"] },
-                { fName: "Dax", lName: "Quinn", countries: ["IE", "GB"] },
-                { fName: "Fionn", lName: "Kerr", countries: ["IE", "GB"] },
-                { fName: "Glen", lName: "Orme", countries: ["GB"] },
-                { fName: "Iwan", lName: "Tait", countries: ["GB"] },
-                { fName: "Lorn", lName: "Ginn", countries: ["GB"] },
-                { fName: "Sean", lName: "Croft", countries: ["IE", "GB"] },
-                { fName: "Tiern", lName: "Bell", countries: ["IE"] },
-                { fName: "Kynan", lName: "Boyd", countries: ["GB"] },
-                { fName: "Wynne", lName: "Lyle", countries: ["GB"] },
-                { fName: "Zeth", lName: "Craig", countries: ["GB"] },
-                { fName: "Isla", lName: "Fife", countries: ["GB"] },
-                { fName: "Oisin", lName: "Ware", countries: ["IE"] },
-
-                // 41–60: Mediterranean (Italian, Spanish, Greek)
-                { fName: "Enzo", lName: "Moro", countries: ["IT"] },
-                { fName: "Nico", lName: "Rota", countries: ["IT"] },
-                { fName: "Elio", lName: "Boni", countries: ["IT"] },
-                { fName: "Milo", lName: "Sori", countries: ["IT"] },
-                { fName: "Leo", lName: "Serra", countries: ["IT", "ES"] },
-                { fName: "Dario", lName: "Viti", countries: ["IT"] },
-                { fName: "Zeno", lName: "Pace", countries: ["IT", "GR"] },
-                { fName: "Ciro", lName: "Conti", countries: ["IT"] },
-                { fName: "Rocco", lName: "Riva", countries: ["IT"] },
-                { fName: "Aldo", lName: "Vani", countries: ["IT"] },
-                { fName: "Tino", lName: "Lupi", countries: ["IT"] },
-                { fName: "Iker", lName: "Soler", countries: ["ES"] },
-                { fName: "Gael", lName: "Royo", countries: ["ES"] },
-                { fName: "Pau", lName: "Miro", countries: ["ES"] },
-                { fName: "Oriol", lName: "Mas", countries: ["ES"] },
-                { fName: "Unai", lName: "Pons", countries: ["ES"] },
-                { fName: "Joan", lName: "Roca", countries: ["ES"] },
-                { fName: "Ares", lName: "Costa", countries: ["GR", "ES"] },
-                { fName: "Cruz", lName: "Alba", countries: ["ES"] },
-                { fName: "Neri", lName: "Diz", countries: ["IT", "ES"] },
-
-                // 61–80: Eastern & Central European
-                { fName: "Lev", lName: "Kroll", countries: ["PL"] },
-                { fName: "Jan", lName: "Zima", countries: ["CZ", "PL"] },
-                { fName: "Teo", lName: "Novak", countries: ["CZ", "PL", "SK"] },
-                { fName: "Milan", lName: "Rus", countries: ["CZ", "SK"] },
-                { fName: "Otto", lName: "Szabo", countries: ["HU"] },
-                { fName: "Bela", lName: "Nagy", countries: ["HU"] },
-                { fName: "Filip", lName: "Dub", countries: ["CZ", "SK"] },
-                { fName: "Emil", lName: "Toth", countries: ["HU"] },
-                { fName: "Marek", lName: "Kosa", countries: ["CZ", "PL"] },
-                { fName: "Jarek", lName: "Sowa", countries: ["PL"] },
-                { fName: "Luan", lName: "Varga", countries: ["AL", "HU"] },
-                { fName: "Radek", lName: "Lis", countries: ["CZ", "PL"] },
-                { fName: "Tibor", lName: "Papp", countries: ["HU"] },
-                { fName: "Aris", lName: "Pop", countries: ["RO", "GR"] },
-                { fName: "Ivan", lName: "Deak", countries: ["HU", "SK"] },
-                { fName: "Bence", lName: "Nem", countries: ["HU"] },
-                { fName: "Daro", lName: "Ciz", countries: ["CZ"] },
-                { fName: "Stas", lName: "Wilk", countries: ["PL"] },
-                { fName: "Jozef", lName: "Turk", countries: ["SK"] },
-                { fName: "Zan", lName: "Kovac", countries: ["SI"] },
-
-                // 81–100: Western & Romance
-                { fName: "Yves", lName: "Baud", countries: ["FR"] },
-                { fName: "Luc", lName: "Vane", countries: ["FR", "NL"] },
-                { fName: "Remi", lName: "Noel", countries: ["FR"] },
-                { fName: "Jules", lName: "Fabre", countries: ["FR"] },
-                { fName: "Raoul", lName: "Denis", countries: ["FR"] },
-                { fName: "Marc", lName: "Petit", countries: ["FR"] },
-                { fName: "Guy", lName: "Lenz", countries: ["FR", "DE"] },
-                { fName: "Dirk", lName: "Haas", countries: ["NL", "DE"] },
-                { fName: "Lars", lName: "Vogel", countries: ["NL", "DE"] },
-                { fName: "Sven", lName: "Koch", countries: ["NL", "DE"] },
-                { fName: "Kurt", lName: "Graf", countries: ["DE"] },
-                { fName: "Finn", lName: "Maas", countries: ["NL"] },
-                { fName: "Bram", lName: "Beck", countries: ["NL", "DE"] },
-                { fName: "Jens", lName: "Zorn", countries: ["DE"] },
-                { fName: "Hugo", lName: "Blum", countries: ["FR", "DE"] },
-                { fName: "Leon", lName: "Roth", countries: ["FR", "DE"] },
-                { fName: "Max", lName: "Kress", countries: ["DE"] },
-                { fName: "Noah", lName: "Fink", countries: ["DE"] },
-                { fName: "Till", lName: "Hahn", countries: ["DE"] },
-                { fName: "Loic", lName: "Voss", countries: ["FR", "NL"] }
+                { fName: "Soren", lName: "Lind" },
+                { fName: "Bram", lName: "Eklund" },
+                { fName: "Frej", lName: "Holm" },
+                { fName: "Jens", lName: "Falk" },
+                { fName: "Roar", lName: "Berg" },
+                { fName: "Kael", lName: "Vik" },
+                { fName: "Stian", lName: "Borg" },
+                { fName: "Tage", lName: "Strand" },
+                { fName: "Vidar", lName: "Ny" },
+                { fName: "Viggo", lName: "Blom" },
+                { fName: "Aksel", lName: "Dahl" },
+                { fName: "Rune", lName: "Sol" },
+                { fName: "Elin", lName: "Sand" },
+                { fName: "Astra", lName: "Vang" },
+                { fName: "Ylva", lName: "Steen" },
+                { fName: "Sune", lName: "Ring" },
+                { fName: "Dania", lName: "Alm" },
+                { fName: "Tuva", lName: "Hjort" },
+                { fName: "Eir", lName: "Hed" },
+                { fName: "Mael", lName: "Blixt" },
+                { fName: "Cian", lName: "Keir" },
+                { fName: "Rhys", lName: "Vance" },
+                { fName: "Eoin", lName: "Blair" },
+                { fName: "Torin", lName: "Ross" },
+                { fName: "Niall", lName: "Kern" },
+                { fName: "Bran", lName: "Sloane" },
+                { fName: "Taron", lName: "Rhys" },
+                { fName: "Calum", lName: "Doyle" },
+                { fName: "Dax", lName: "Quinn" },
+                { fName: "Fionn", lName: "Kerr" },
+                { fName: "Enzo", lName: "Moro" },
+                { fName: "Nico", lName: "Rota" },
+                { fName: "Elio", lName: "Boni" },
+                { fName: "Milo", lName: "Sori" },
+                { fName: "Leo", lName: "Serra" },
+                { fName: "Dario", lName: "Viti" },
+                { fName: "Zeno", lName: "Pace" },
+                { fName: "Ciro", lName: "Conti" },
+                { fName: "Rocco", lName: "Riva" },
+                { fName: "Aldo", lName: "Vani" },
+                { fName: "Iker", lName: "Soler" },
+                { fName: "Gael", lName: "Royo" },
+                { fName: "Pau", lName: "Miro" },
+                { fName: "Oriol", lName: "Mas" },
+                { fName: "Unai", lName: "Pons" },
+                { fName: "Joan", lName: "Roca" },
+                { fName: "Ares", lName: "Costa" },
+                { fName: "Cruz", lName: "Alba" },
+                { fName: "Neri", lName: "Diz" },
+                { fName: "Lev", lName: "Kroll" },
+                { fName: "Jan", lName: "Zima" },
+                { fName: "Teo", lName: "Novak" },
+                { fName: "Milan", lName: "Rus" },
+                { fName: "Otto", lName: "Szabo" },
+                { fName: "Bela", lName: "Nagy" },
+                { fName: "Filip", lName: "Dub" },
+                { fName: "Emil", lName: "Toth" },
+                { fName: "Marek", lName: "Kosa" },
+                { fName: "Jarek", lName: "Sowa" },
+                { fName: "Yves", lName: "Baud" },
+                { fName: "Luc", lName: "Vane" },
+                { fName: "Remi", lName: "Noel" },
+                { fName: "Jules", lName: "Fabre" },
+                { fName: "Raoul", lName: "Denis" },
+                { fName: "Marc", lName: "Petit" },
+                { fName: "Guy", lName: "Lenz" },
+                { fName: "Dirk", lName: "Haas" },
+                { fName: "Lars", lName: "Vogel" },
+                { fName: "Sven", lName: "Koch" },
+                { fName: "Kurt", lName: "Graf" },
+                { fName: "Finn", lName: "Maas" },
+                { fName: "Bram", lName: "Beck" },
+                { fName: "Jens", lName: "Zorn" },
+                { fName: "Hugo", lName: "Blum" },
+                { fName: "Leon", lName: "Roth" },
+                { fName: "Max", lName: "Kress" },
+                { fName: "Noah", lName: "Fink" },
+                { fName: "Till", lName: "Hahn" },
+                { fName: "Loic", lName: "Voss" }
             ];
-            
+
             let person = pool[userPoolIndex % pool.length];
             let cycleCount = Math.floor(userPoolIndex / pool.length);
             userPoolIndex++;
-            
-            let countryCode = person.countries[Math.floor(Math.random() * person.countries.length)];
-            
-            $('input[name="firstname"]').val(person.fName);
-            $('input[name="lastname"]').val(person.lName);
-            
-            // First cycle uses exact firstname_lastname. Subsequent cycles append numbers for uniqueness.
-            let baseUsername = (person.fName + '_' + person.lName).toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+            let fullName = person.fName + ' ' + person.lName;
+            let basePrefix = (person.fName + '_' + person.lName).toLowerCase().replace(/[^a-z0-9_]/g, '');
             if (cycleCount > 0) {
-                baseUsername += '_' + (Math.floor(Math.random() * 900) + 100);
+                basePrefix += '_' + (Math.floor(Math.random() * 900) + 100);
             }
-            
-            $('input[name="username"]').val(baseUsername).trigger('input'); // This triggers the email auto-fill
-            
-            $('#generatePasswordBtn').click();
-            
-            // Random unique mobile number (10 digits)
-            $('input[name="mobile"]').val(generateRandomNumberString(10));
-            
-            // Select matching country in dropdown
-            if ($('#country option[value="' + countryCode + '"]').length > 0) {
-                $('#country').val(countryCode).trigger('change');
-            }
-            
-            notify('success', 'Generated user: ' + person.fName + ' ' + person.lName + ' (' + countryCode + ')!');
+
+            $('#userNameInput').val(fullName);
+            isPrefixManuallyEdited = false;
+            $('#emailPrefixInput').val(basePrefix);
+            $('#passwordField').val(generateRandomPassword(10));
+
+            notify('success', 'Generated: ' + fullName);
         });
-        
-        $('#is_trial').on('change', function() {
-            if($(this).is(':checked')) {
-                $('#standard-expiry-wrapper').hide();
-                $('#trial-period-wrapper').show();
-            } else {
-                $('#standard-expiry-wrapper').show();
-                $('#trial-period-wrapper').hide();
-            }
-        });
-        
-        // Dynamic Account Prices Logic
-        let accountSelector = $('#account-selector');
-        let pricesContainer = $('#account-prices-container');
 
-        function renderPriceInputs() {
-            let selectedOptions = accountSelector.find('option:selected');
-            let html = '';
-            
-            let currentValues = {};
-            pricesContainer.find('input[type=number]').each(function() {
-                let id = $(this).data('id');
-                currentValues[id] = $(this).val();
-            });
-
-            selectedOptions.each(function() {
-                let accountId = $(this).val();
-                let accountName = $(this).data('name');
-                let price = currentValues[accountId] || 0;
-                
-                html += `
-                    <div class="form-group mt-2 mb-2 p-2 border rounded">
-                        <label class="d-block font-weight-bold" style="font-size: 12px;">Price for: ${accountName}</label>
-                        <div class="input-group">
-                            <span class="input-group-text">{{ gs('cur_sym') }}</span>
-                            <input type="number" step="any" min="0" class="form-control form-control-sm" name="account_prices[${accountId}]" data-id="${accountId}" value="${price}" placeholder="0.00" required>
-                        </div>
-                    </div>
-                `;
-            });
-            pricesContainer.html(html);
-        }
-
-        accountSelector.on('change', renderPriceInputs);
-        renderPriceInputs();
-        
     })(jQuery);
 </script>
 @endpush
