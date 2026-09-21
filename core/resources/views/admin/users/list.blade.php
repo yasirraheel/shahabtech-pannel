@@ -30,6 +30,16 @@
                                         <span class="small d-block">
                                             <a href="{{ route('admin.users.detail', $user->id) }}"><span>@</span>{{ $user->username }}</a>
                                         </span>
+                                        @if($user->is_tester || $user->is_exclusive)
+                                            <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
+                                                @if($user->is_tester)
+                                                    <span class="badge badge--warning" title="@lang('Tester User Mode Active')"><i class="las la-vial"></i> @lang('Tester')</span>
+                                                @endif
+                                                @if($user->is_exclusive)
+                                                    <span class="badge badge--info" title="@lang('Cookie Extraction & Copy Allowed')"><i class="las la-cookie-bite"></i> @lang('Cookie Access')</span>
+                                                @endif
+                                            </div>
+                                        @endif
                                     </div>
                                     @if($user->last_seen)
                                         <div class="mt-1 d-flex flex-wrap gap-1 align-items-center justify-content-start text-start">

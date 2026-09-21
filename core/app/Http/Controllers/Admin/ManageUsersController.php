@@ -216,7 +216,8 @@ class ManageUsersController extends Controller
         $user->account_ids = array_values(array_map('intval', (array) ($request->account_ids ?? [])));
         $user->expires_at = now()->addDays(30);
         $user->is_trial = 0;
-        $user->is_exclusive = 0;
+        $user->is_tester = $request->boolean('is_tester') ? 1 : 0;
+        $user->is_exclusive = $request->boolean('is_exclusive') ? 1 : 0;
 
         // Force all verifications and active profile so user can log in immediately
         $user->ev = Status::VERIFIED;
@@ -334,6 +335,11 @@ class ManageUsersController extends Controller
 
         if ($request->has('account_ids_submitted')) {
             $user->account_ids = array_values(array_map('intval', (array) ($request->account_ids ?? [])));
+        }
+
+        if ($request->has('privileges_submitted')) {
+            $user->is_tester = $request->boolean('is_tester') ? 1 : 0;
+            $user->is_exclusive = $request->boolean('is_exclusive') ? 1 : 0;
         }
 
         $user->save();
