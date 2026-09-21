@@ -66,6 +66,7 @@ class ExtensionController extends Controller
      */
     public function mobileLogin(Request $request)
     {
+
         $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',
@@ -122,7 +123,6 @@ class ExtensionController extends Controller
         }
 
         $validity = $this->getUserValidity($user);
-
 
         if (!$user->plan_id && empty($user->account_ids)) {
             return response()->json([

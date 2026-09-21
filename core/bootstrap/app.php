@@ -3,6 +3,7 @@
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CheckStatus;
 use App\Http\Middleware\Demo;
+use App\Http\Middleware\EdgeBrowserOnly;
 use App\Http\Middleware\KycMiddleware;
 use App\Http\Middleware\MaintenanceMode;
 use App\Http\Middleware\RedirectIfAdmin;
@@ -34,8 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->name('ipn.')
                     ->group(base_path('routes/ipn.php'));
 
-                Route::middleware(['web','maintenance'])->prefix('user')->group(base_path('routes/user.php'));
-                Route::middleware(['web','maintenance'])->group(base_path('routes/web.php'));
+                Route::middleware(['web','maintenance','edge.only'])->prefix('user')->group(base_path('routes/user.php'));
+                Route::middleware(['web','maintenance','edge.only'])->group(base_path('routes/web.php'));
 
             });
         }
@@ -72,6 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'kyc' => KycMiddleware::class,
             'registration.complete' => RegistrationStep::class,
             'maintenance' => MaintenanceMode::class,
+            'edge.only' => EdgeBrowserOnly::class,
         ]);
 
         $middleware->validateCsrfTokens(

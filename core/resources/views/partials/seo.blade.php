@@ -1,4 +1,4 @@
-@if ($seo)
+@if (!empty($seo))
     <meta name="title" Content="{{ gs()->siteName(__($pageTitle)) }}">
     <meta name="description" content="{{ @$seoContents->description ?? $seo->description }}">
     <meta name="keywords" content="{{ implode(',', @$seoContents->keywords ?? $seo->keywords) }}">

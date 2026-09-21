@@ -213,6 +213,13 @@ Route::middleware('admin')->group(function () {
         Route::get('check-cookie/{id}', 'checkCookie')->name('check.cookie');
     });
 
+    // Fallback aliases for Account Listing (handles underscores, spaces, or missing /index)
+    Route::get('account_listing/index', fn() => redirect()->route('admin.account.listing.index'));
+    Route::get('account_listing', fn() => redirect()->route('admin.account.listing.index'));
+    Route::get('account-listing', fn() => redirect()->route('admin.account.listing.index'));
+    Route::get('account listing/index', fn() => redirect()->route('admin.account.listing.index'));
+    Route::get('account listing', fn() => redirect()->route('admin.account.listing.index'));
+
     // Plans
     Route::controller('PlanController')->prefix('plan')->name('plan.')->group(function () {
         Route::get('index', 'index')->name('index');

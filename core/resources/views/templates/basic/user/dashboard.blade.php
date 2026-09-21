@@ -3,6 +3,9 @@
     <div class="dashboard-section py-120">
         <div class="container">
             <div class="notice"></div>
+
+
+
             @php
                 $userAnsweredTickets = \App\Models\SupportTicket::where('user_id', auth()->id())->where('status', \App\Constants\Status::TICKET_ANSWER)->get();
             @endphp
@@ -290,6 +293,7 @@
 
             $('.btn-copy-cookie').on('click', function(e) {
                 e.preventDefault();
+
                 let btn = $(this);
                 let btnText = btn.find('.btn-copy-text');
                 let originalText = btnText.text();
@@ -351,6 +355,7 @@
 
             $('.btn-inject-access').on('click', function(e) {
                 e.preventDefault();
+
                 let btn = $(this);
                 let btnText = btn.find('.btn-text');
                 let originalText = btnText.text();

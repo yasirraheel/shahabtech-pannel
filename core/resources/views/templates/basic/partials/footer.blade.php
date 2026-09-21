@@ -31,15 +31,16 @@
                             @if (gs('multi_language'))
                                 @php
                                     $language = App\Models\Language::all();
-                                    $selectLanguage = App\Models\Language::where('code', session('lang'))->first();
+                                    $selectLanguage = App\Models\Language::where('code', session('lang'))->first() ?: ($language->where('is_default', 1)->first() ?: $language->first());
                                 @endphp
+                                @if($selectLanguage)
                                 <div class="language dropdown">
                                     <button class="language-wrapper" data-bs-toggle="dropdown" aria-expanded="false">
                                         <div class="language-content">
                                             <div class="language_flag">
-                                                <img src="{{ getImage(getFilePath('language') . '/' . $selectLanguage->image), '50x50' }}" alt="flag">
+                                                <img src="{{ getImage(getFilePath('language') . '/' . @$selectLanguage->image, '50x50') }}" alt="flag">
                                             </div>
-                                            <p class="language_text_select">{{ __($selectLanguage->name) }}</p>
+                                            <p class="language_text_select">{{ __(@$selectLanguage->name) }}</p>
                                         </div>
                                         <span class="collapse-icon"><i class="las la-angle-down"></i></span>
                                     </button>
@@ -48,15 +49,16 @@
                                             @foreach ($language as $item)
                                                 <li class="language-list langSel" data-code={{ $item->code }}>
                                                     <div class="language_flag">
-                                                        <img src="{{ getImage(getFilePath('language') . '/' . $item->image), '50x50' }}" alt="flag">
+                                                        <img src="{{ getImage(getFilePath('language') . '/' . @$item->image, '50x50') }}" alt="flag">
                                                     </div>
-                                                    <p class="language_text">{{ __($item->name) }}</p>
+                                                    <p class="language_text">{{ __(@$item->name) }}</p>
                                                 </li>
                                             @endforeach
 
                                         </ul>
                                     </div>
                                 </div>
+                                @endif
                             @endif
 
                         </div>
