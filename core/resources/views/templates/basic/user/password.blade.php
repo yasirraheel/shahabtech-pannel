@@ -1,66 +1,75 @@
 @extends($activeTemplate . 'layouts.master')
 
 @section('content')
-    <div class="profile-setting-section py-120">
-        <div class="container">
-            <div class="row justify-content-center gy-4">
-                <div class="col-12">
-                    <div class="profile-filter d-md-none d-block text-end">
-                        <button class="profile-filter__button toggle-profile-sidebar" type="button">
-                            <i class="fa fa-bars"></i>
-                        </button>
-                    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card custom--card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title text-white mb-0">@lang('Change Password')</h5>
+                    <a href="{{ route('user.profile.setting') }}" class="btn btn-sm btn--secondary">
+                        <i class="las la-user me-1"></i> @lang('Back to Profile')
+                    </a>
                 </div>
-                <div class="col-xl-10">
-                    <div class="profile-setting">
-                        @include($activeTemplate . 'partials.user_profile_topbar',['profileMessage' => 'Update your password below'])
+                <div class="card-body">
+                    <form method="post">
+                        @csrf
                         <div class="row">
-                            <div class="col-lg-3 col-md-4">
-                                @include($activeTemplate . 'partials.user_profile_sidenav')
-                            </div>
-                            <div class="col-lg-8 col-md-8">
-                                <div class="profile-setting__body">
-                                    <form method="post">
-                                        @csrf
-                                        <div class="row">
-                                            <div class="col-sm-12 form-group">
-                                                <label class="form--label" for="your-password4"> @lang('Current Password') </label>
-                                                <div class="position-relative">
-                                                    <input type="password" id="Current" class="form--control exclude" name="current_password" required autocomplete="current-password">
-                                                    <span class="password-show-hide fas fa-eye toggle-password fa-eye-slash" id="#Current"></span>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-12 form-group">
-                                                <label class="form--label" for="your-password4"> @lang('Password') </label>
-                                                <div class="position-relative">
-                                                    <input type="password" id="password" class="exclude form-control form--control @if (gs('secure_password')) secure-password @endif" name="password" required autocomplete="current-password">
-                                                    <span class="password-show-hide fas fa-eye toggle-password fa-eye-slash" id="#password"></span>
-                                                </div>
-                                            </div>
-                                            <div class="col-sm-12 form-group">
-                                                <label class="form--label" for="your-password5">@lang('Confirm Password')</label>
-                                                <div class="position-relative">
-                                                    <input type="password" id="confirm" class="form-control form--control exclude" name="password_confirmation" required autocomplete="current-password">
-                                                    <span class="password-show-hide fas fa-eye toggle-password fa-eye-slash" id="#confirm"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="profile-setting__button d-flex justify-content-end">
-                                            <button class="btn btn--base "> @lang('Save Changes') </button>
-                                        </div>
-                                    </form>
-                                   
+                            <div class="col-12 form-group">
+                                <label class="form--label required">@lang('Current Password')</label>
+                                <div class="position-relative">
+                                    <input type="password" id="current_password" class="form-control form--control" name="current_password" required autocomplete="current-password" style="padding-right: 45px;">
+                                    <span class="password-show-hide fas fa-eye toggle-password fa-eye-slash" id="#current_password"></span>
                                 </div>
                             </div>
+
+                            <div class="col-12 form-group">
+                                <label class="form--label required">@lang('New Password')</label>
+                                <div class="position-relative">
+                                    <input type="password" id="password" class="form-control form--control @if (gs('secure_password')) secure-password @endif" name="password" required autocomplete="new-password" style="padding-right: 45px;">
+                                    <span class="password-show-hide fas fa-eye toggle-password fa-eye-slash" id="#password"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-12 form-group">
+                                <label class="form--label required">@lang('Confirm New Password')</label>
+                                <div class="position-relative">
+                                    <input type="password" id="confirm_password" class="form-control form--control" name="password_confirmation" required autocomplete="new-password" style="padding-right: 45px;">
+                                    <span class="password-show-hide fas fa-eye toggle-password fa-eye-slash" id="#confirm_password"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <button class="btn btn--base w-100" type="submit">
+                                    <i class="las la-check me-1"></i> @lang('Update Password')
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 @endsection
+
 @if (gs('secure_password'))
     @push('script-lib')
         <script src="{{ asset('assets/global/js/secure_password.js') }}"></script>
     @endpush
 @endif
+
+@push('script')
+<script>
+    (function($){
+        "use strict";
+        $(".toggle-password").on('click', function () {
+            $(this).toggleClass("fa-eye fa-eye-slash");
+            var input = $($(this).attr("id"));
+            if (input.attr("type") === "password") {
+                input.attr("type", "text");
+            } else {
+                input.attr("type", "password");
+            }
+        });
+    })(jQuery);
+</script>
+@endpush
